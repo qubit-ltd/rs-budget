@@ -1,0 +1,17 @@
+# `qubit-budget` User Guide
+
+`qubit-budget` separates reusable accounting mechanics from domain policy.
+`ResourceLimit` stores one immutable maximum, `ResourceBudget` stores usage for
+one operation, and `LimitExceeded<K>` preserves a resource kind chosen by the
+calling crate.
+
+The core crate permits a zero maximum and represents an unbounded limit with
+`usize::MAX`. Consumption uses saturating arithmetic, so integer overflow cannot
+turn an oversized request into an accepted request. A failed `consume` leaves
+the previous usage unchanged; use `check_additional` when a non-mutating check is
+needed.
+
+The library does not choose whether bytes, nodes, depth, or properties are
+bounded, and it does not choose defaults or error text. Wire, parser, redaction,
+I/O, and conversion crates should keep those policies locally and translate the
+typed facts into their existing public errors.

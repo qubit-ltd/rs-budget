@@ -1,0 +1,37 @@
+[package]
+name = "qubit-budget"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+autotests = false
+authors = ["Haixing Hu <starfish.hu@gmail.com>"]
+license = "Apache-2.0"
+repository = "https://github.com/qubit-ltd/rs-budget"
+description = "Dependency-light resource limit and budget accounting primitives for Qubit Rust crates"
+homepage = "https://qubit-ltd.github.io/rs-budget/"
+documentation = "https://docs.rs/qubit-budget"
+readme = "README.md"
+keywords = ["budget", "limits", "resources", "qubit"]
+categories = ["rust-patterns"]
+include = [
+    "/Cargo.toml",
+    "/LICENSE",
+    "/README.md",
+    "/README.zh_CN.md",
+    "/src/**",
+    "/doc/**",
+    "/tests/**",
+    "/benches/**",
+]
+
+[package.metadata.rs-ci]
+miri = true
+
+[dependencies]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
+
+[[test]]
+name = "tests"
+path = "tests/mod.rs"
