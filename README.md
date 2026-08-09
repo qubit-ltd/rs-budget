@@ -21,21 +21,21 @@ Add the published crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-budget = "0.2"
+qubit-budget = "0.3"
 ```
 
 ## Quick Start
 
 ```rust
-use qubit_budget::ResourceLimit;
+use qubit_budget::ResourceBudget;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ResourceKind {
     Nodes,
 }
 
-let mut budget = ResourceLimit::new(100).budget();
-budget.try_consume(ResourceKind::Nodes, 40).expect("within the budget");
+let mut budget = ResourceBudget::new(ResourceKind::Nodes, 100);
+budget.try_consume(40).expect("within the budget");
 assert_eq!(budget.remaining(), 60);
 ```
 
@@ -43,14 +43,14 @@ assert_eq!(budget.remaining(), 60);
 
 - immutable single-dimension limits through `ResourceLimit`;
 - mutable per-operation accounting through `ResourceBudget`;
-- typed `LimitExceeded<K>` facts for domain-owned resource categories;
+- typed `LimitExceeded<R>` facts for domain-owned resource categories;
 - failure-atomic, fail-closed, partial, and releasable consumption operations.
 
 ## Limitations
 
 The crate intentionally does not define JSON, Serde, I/O, redaction, parser,
 default-limit, or domain-error policy. Consuming crates should retain their own
-public limit types and translate `LimitExceeded<K>` into their established
+public limit types and translate `LimitExceeded<R>` into their established
 errors.
 
 ## Testing

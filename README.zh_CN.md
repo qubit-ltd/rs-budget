@@ -20,21 +20,21 @@
 
 ```toml
 [dependencies]
-qubit-budget = "0.2"
+qubit-budget = "0.3"
 ```
 
 ## 快速开始
 
 ```rust
-use qubit_budget::ResourceLimit;
+use qubit_budget::ResourceBudget;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ResourceKind {
     Nodes,
 }
 
-let mut budget = ResourceLimit::new(100).budget();
-budget.try_consume(ResourceKind::Nodes, 40).expect("预算足够");
+let mut budget = ResourceBudget::new(ResourceKind::Nodes, 100);
+budget.try_consume(40).expect("预算足够");
 assert_eq!(budget.remaining(), 60);
 ```
 
@@ -42,13 +42,13 @@ assert_eq!(budget.remaining(), 60);
 
 - 通过 `ResourceLimit` 表示不可变的单维度限制；
 - 通过 `ResourceBudget` 进行单次操作内的可变累计；
-- 通过调用方定义的资源类别构造强类型 `LimitExceeded<K>` 事实；
+- 通过调用方定义的资源类别构造强类型 `LimitExceeded<R>` 事实；
 - 提供失败原子、失败耗尽、部分消费和资源归还操作。
 
 ## 限制
 
 本 crate 有意不定义 JSON、Serde、I/O、脱敏、解析器、默认限制或领域错误
-策略。使用方应保留自己的公共 limits 类型，并将 `LimitExceeded<K>` 转换为
+策略。使用方应保留自己的公共 limits 类型，并将 `LimitExceeded<R>` 转换为
 已有错误类型。
 
 ## 测试

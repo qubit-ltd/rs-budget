@@ -11,30 +11,48 @@ use crate::InvalidRelease;
 use crate::LimitExceeded;
 use crate::ResourceLimit;
 
-/// Mutable consumption state for one resource dimension.
+/// Mutable consumption state for one resource category.
+///
+/// # Type Parameters
+///
+/// - `R`: Resource category represented by this budget and preserved in limit
+///   errors.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct ResourceBudget {
+pub struct ResourceBudget<R> {
+    resource: R,
     limit: ResourceLimit,
     remaining: usize,
 }
 
-impl ResourceBudget {
-    /// Creates an unused budget for the specified limit.
+impl<R> ResourceBudget<R> {
+    /// Creates an unused budget for the specified resource and maximum.
     ///
     /// # Parameters
     ///
-    /// - `limit`: Immutable maximum governing this budget.
+    /// - `resource`: Resource category represented by this budget.
+    /// - `maximum`: Largest amount this budget can hold or consume.
     ///
     /// # Returns
     ///
     /// A budget with all capacity available.
     #[inline(always)]
-    pub const fn new(limit: ResourceLimit) -> Self {
+    pub const fn new(resource: R, maximum: usize) -> Self {
         Self {
-            remaining: limit.maximum(),
-            limit,
+            resource,
+            limit: ResourceLimit::new(maximum),
+            remaining: maximum,
         }
+    }
+
+    /// Returns the resource category represented by this budget.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the fixed resource category.
+    #[inline(always)]
+    pub const fn resource(&self) -> &R {
+        &self.resource
     }
 
     /// Returns the immutable limit governing this budget.
@@ -93,7 +111,6 @@ impl ResourceBudget {
     ///
     /// # Parameters
     ///
-    /// - `kind`: Domain-specific resource category to preserve on failure.
     /// - `amount`: Additional amount to check.
     ///
     /// # Returns
@@ -104,16 +121,18 @@ impl ResourceBudget {
     ///
     /// Returns [`LimitExceeded`] when the resulting usage exceeds the limit.
     #[inline]
-    pub fn check_additional<K>(
+    pub fn check_additional(
         &self,
-        kind: K,
         amount: usize,
-    ) -> Result<(), LimitExceeded<K>> {
+    ) -> Result<(), LimitExceeded<R>>
+    where
+        R: Clone,
+    {
         if amount <= self.remaining {
             Ok(())
         } else {
             Err(LimitExceeded::new(
-                kind,
+                self.resource.clone(),
                 self.maximum(),
                 self.used().saturating_add(amount),
             ))
@@ -124,7 +143,6 @@ impl ResourceBudget {
     ///
     /// # Parameters
     ///
-    /// - `kind`: Domain-specific resource category to preserve on failure.
     /// - `amount`: Additional amount to consume.
     ///
     /// # Returns
@@ -136,12 +154,11 @@ impl ResourceBudget {
     /// Returns [`LimitExceeded`] and leaves the budget unchanged when the
     /// resulting usage exceeds the limit.
     #[inline]
-    pub fn try_consume<K>(
-        &mut self,
-        kind: K,
-        amount: usize,
-    ) -> Result<(), LimitExceeded<K>> {
-        self.check_additional(kind, amount)?;
+    pub fn try_consume(&mut self, amount: usize) -> Result<(), LimitExceeded<R>>
+    where
+        R: Clone,
+    {
+        self.check_additional(amount)?;
         self.remaining -= amount;
         Ok(())
     }
@@ -151,7 +168,6 @@ impl ResourceBudget {
     ///
     /// # Parameters
     ///
-    /// - `kind`: Domain-specific resource category to preserve on failure.
     /// - `amount`: Additional amount to consume.
     ///
     /// # Returns
@@ -163,17 +179,19 @@ impl ResourceBudget {
     /// Returns [`LimitExceeded`] and sets the remaining capacity to zero when
     /// `amount` exceeds the available capacity.
     #[inline]
-    pub fn consume_or_exhaust<K>(
+    pub fn consume_or_exhaust(
         &mut self,
-        kind: K,
         amount: usize,
-    ) -> Result<(), LimitExceeded<K>> {
+    ) -> Result<(), LimitExceeded<R>>
+    where
+        R: Clone,
+    {
         if amount <= self.remaining {
             self.remaining -= amount;
             Ok(())
         } else {
             let error = LimitExceeded::new(
-                kind,
+                self.resource.clone(),
                 self.maximum(),
                 self.used().saturating_add(amount),
             );

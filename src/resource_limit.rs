@@ -90,14 +90,4 @@ impl ResourceLimit {
             Ok(())
         }
     }
-
-    /// Creates an empty budget governed by this limit.
-    ///
-    /// # Returns
-    ///
-    /// A mutable budget with zero recorded usage.
-    #[inline(always)]
-    pub const fn budget(self) -> crate::ResourceBudget {
-        crate::ResourceBudget::new(self)
-    }
 }
