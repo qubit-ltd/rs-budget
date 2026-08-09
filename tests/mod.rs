@@ -7,6 +7,7 @@
 // =============================================================================
 //! Integration test module for `qubit-budget`.
 
+mod invalid_release_tests;
 mod limit_exceeded_tests;
 mod resource_budget_tests;
 mod resource_limit_tests;
