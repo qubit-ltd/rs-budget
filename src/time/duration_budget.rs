@@ -1,0 +1,134 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+// =============================================================================
+//! Defines finite budgets for explicitly measured active durations.
+
+use std::time::Duration;
+
+use super::DurationBudgetError;
+
+/// A finite, monotonic budget for durations explicitly submitted by callers.
+///
+/// This type never reads a clock. Operation code decides which measured
+/// durations count and submits them through [`Self::try_consume`]. Waiting,
+/// queueing and backoff do not consume this budget automatically; use
+/// [`super::TimeBudget`] for a continuous deadline.
+#[must_use]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DurationBudget<R> {
+    resource: R,
+    limit: Duration,
+    remaining: Duration,
+}
+
+impl<R> DurationBudget<R> {
+    /// Creates a zero-used finite duration budget.
+    ///
+    /// # Parameters
+    ///
+    /// * `resource` - Domain resource value retained in errors.
+    /// * `limit` - Finite maximum active duration.
+    ///
+    /// # Returns
+    ///
+    /// A budget whose remaining duration equals `limit`.
+    pub const fn new(resource: R, limit: Duration) -> Self {
+        Self {
+            resource,
+            limit,
+            remaining: limit,
+        }
+    }
+
+    /// Checks whether a complete duration consumption would fit.
+    ///
+    /// # Parameters
+    ///
+    /// * `duration` - Explicit duration to check.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the duration fits, otherwise a structured error with no
+    /// state mutation.
+    pub fn check_available(
+        &self,
+        duration: Duration,
+    ) -> Result<(), DurationBudgetError<R>>
+    where
+        R: Clone,
+    {
+        if duration <= self.remaining {
+            Ok(())
+        } else {
+            Err(DurationBudgetError::new(
+                self.resource.clone(),
+                self.limit,
+                self.remaining,
+                duration,
+            ))
+        }
+    }
+
+    /// Consumes a duration atomically when it fits.
+    ///
+    /// # Parameters
+    ///
+    /// * `duration` - Explicit active duration to consume.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after subtraction, or a structured error while leaving the
+    /// remaining duration unchanged.
+    pub fn try_consume(
+        &mut self,
+        duration: Duration,
+    ) -> Result<(), DurationBudgetError<R>>
+    where
+        R: Clone,
+    {
+        self.check_available(duration)?;
+        self.remaining -= duration;
+        Ok(())
+    }
+
+    /// Consumes as much of the requested duration as remains available.
+    ///
+    /// # Parameters
+    ///
+    /// * `requested` - Maximum duration to consume.
+    ///
+    /// # Returns
+    ///
+    /// The exact duration consumed, equal to the smaller of `requested` and
+    /// the current remaining duration.
+    pub fn consume_available(&mut self, requested: Duration) -> Duration {
+        let consumed = requested.min(self.remaining);
+        self.remaining -= consumed;
+        consumed
+    }
+
+    /// Returns the associated resource.
+    pub const fn resource(&self) -> &R {
+        &self.resource
+    }
+
+    /// Returns the finite duration limit.
+    pub const fn limit(&self) -> Duration {
+        self.limit
+    }
+
+    /// Returns remaining duration.
+    pub const fn remaining(&self) -> Duration {
+        self.remaining
+    }
+
+    /// Returns explicitly consumed duration.
+    pub const fn used(&self) -> Duration {
+        self.limit.saturating_sub(self.remaining)
+    }
+}

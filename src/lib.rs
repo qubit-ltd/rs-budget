@@ -26,3 +26,16 @@ pub use resource_budget_error::ResourceBudgetError;
 pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
 pub use resource_pool_error::ResourcePoolError;
+
+#[cfg(feature = "time")]
+#[cfg_attr(docsrs, doc(cfg(feature = "time")))]
+pub mod time;
+
+#[cfg(feature = "time")]
+pub use time::DurationBudget;
+#[cfg(feature = "time")]
+pub use time::DurationBudgetError;
+#[cfg(feature = "time")]
+pub use time::TimeBudget;
+#[cfg(feature = "time")]
+pub use time::TimeBudgetError;
