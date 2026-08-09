@@ -54,6 +54,7 @@ fn test_clock_error_exposes_the_resource_and_time_source() {
     assert_eq!(error.deadline(), None);
     assert_eq!(error.now(), None);
     assert_eq!(error.requested(), None);
+    assert!(error.to_string().contains("failed:"));
     assert!(Error::source(&error).is_some());
     assert_eq!(error.into_resource(), TestResource::TotalElapsed);
 }

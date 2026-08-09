@@ -7,12 +7,11 @@
 // =============================================================================
 //! Errors emitted by continuous monotonic deadline budgets.
 
-use core::fmt;
-use std::error::Error;
 use std::time::Duration;
 
 use qubit_clock::MonotonicInstant;
 use qubit_clock::TimeError;
+use thiserror::Error;
 
 /// Failure facts for a continuous deadline check.
 ///
@@ -20,16 +19,21 @@ use qubit_clock::TimeError;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum TimeBudgetError<R> {
     /// The clock rejected a domain or instant operation.
+    #[error("time budget for {resource:?} failed: {source}")]
     Clock {
         /// Resource value associated with the deadline.
         resource: R,
         /// Underlying clock failure.
+        #[source]
         source: TimeError,
     },
     /// The fixed deadline has already been reached.
+    #[error(
+        "time budget for {resource:?} expired at {deadline:?}; now is {now:?}"
+    )]
     Expired {
         /// Resource value associated with the deadline.
         resource: R,
@@ -39,6 +43,9 @@ pub enum TimeBudgetError<R> {
         now: MonotonicInstant,
     },
     /// A prospective operation would reach or pass the deadline.
+    #[error(
+        "time budget for {resource:?} at {now:?} cannot fit {requested:?} before {deadline:?}"
+    )]
     WouldExpire {
         /// Resource value associated with the deadline.
         resource: R,
@@ -128,47 +135,6 @@ impl<R> TimeBudgetError<R> {
         match self {
             Self::WouldExpire { requested, .. } => Some(*requested),
             Self::Clock { .. } | Self::Expired { .. } => None,
-        }
-    }
-}
-
-impl<R: fmt::Debug> fmt::Display for TimeBudgetError<R> {
-    /// Formats the clock or deadline failure facts.
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Clock { resource, source } => {
-                write!(
-                    formatter,
-                    "time budget for {resource:?} failed: {source}"
-                )
-            }
-            Self::Expired {
-                resource,
-                deadline,
-                now,
-            } => write!(
-                formatter,
-                "time budget for {resource:?} expired at {deadline:?}; now is {now:?}",
-            ),
-            Self::WouldExpire {
-                resource,
-                deadline,
-                now,
-                requested,
-            } => write!(
-                formatter,
-                "time budget for {resource:?} at {now:?} cannot fit {requested:?} before {deadline:?}",
-            ),
-        }
-    }
-}
-
-impl<R: fmt::Debug> Error for TimeBudgetError<R> {
-    /// Returns the underlying clock error for a clock failure.
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::Clock { source, .. } => Some(source),
-            Self::Expired { .. } | Self::WouldExpire { .. } => None,
         }
     }
 }

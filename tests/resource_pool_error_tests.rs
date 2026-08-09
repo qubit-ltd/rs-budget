@@ -50,7 +50,10 @@ fn test_pool_errors_can_be_displayed_and_consumed_for_the_resource() {
         available: 0,
         requested: 1,
     };
-    assert!(exhausted.to_string().contains("available"));
+    assert_eq!(
+        exhausted.to_string(),
+        "resource OpenFiles has 0 available, but 1 was requested",
+    );
     assert_eq!(exhausted.into_resource(), TestResource::OpenFiles);
 
     let invalid = ResourcePoolError::InvalidRelease {
@@ -59,6 +62,9 @@ fn test_pool_errors_can_be_displayed_and_consumed_for_the_resource() {
         in_use: 0,
         requested: 1,
     };
-    assert!(invalid.to_string().contains("released"));
+    assert_eq!(
+        invalid.to_string(),
+        "resource OpenFiles has 0 in use, but 1 was released",
+    );
     assert_eq!(invalid.into_resource(), TestResource::OpenFiles);
 }
