@@ -21,7 +21,7 @@ use crate::ResourcePoolError;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ResourcePool<R> {
     /// Resource value retained in acquisition and release errors.
     resource: R,
@@ -44,8 +44,19 @@ impl<R> ResourcePool<R> {
     /// # Returns
     ///
     /// A pool with `available == limit.maximum()`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use qubit_budget::{ResourceLimit, ResourcePool};
+    ///
+    /// let mut pool = ResourcePool::new("readers", ResourceLimit::new(2));
+    /// pool.try_acquire(1).expect("one reader should fit");
+    /// pool.release(1).expect("the reader is returned explicitly");
+    /// assert_eq!(pool.in_use(), 0);
+    /// ```
     #[inline]
-    pub fn new(resource: R, limit: ResourceLimit) -> Self {
+    pub const fn new(resource: R, limit: ResourceLimit) -> Self {
         Self {
             resource,
             limit,

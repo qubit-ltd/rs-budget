@@ -22,7 +22,7 @@ use super::DurationBudgetError;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DurationBudget<R> {
     /// Resource value retained in consumption errors.
     resource: R,
@@ -45,6 +45,17 @@ impl<R> DurationBudget<R> {
     /// # Returns
     ///
     /// A budget whose remaining duration equals `limit`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use qubit_budget::DurationBudget;
+    ///
+    /// let mut budget = DurationBudget::new("active work", Duration::from_secs(5));
+    /// budget.try_consume(Duration::from_secs(2)).expect("two seconds should fit");
+    /// assert_eq!(budget.remaining(), Duration::from_secs(3));
+    /// ```
     #[inline]
     pub const fn new(resource: R, limit: Duration) -> Self {
         Self {

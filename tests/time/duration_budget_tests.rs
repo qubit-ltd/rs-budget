@@ -31,6 +31,8 @@ fn test_try_consume_uses_remaining_duration_and_is_atomic_on_failure() {
     assert_eq!(error.requested(), Duration::from_secs(4));
     assert_eq!(budget.remaining(), Duration::from_secs(3));
     assert_eq!(budget.used(), Duration::from_secs(2));
+    assert_eq!(error.used(), Duration::from_secs(2));
+    assert_eq!(error.checked_attempted(), Some(Duration::from_secs(6)));
 }
 
 #[test]

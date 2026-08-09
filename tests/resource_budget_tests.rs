@@ -17,6 +17,14 @@ enum TestResource {
     Bytes,
 }
 
+const BYTE_BUDGET: ResourceBudget<&str> =
+    ResourceBudget::new("body", ResourceLimit::new(8));
+
+#[test]
+fn test_new_is_const() {
+    assert_eq!(BYTE_BUDGET.remaining(), 8);
+}
+
 #[test]
 fn test_try_consume_decreases_remaining_and_increases_used() {
     let mut budget =
@@ -51,6 +59,30 @@ fn test_failed_consume_is_atomic_and_reports_exact_facts() {
     assert_eq!(error.remaining(), 3);
     assert_eq!(error.requested(), 4);
     assert_eq!(budget.remaining(), 3);
+}
+
+#[test]
+fn test_error_reports_used_and_checked_attempted() {
+    let mut budget = ResourceBudget::new("body", ResourceLimit::new(10));
+    budget.try_consume(7).expect("seven bytes should fit");
+    let error = budget
+        .try_consume(5)
+        .expect_err("five bytes should exceed the remainder");
+    assert_eq!(error.used(), 7);
+    assert_eq!(error.checked_attempted(), Some(12));
+}
+
+#[test]
+fn test_error_checked_attempted_reports_overflow() {
+    let mut budget = ResourceBudget::new("body", ResourceLimit::new(u64::MAX));
+    budget
+        .try_consume(u64::MAX)
+        .expect("the maximum amount should fit");
+    let error = budget
+        .try_consume(1)
+        .expect_err("an exhausted budget should reject more input");
+    assert_eq!(error.used(), u64::MAX);
+    assert_eq!(error.checked_attempted(), None);
 }
 
 #[test]

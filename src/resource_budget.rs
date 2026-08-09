@@ -23,7 +23,7 @@ use crate::ResourceLimit;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ResourceBudget<R> {
     /// Resource value retained in consumption errors.
     resource: R,
@@ -46,8 +46,19 @@ impl<R> ResourceBudget<R> {
     /// # Returns
     ///
     /// A budget whose remaining capacity equals `limit.maximum()`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use qubit_budget::{ResourceBudget, ResourceLimit};
+    ///
+    /// let mut budget = ResourceBudget::new("bytes", ResourceLimit::new(8));
+    /// budget.try_consume(3).expect("three bytes should fit");
+    /// assert_eq!(budget.used(), 3);
+    /// assert_eq!(budget.remaining(), 5);
+    /// ```
     #[inline]
-    pub fn new(resource: R, limit: ResourceLimit) -> Self {
+    pub const fn new(resource: R, limit: ResourceLimit) -> Self {
         Self {
             resource,
             limit,

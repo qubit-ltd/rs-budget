@@ -18,6 +18,29 @@ enum TestResource {
     OpenFiles,
 }
 
+const OPEN_FILE_POOL: ResourcePool<&str> =
+    ResourcePool::new("open-files", ResourceLimit::new(3));
+
+#[test]
+fn test_new_is_const() {
+    assert_eq!(OPEN_FILE_POOL.capacity(), 3);
+}
+
+#[test]
+fn test_release_can_happen_in_another_context_and_in_parts() {
+    fn close_one(pool: &mut ResourcePool<&str>) {
+        pool.release(1).expect("one held unit should be releasable");
+    }
+
+    let mut pool = OPEN_FILE_POOL;
+    pool.try_acquire(3).expect("capacity should fit");
+    close_one(&mut pool);
+    assert_eq!(pool.in_use(), 2);
+    pool.release(2)
+        .expect("the remaining units should be releasable");
+    assert_eq!(pool.in_use(), 0);
+}
+
 fn acquire_then_release(
     pool: &mut ResourcePool<TestResource>,
     amount: u64,
