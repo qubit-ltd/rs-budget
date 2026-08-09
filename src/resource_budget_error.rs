@@ -7,7 +7,8 @@
 // =============================================================================
 //! Errors emitted by finite cumulative resource budgets.
 
-use thiserror::Error;
+use core::fmt;
+use std::error::Error;
 
 use crate::ResourceLimit;
 
@@ -21,11 +22,7 @@ use crate::ResourceLimit;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug, Error, Clone, PartialEq, Eq)]
-#[error(
-    "resource {resource:?} requested {requested}, but only {remaining} of {} remains",
-    .limit.maximum()
-)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceBudgetError<R> {
     /// Resource value associated with the failed request.
     resource: R,
@@ -98,3 +95,19 @@ impl<R> ResourceBudgetError<R> {
         self.requested
     }
 }
+
+impl<R: fmt::Debug> fmt::Display for ResourceBudgetError<R> {
+    /// Formats the failed request and the capacity that remained.
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "resource {:?} requested {}, but only {} of {} remains",
+            self.resource,
+            self.requested,
+            self.remaining,
+            self.limit.maximum(),
+        )
+    }
+}
+
+impl<R: fmt::Debug> Error for ResourceBudgetError<R> {}

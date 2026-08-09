@@ -33,7 +33,6 @@ time = ["dep:qubit-clock"]
 
 [dependencies]
 qubit-clock = { version = "0.12", optional = true }
-thiserror = "2.0"
 
 [dev-dependencies]
 proptest = "1.11"

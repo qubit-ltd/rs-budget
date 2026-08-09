@@ -7,9 +7,9 @@
 // =============================================================================
 //! Errors emitted by explicit duration budgets.
 
+use core::fmt;
+use std::error::Error;
 use std::time::Duration;
-
-use thiserror::Error;
 
 /// Facts from an explicit duration request that did not fit.
 ///
@@ -17,10 +17,7 @@ use thiserror::Error;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug, Error, Clone, PartialEq, Eq)]
-#[error(
-    "resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains"
-)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DurationBudgetError<R> {
     /// Resource value associated with the failed request.
     resource: R,
@@ -93,3 +90,16 @@ impl<R> DurationBudgetError<R> {
         self.requested
     }
 }
+
+impl<R: fmt::Debug> fmt::Display for DurationBudgetError<R> {
+    /// Formats the failed duration request and remaining capacity.
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "resource {:?} requested {:?}, but only {:?} of {:?} remains",
+            self.resource, self.requested, self.remaining, self.limit,
+        )
+    }
+}
+
+impl<R: fmt::Debug> Error for DurationBudgetError<R> {}

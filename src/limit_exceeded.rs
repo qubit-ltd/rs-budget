@@ -7,7 +7,8 @@
 // =============================================================================
 //! Structured facts for a failed point limit check.
 
-use thiserror::Error;
+use core::fmt;
+use std::error::Error;
 
 use crate::ResourceLimit;
 
@@ -21,11 +22,7 @@ use crate::ResourceLimit;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug, Error, Clone, Copy, PartialEq, Eq, Hash)]
-#[error(
-    "resource {resource:?} observed {observed} exceeds limit {}",
-    .limit.maximum()
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LimitExceeded<R> {
     /// Resource value associated with the rejected observation.
     resource: R,
@@ -82,3 +79,18 @@ impl<R> LimitExceeded<R> {
         self.observed
     }
 }
+
+impl<R: fmt::Debug> fmt::Display for LimitExceeded<R> {
+    /// Formats the rejected observation and its finite limit.
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "resource {:?} observed {} exceeds limit {}",
+            self.resource,
+            self.observed,
+            self.limit.maximum(),
+        )
+    }
+}
+
+impl<R: fmt::Debug> Error for LimitExceeded<R> {}

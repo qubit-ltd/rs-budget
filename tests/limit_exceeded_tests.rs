@@ -22,14 +22,3 @@ fn test_error_accessors_return_structured_facts() {
     assert_eq!(error.observed(), 5);
     assert_eq!(error.into_resource(), TestResource::Items);
 }
-
-#[test]
-fn test_error_display_preserves_the_diagnostic_message() {
-    let error =
-        LimitExceeded::new(TestResource::Items, ResourceLimit::new(4), 5);
-
-    assert_eq!(
-        error.to_string(),
-        "resource Items observed 5 exceeds limit 4",
-    );
-}

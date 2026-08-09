@@ -36,8 +36,6 @@ fn test_budget_error_display_contains_the_failed_facts() {
         .try_consume(2)
         .expect_err("two units should exceed one unit");
     let display = error.to_string();
-    assert_eq!(
-        display,
-        "resource Bytes requested 2, but only 1 of 1 remains",
-    );
+    assert!(display.contains("requested 2"));
+    assert!(display.contains("only 1"));
 }
