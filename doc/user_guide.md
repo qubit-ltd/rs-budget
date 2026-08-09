@@ -6,10 +6,8 @@ capacity for one operation, and `LimitExceeded<K>` preserves a resource kind
 chosen by the calling crate.
 
 The core crate permits a zero maximum and represents an unbounded limit with
-`usize::MAX`. Consumption uses saturating arithmetic, so integer overflow cannot
-turn an oversized request into an accepted request. A failed `consume` leaves
-the previous usage unchanged; use `check_additional` when a non-mutating check is
-needed.
+`usize::MAX`. `try_consume` leaves the budget unchanged when an amount does not
+fit; use `check_additional` when a non-mutating check is needed.
 
 `ResourceBudget::try_consume` keeps the budget unchanged when an amount does not
 fit. `consume_or_exhaust` clears the remaining capacity before returning the
