@@ -9,9 +9,9 @@ use proptest::prelude::any;
 use proptest::prelude::prop;
 use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
-use qubit_budget::ResourceLimit;
 use qubit_budget::ResourcePool;
 use qubit_budget::ResourcePoolError;
+use qubit_budget::ResourceQuantity;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TestResource {
@@ -19,7 +19,7 @@ enum TestResource {
 }
 
 const OPEN_FILE_POOL: ResourcePool<&str> =
-    ResourcePool::new("open-files", ResourceLimit::new(3));
+    ResourcePool::new("open-files", 3_u64);
 
 #[test]
 fn test_new_is_const() {
@@ -52,8 +52,7 @@ fn acquire_then_release(
 
 #[test]
 fn test_release_makes_capacity_reusable() {
-    let mut pool =
-        ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(2));
+    let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     pool.try_acquire(2).expect("capacity should be acquirable");
     pool.release(1).expect("one held unit should be releasable");
     pool.try_acquire(1)
@@ -64,16 +63,14 @@ fn test_release_makes_capacity_reusable() {
 
 #[test]
 fn test_one_error_type_supports_question_mark_for_both_operations() {
-    let mut pool =
-        ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(2));
+    let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     acquire_then_release(&mut pool, 1)
         .expect("both operations should share one error type");
 }
 
 #[test]
 fn test_acquire_reports_exhaustion_without_mutation() {
-    let mut pool =
-        ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(2));
+    let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     pool.try_acquire(2)
         .expect("the maximum should be acquirable");
     let error = pool
@@ -92,8 +89,7 @@ fn test_acquire_reports_exhaustion_without_mutation() {
 
 #[test]
 fn test_invalid_release_is_atomic() {
-    let mut pool =
-        ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(2));
+    let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     pool.try_acquire(1).expect("one unit should fit");
     let error = pool
         .release(2)
@@ -111,10 +107,9 @@ fn test_invalid_release_is_atomic() {
 
 #[test]
 fn test_pool_accessors_report_the_finite_capacity() {
-    let pool =
-        ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(2));
+    let pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     assert_eq!(pool.resource(), &TestResource::OpenFiles);
-    assert_eq!(pool.limit(), ResourceLimit::new(2));
+    assert_eq!(pool.limit(), 2_u64);
     assert_eq!(pool.capacity(), 2);
     assert_eq!(pool.available(), 2);
     assert_eq!(pool.in_use(), 0);
@@ -126,7 +121,7 @@ proptest! {
         maximum in 0_u64..=128,
         operations in prop::collection::vec((any::<bool>(), 0_u16..=256), 0..64),
     ) {
-        let mut pool = ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(maximum));
+        let mut pool = ResourcePool::new(TestResource::OpenFiles, maximum);
         let mut model_available = maximum;
 
         for (acquire, raw_amount) in operations {
@@ -144,4 +139,15 @@ proptest! {
             prop_assert_eq!(pool.available() + pool.in_use(), maximum);
         }
     }
+}
+
+#[test]
+fn test_pool_accepts_usize_quantities_without_conversion() {
+    fn assert_quantity<Q: ResourceQuantity>() {}
+
+    assert_quantity::<usize>();
+    let mut pool: ResourcePool<TestResource, usize> =
+        ResourcePool::new(TestResource::OpenFiles, 2_usize);
+    pool.try_acquire(1_usize).expect("one directory should fit");
+    assert_eq!(pool.available(), 1_usize);
 }

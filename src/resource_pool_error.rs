@@ -9,16 +9,20 @@
 
 use thiserror::Error;
 
-use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// Failure facts for either acquisition or release of a resource pool.
 ///
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
+/// * `Q` - Exact unsigned quantity used for the capacity and accounting.
 #[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
-pub enum ResourcePoolError<R> {
+pub enum ResourcePoolError<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
     /// The requested acquisition exceeds current availability.
     #[error(
         "resource {resource:?} has {available} available, but {requested} was requested"
@@ -27,11 +31,11 @@ pub enum ResourcePoolError<R> {
         /// Resource value associated with the pool.
         resource: R,
         /// Finite capacity limit.
-        limit: ResourceLimit,
+        limit: Q,
         /// Capacity available before the failed request.
-        available: u64,
+        available: Q,
         /// Requested acquisition quantity.
-        requested: u64,
+        requested: Q,
     },
     /// The requested release exceeds current occupancy.
     #[error(
@@ -41,15 +45,18 @@ pub enum ResourcePoolError<R> {
         /// Resource value associated with the pool.
         resource: R,
         /// Finite capacity limit.
-        limit: ResourceLimit,
+        limit: Q,
         /// Occupancy before the failed request.
-        in_use: u64,
+        in_use: Q,
         /// Requested release quantity.
-        requested: u64,
+        requested: Q,
     },
 }
 
-impl<R> ResourcePoolError<R> {
+impl<R, Q> ResourcePoolError<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Returns the resource by reference.
     #[inline(always)]
     pub const fn resource(&self) -> &R {
@@ -70,7 +77,7 @@ impl<R> ResourcePoolError<R> {
 
     /// Returns the finite limit.
     #[inline(always)]
-    pub const fn limit(&self) -> ResourceLimit {
+    pub const fn limit(&self) -> Q {
         match self {
             Self::Exhausted { limit, .. }
             | Self::InvalidRelease { limit, .. } => *limit,
@@ -82,7 +89,7 @@ impl<R> ResourcePoolError<R> {
     /// `Some` contains the availability observed before an exhausted
     /// acquisition; `None` indicates an invalid release error.
     #[inline(always)]
-    pub const fn available(&self) -> Option<u64> {
+    pub const fn available(&self) -> Option<Q> {
         match self {
             Self::Exhausted { available, .. } => Some(*available),
             Self::InvalidRelease { .. } => None,
@@ -94,7 +101,7 @@ impl<R> ResourcePoolError<R> {
     /// `Some` contains the occupancy observed before an invalid release;
     /// `None` indicates an exhausted acquisition error.
     #[inline(always)]
-    pub const fn in_use(&self) -> Option<u64> {
+    pub const fn in_use(&self) -> Option<Q> {
         match self {
             Self::Exhausted { .. } => None,
             Self::InvalidRelease { in_use, .. } => Some(*in_use),
@@ -103,7 +110,7 @@ impl<R> ResourcePoolError<R> {
 
     /// Returns the requested quantity.
     #[inline(always)]
-    pub const fn requested(&self) -> u64 {
+    pub const fn requested(&self) -> Q {
         match self {
             Self::Exhausted { requested, .. }
             | Self::InvalidRelease { requested, .. } => *requested,

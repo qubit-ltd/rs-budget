@@ -6,7 +6,6 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 use qubit_budget::ResourceBudget;
-use qubit_budget::ResourceLimit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TestResource {
@@ -15,14 +14,13 @@ enum TestResource {
 
 #[test]
 fn test_budget_error_exposes_resource_limit_remaining_and_request() {
-    let mut budget =
-        ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(3));
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 3_u64);
     budget.try_consume(2).expect("two units should fit");
     let error = budget
         .try_consume(2)
         .expect_err("two more units should exceed the remainder");
     assert_eq!(error.resource(), &TestResource::Bytes);
-    assert_eq!(error.limit(), ResourceLimit::new(3));
+    assert_eq!(error.limit(), 3_u64);
     assert_eq!(error.remaining(), 1);
     assert_eq!(error.requested(), 2);
     assert_eq!(error.used(), 2);
@@ -32,8 +30,7 @@ fn test_budget_error_exposes_resource_limit_remaining_and_request() {
 
 #[test]
 fn test_budget_error_display_contains_the_failed_facts() {
-    let mut budget =
-        ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(1));
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 1_u64);
     let error = budget
         .try_consume(2)
         .expect_err("two units should exceed one unit");

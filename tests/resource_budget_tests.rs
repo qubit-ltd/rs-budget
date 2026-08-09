@@ -10,15 +10,14 @@ use proptest::prelude::prop_assert;
 use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
 use qubit_budget::ResourceBudget;
-use qubit_budget::ResourceLimit;
+use qubit_budget::ResourceQuantity;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TestResource {
     Bytes,
 }
 
-const BYTE_BUDGET: ResourceBudget<&str> =
-    ResourceBudget::new("body", ResourceLimit::new(8));
+const BYTE_BUDGET: ResourceBudget<&str> = ResourceBudget::new("body", 8_u64);
 
 #[test]
 fn test_new_is_const() {
@@ -27,8 +26,7 @@ fn test_new_is_const() {
 
 #[test]
 fn test_try_consume_decreases_remaining_and_increases_used() {
-    let mut budget =
-        ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(5));
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
     budget.try_consume(2).expect("two bytes should fit");
     assert_eq!(budget.remaining(), 3);
     assert_eq!(budget.used(), 2);
@@ -36,8 +34,7 @@ fn test_try_consume_decreases_remaining_and_increases_used() {
 
 #[test]
 fn test_check_available_does_not_mutate_the_budget() {
-    let budget =
-        ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(5));
+    let budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
     budget
         .check_available(5)
         .expect("the exact maximum should fit");
@@ -46,8 +43,7 @@ fn test_check_available_does_not_mutate_the_budget() {
 
 #[test]
 fn test_failed_consume_is_atomic_and_reports_exact_facts() {
-    let mut budget =
-        ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(5));
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
     budget
         .try_consume(2)
         .expect("initial consumption should fit");
@@ -55,7 +51,7 @@ fn test_failed_consume_is_atomic_and_reports_exact_facts() {
         .try_consume(4)
         .expect_err("four bytes should not fit");
     assert_eq!(error.resource(), &TestResource::Bytes);
-    assert_eq!(error.limit(), ResourceLimit::new(5));
+    assert_eq!(error.limit(), 5_u64);
     assert_eq!(error.remaining(), 3);
     assert_eq!(error.requested(), 4);
     assert_eq!(budget.remaining(), 3);
@@ -63,7 +59,7 @@ fn test_failed_consume_is_atomic_and_reports_exact_facts() {
 
 #[test]
 fn test_error_reports_used_and_checked_attempted() {
-    let mut budget = ResourceBudget::new("body", ResourceLimit::new(10));
+    let mut budget = ResourceBudget::new("body", 10_u64);
     budget.try_consume(7).expect("seven bytes should fit");
     let error = budget
         .try_consume(5)
@@ -74,7 +70,7 @@ fn test_error_reports_used_and_checked_attempted() {
 
 #[test]
 fn test_error_checked_attempted_reports_overflow() {
-    let mut budget = ResourceBudget::new("body", ResourceLimit::new(u64::MAX));
+    let mut budget = ResourceBudget::new("body", u64::MAX);
     budget
         .try_consume(u64::MAX)
         .expect("the maximum amount should fit");
@@ -87,8 +83,7 @@ fn test_error_checked_attempted_reports_overflow() {
 
 #[test]
 fn test_consume_available_returns_only_the_consumed_amount() {
-    let mut budget =
-        ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(5));
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
     assert_eq!(budget.consume_available(7), 5);
     assert_eq!(budget.remaining(), 0);
     assert_eq!(budget.used(), 5);
@@ -97,10 +92,9 @@ fn test_consume_available_returns_only_the_consumed_amount() {
 
 #[test]
 fn test_budget_accessors_preserve_resource_and_limit() {
-    let budget =
-        ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(5));
+    let budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
     assert_eq!(budget.resource(), &TestResource::Bytes);
-    assert_eq!(budget.limit(), ResourceLimit::new(5));
+    assert_eq!(budget.limit(), 5_u64);
 }
 
 proptest! {
@@ -109,7 +103,7 @@ proptest! {
         maximum in 0_u64..=256,
         requests in prop::collection::vec(0_u64..=512, 0..64),
     ) {
-        let mut budget = ResourceBudget::new(TestResource::Bytes, ResourceLimit::new(maximum));
+        let mut budget = ResourceBudget::new(TestResource::Bytes, maximum);
         for requested in requests {
             let before = budget.remaining();
             let result = budget.try_consume(requested);
@@ -120,4 +114,15 @@ proptest! {
             prop_assert_eq!(budget.used() + budget.remaining(), maximum);
         }
     }
+}
+
+#[test]
+fn test_budget_accepts_usize_quantities_without_conversion() {
+    fn assert_quantity<Q: ResourceQuantity>() {}
+
+    assert_quantity::<usize>();
+    let mut budget: ResourceBudget<TestResource, usize> =
+        ResourceBudget::new(TestResource::Bytes, 5_usize);
+    budget.try_consume(2_usize).expect("two bytes should fit");
+    assert_eq!(budget.remaining(), 3_usize);
 }

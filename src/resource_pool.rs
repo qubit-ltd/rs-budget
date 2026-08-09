@@ -7,8 +7,8 @@
 // =============================================================================
 //! Defines finite releasable resource pools.
 
-use crate::ResourceLimit;
 use crate::ResourcePoolError;
+use crate::ResourceQuantity;
 
 /// A finite, non-synchronizing pool of releasable resource capacity.
 ///
@@ -20,20 +20,27 @@ use crate::ResourcePoolError;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
+/// * `Q` - Exact unsigned quantity used for the capacity and accounting.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct ResourcePool<R> {
+pub struct ResourcePool<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
     /// Resource value retained in acquisition and release errors.
     resource: R,
 
     /// Finite total capacity of the pool.
-    limit: ResourceLimit,
+    limit: Q,
 
     /// Capacity that is currently available for acquisition.
-    available: u64,
+    available: Q,
 }
 
-impl<R> ResourcePool<R> {
+impl<R, Q> ResourcePool<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates an entirely available finite pool.
     ///
     /// # Parameters
@@ -43,24 +50,24 @@ impl<R> ResourcePool<R> {
     ///
     /// # Returns
     ///
-    /// A pool with `available == limit.maximum()`.
+    /// A pool with `available == limit`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use qubit_budget::{ResourceLimit, ResourcePool};
+    /// use qubit_budget::ResourcePool;
     ///
-    /// let mut pool = ResourcePool::new("readers", ResourceLimit::new(2));
+    /// let mut pool = ResourcePool::new("readers", 2_u64);
     /// pool.try_acquire(1).expect("one reader should fit");
     /// pool.release(1).expect("the reader is returned explicitly");
     /// assert_eq!(pool.in_use(), 0);
     /// ```
     #[inline]
-    pub const fn new(resource: R, limit: ResourceLimit) -> Self {
+    pub const fn new(resource: R, limit: Q) -> Self {
         Self {
             resource,
             limit,
-            available: limit.maximum(),
+            available: limit,
         }
     }
 
@@ -82,8 +89,8 @@ impl<R> ResourcePool<R> {
     /// availability. The pool remains unchanged in that case.
     pub fn try_acquire(
         &mut self,
-        amount: u64,
-    ) -> Result<(), ResourcePoolError<R>>
+        amount: Q,
+    ) -> Result<(), ResourcePoolError<R, Q>>
     where
         R: Clone,
     {
@@ -95,7 +102,7 @@ impl<R> ResourcePool<R> {
                 requested: amount,
             });
         }
-        self.available -= amount;
+        self.available = self.available - amount;
         Ok(())
     }
 
@@ -115,7 +122,7 @@ impl<R> ResourcePool<R> {
     ///
     /// Returns [`ResourcePoolError::InvalidRelease`] when `amount` exceeds
     /// current occupancy. The pool remains unchanged in that case.
-    pub fn release(&mut self, amount: u64) -> Result<(), ResourcePoolError<R>>
+    pub fn release(&mut self, amount: Q) -> Result<(), ResourcePoolError<R, Q>>
     where
         R: Clone,
     {
@@ -128,7 +135,7 @@ impl<R> ResourcePool<R> {
                 requested: amount,
             });
         }
-        self.available += amount;
+        self.available = self.available + amount;
         Ok(())
     }
 
@@ -140,25 +147,25 @@ impl<R> ResourcePool<R> {
 
     /// Returns the finite pool limit.
     #[inline(always)]
-    pub const fn limit(&self) -> ResourceLimit {
+    pub const fn limit(&self) -> Q {
         self.limit
     }
 
     /// Returns the total finite capacity.
     #[inline(always)]
-    pub const fn capacity(&self) -> u64 {
-        self.limit.maximum()
+    pub const fn capacity(&self) -> Q {
+        self.limit
     }
 
     /// Returns currently available capacity.
     #[inline(always)]
-    pub const fn available(&self) -> u64 {
+    pub const fn available(&self) -> Q {
         self.available
     }
 
     /// Returns currently acquired capacity.
     #[inline(always)]
-    pub const fn in_use(&self) -> u64 {
-        self.limit.maximum() - self.available
+    pub fn in_use(&self) -> Q {
+        self.limit - self.available
     }
 }

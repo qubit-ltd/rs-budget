@@ -9,7 +9,7 @@
 
 use thiserror::Error;
 
-use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// Facts from a resource consumption request that did not fit.
 ///
@@ -20,27 +20,33 @@ use crate::ResourceLimit;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
+/// * `Q` - Exact unsigned quantity used for the limit and accounting.
 #[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 #[error(
-    "resource {resource:?} requested {requested}, but only {remaining} of {} remains",
-    .limit.maximum()
+    "resource {resource:?} requested {requested}, but only {remaining} of {limit} remains"
 )]
-pub struct ResourceBudgetError<R> {
+pub struct ResourceBudgetError<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
     /// Resource value associated with the failed request.
     resource: R,
 
     /// Finite limit that the request exceeded.
-    limit: ResourceLimit,
+    limit: Q,
 
     /// Capacity remaining before the failed request.
-    remaining: u64,
+    remaining: Q,
 
     /// Quantity requested by the failed operation.
-    requested: u64,
+    requested: Q,
 }
 
-impl<R> ResourceBudgetError<R> {
+impl<R, Q> ResourceBudgetError<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates structured facts for a failed resource request.
     ///
     /// # Parameters
@@ -56,9 +62,9 @@ impl<R> ResourceBudgetError<R> {
     #[inline]
     pub(crate) const fn new(
         resource: R,
-        limit: ResourceLimit,
-        remaining: u64,
-        requested: u64,
+        limit: Q,
+        remaining: Q,
+        requested: Q,
     ) -> Self {
         Self {
             resource,
@@ -82,35 +88,35 @@ impl<R> ResourceBudgetError<R> {
 
     /// Returns the finite limit.
     #[inline(always)]
-    pub const fn limit(&self) -> ResourceLimit {
+    pub const fn limit(&self) -> Q {
         self.limit
     }
 
     /// Returns the balance before the failed request.
     #[inline(always)]
-    pub const fn remaining(&self) -> u64 {
+    pub const fn remaining(&self) -> Q {
         self.remaining
     }
 
     /// Returns the requested quantity that did not fit.
     #[inline(always)]
-    pub const fn requested(&self) -> u64 {
+    pub const fn requested(&self) -> Q {
         self.requested
     }
 
     /// Returns the quantity consumed before the failed request.
     #[inline(always)]
-    pub const fn used(&self) -> u64 {
-        self.limit.maximum() - self.remaining
+    pub fn used(&self) -> Q {
+        self.limit - self.remaining
     }
 
     /// Returns the exact total that would have been consumed, when
     /// representable.
     ///
     /// `None` means that adding the failed request to the consumed quantity
-    /// would overflow `u64`.
+    /// would overflow the quantity type.
     #[inline(always)]
-    pub const fn checked_attempted(&self) -> Option<u64> {
+    pub fn checked_attempted(&self) -> Option<Q> {
         self.used().checked_add(self.requested)
     }
 }

@@ -8,13 +8,13 @@
 //! Defines monotonic finite resource budgets.
 
 use crate::ResourceBudgetError;
-use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// A finite, non-releasable resource budget.
 ///
 /// The budget stores remaining capacity and only subtracts after a request has
-/// been checked. Therefore `used()` is computed as
-/// `limit.maximum() - remaining` and no cumulative addition can overflow.
+/// been checked. Therefore `used()` is computed as `limit - remaining` and no
+/// cumulative addition can overflow.
 /// Callers represent an unconfigured dimension with
 /// `Option<ResourceBudget<R>> = None` rather than constructing an unlimited
 /// object.
@@ -22,20 +22,27 @@ use crate::ResourceLimit;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
+/// * `Q` - Exact unsigned quantity used for the limit and accounting.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct ResourceBudget<R> {
+pub struct ResourceBudget<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
     /// Resource value retained in consumption errors.
     resource: R,
 
     /// Finite maximum capacity of the budget.
-    limit: ResourceLimit,
+    limit: Q,
 
     /// Capacity that has not yet been consumed.
-    remaining: u64,
+    remaining: Q,
 }
 
-impl<R> ResourceBudget<R> {
+impl<R, Q> ResourceBudget<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates a zero-used finite budget.
     ///
     /// # Parameters
@@ -45,24 +52,24 @@ impl<R> ResourceBudget<R> {
     ///
     /// # Returns
     ///
-    /// A budget whose remaining capacity equals `limit.maximum()`.
+    /// A budget whose remaining capacity equals `limit`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use qubit_budget::{ResourceBudget, ResourceLimit};
+    /// use qubit_budget::ResourceBudget;
     ///
-    /// let mut budget = ResourceBudget::new("bytes", ResourceLimit::new(8));
+    /// let mut budget = ResourceBudget::new("bytes", 8_u64);
     /// budget.try_consume(3).expect("three bytes should fit");
     /// assert_eq!(budget.used(), 3);
     /// assert_eq!(budget.remaining(), 5);
     /// ```
     #[inline]
-    pub const fn new(resource: R, limit: ResourceLimit) -> Self {
+    pub const fn new(resource: R, limit: Q) -> Self {
         Self {
             resource,
             limit,
-            remaining: limit.maximum(),
+            remaining: limit,
         }
     }
 
@@ -84,8 +91,8 @@ impl<R> ResourceBudget<R> {
     /// capacity.
     pub fn check_available(
         &self,
-        amount: u64,
-    ) -> Result<(), ResourceBudgetError<R>>
+        amount: Q,
+    ) -> Result<(), ResourceBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -119,13 +126,13 @@ impl<R> ResourceBudget<R> {
     #[inline]
     pub fn try_consume(
         &mut self,
-        amount: u64,
-    ) -> Result<(), ResourceBudgetError<R>>
+        amount: Q,
+    ) -> Result<(), ResourceBudgetError<R, Q>>
     where
         R: Clone,
     {
         self.check_available(amount)?;
-        self.remaining -= amount;
+        self.remaining = self.remaining - amount;
         Ok(())
     }
 
@@ -141,9 +148,9 @@ impl<R> ResourceBudget<R> {
     /// This operation always succeeds and never increases the balance.
     #[inline]
     #[must_use]
-    pub fn consume_available(&mut self, requested: u64) -> u64 {
+    pub fn consume_available(&mut self, requested: Q) -> Q {
         let consumed = requested.min(self.remaining);
-        self.remaining -= consumed;
+        self.remaining = self.remaining - consumed;
         consumed
     }
 
@@ -155,19 +162,19 @@ impl<R> ResourceBudget<R> {
 
     /// Returns the finite limit.
     #[inline(always)]
-    pub const fn limit(&self) -> ResourceLimit {
+    pub const fn limit(&self) -> Q {
         self.limit
     }
 
     /// Returns remaining capacity.
     #[inline(always)]
-    pub const fn remaining(&self) -> u64 {
+    pub const fn remaining(&self) -> Q {
         self.remaining
     }
 
     /// Returns the quantity consumed so far.
     #[inline(always)]
-    pub const fn used(&self) -> u64 {
-        self.limit.maximum() - self.remaining
+    pub fn used(&self) -> Q {
+        self.limit - self.remaining
     }
 }

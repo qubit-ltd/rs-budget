@@ -5,7 +5,6 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-use qubit_budget::ResourceLimit;
 use qubit_budget::ResourcePool;
 use qubit_budget::ResourcePoolError;
 
@@ -16,14 +15,13 @@ enum TestResource {
 
 #[test]
 fn test_exhausted_error_exposes_available_and_requested() {
-    let mut pool =
-        ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(1));
+    let mut pool = ResourcePool::new(TestResource::OpenFiles, 1_u64);
     pool.try_acquire(1).expect("one unit should fit");
     let error = pool
         .try_acquire(1)
         .expect_err("one more unit should be exhausted");
     assert_eq!(error.resource(), &TestResource::OpenFiles);
-    assert_eq!(error.limit(), ResourceLimit::new(1));
+    assert_eq!(error.limit(), 1);
     assert_eq!(error.available(), Some(0));
     assert_eq!(error.in_use(), None);
     assert_eq!(error.requested(), 1);
@@ -31,12 +29,11 @@ fn test_exhausted_error_exposes_available_and_requested() {
 
 #[test]
 fn test_invalid_release_error_exposes_in_use_and_requested() {
-    let mut pool =
-        ResourcePool::new(TestResource::OpenFiles, ResourceLimit::new(1));
+    let mut pool = ResourcePool::new(TestResource::OpenFiles, 1_u64);
     let error = pool.release(1).expect_err("nothing is held yet");
     assert!(matches!(error, ResourcePoolError::InvalidRelease { .. }));
     assert_eq!(error.resource(), &TestResource::OpenFiles);
-    assert_eq!(error.limit(), ResourceLimit::new(1));
+    assert_eq!(error.limit(), 1);
     assert_eq!(error.available(), None);
     assert_eq!(error.in_use(), Some(0));
     assert_eq!(error.requested(), 1);
@@ -44,24 +41,26 @@ fn test_invalid_release_error_exposes_in_use_and_requested() {
 
 #[test]
 fn test_pool_errors_can_be_displayed_and_consumed_for_the_resource() {
-    let exhausted = ResourcePoolError::Exhausted {
-        resource: TestResource::OpenFiles,
-        limit: ResourceLimit::new(1),
-        available: 0,
-        requested: 1,
-    };
+    let exhausted: ResourcePoolError<TestResource> =
+        ResourcePoolError::Exhausted {
+            resource: TestResource::OpenFiles,
+            limit: 1,
+            available: 0,
+            requested: 1,
+        };
     assert_eq!(
         exhausted.to_string(),
         "resource OpenFiles has 0 available, but 1 was requested",
     );
     assert_eq!(exhausted.into_resource(), TestResource::OpenFiles);
 
-    let invalid = ResourcePoolError::InvalidRelease {
-        resource: TestResource::OpenFiles,
-        limit: ResourceLimit::new(1),
-        in_use: 0,
-        requested: 1,
-    };
+    let invalid: ResourcePoolError<TestResource> =
+        ResourcePoolError::InvalidRelease {
+            resource: TestResource::OpenFiles,
+            limit: 1,
+            in_use: 0,
+            requested: 1,
+        };
     assert_eq!(
         invalid.to_string(),
         "resource OpenFiles has 0 in use, but 1 was released",
