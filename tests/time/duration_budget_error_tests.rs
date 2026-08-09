@@ -46,3 +46,17 @@ fn test_duration_error_can_be_displayed() {
         "resource OperationDuration requested 2s, but only 1s of 1s remains",
     );
 }
+
+#[test]
+fn test_duration_error_checked_attempted_reports_overflow() {
+    let mut budget =
+        DurationBudget::new(TestResource::OperationDuration, Duration::MAX);
+    budget
+        .try_consume(Duration::MAX)
+        .expect("maximum duration should fit exactly");
+    let error = budget
+        .try_consume(Duration::from_nanos(1))
+        .expect_err("one more nanosecond should exceed the maximum");
+
+    assert_eq!(error.checked_attempted(), None);
+}

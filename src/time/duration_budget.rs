@@ -138,6 +138,7 @@ impl<R> DurationBudget<R> {
     /// The exact duration consumed, equal to the smaller of `requested` and
     /// the current remaining duration.
     #[inline]
+    #[must_use]
     pub fn consume_available(&mut self, requested: Duration) -> Duration {
         let consumed = requested.min(self.remaining);
         self.remaining -= consumed;

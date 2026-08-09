@@ -7,5 +7,7 @@
 // =============================================================================
 mod duration_budget_error_tests;
 mod duration_budget_tests;
+#[cfg(feature = "time")]
 mod time_budget_error_tests;
+#[cfg(feature = "time")]
 mod time_budget_tests;

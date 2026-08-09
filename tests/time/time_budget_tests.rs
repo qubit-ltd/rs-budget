@@ -144,6 +144,24 @@ fn test_until_success_exposes_resource_and_fixed_instants() {
 }
 
 #[test]
+fn test_until_accepts_an_already_expired_same_domain_deadline() {
+    let clock = ManualMonotonicClock::new_shared();
+    let deadline = clock.now();
+    let budget = TimeBudget::until(TestResource::TotalElapsed, clock, deadline)
+        .expect("same-domain expired deadline should be accepted");
+
+    assert!(budget.is_expired());
+    assert_eq!(
+        budget.remaining().expect("remaining should be valid"),
+        Duration::ZERO
+    );
+    assert!(matches!(
+        budget.check(),
+        Err(TimeBudgetError::Expired { .. })
+    ));
+}
+
+#[test]
 fn test_check_after_reports_expired_and_clock_overflow_paths() {
     let expired_clock = ManualMonotonicClock::new_shared();
     let expired_budget = TimeBudget::for_duration(

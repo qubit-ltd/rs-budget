@@ -140,6 +140,7 @@ impl<R> ResourceBudget<R> {
     /// The exact consumed quantity, equal to `min(requested, remaining)`.
     /// This operation always succeeds and never increases the balance.
     #[inline]
+    #[must_use]
     pub fn consume_available(&mut self, requested: u64) -> u64 {
         let consumed = requested.min(self.remaining);
         self.remaining -= consumed;
