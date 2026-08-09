@@ -3,8 +3,7 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines finite budgets for explicitly measured active durations.
 
@@ -18,11 +17,20 @@ use super::DurationBudgetError;
 /// durations count and submits them through [`Self::try_consume`]. Waiting,
 /// queueing and backoff do not consume this budget automatically; use
 /// [`super::TimeBudget`] for a continuous deadline.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DurationBudget<R> {
+    /// Resource value retained in consumption errors.
     resource: R,
+
+    /// Finite maximum active duration of the budget.
     limit: Duration,
+
+    /// Duration that has not yet been consumed.
     remaining: Duration,
 }
 
@@ -37,6 +45,7 @@ impl<R> DurationBudget<R> {
     /// # Returns
     ///
     /// A budget whose remaining duration equals `limit`.
+    #[inline]
     pub const fn new(resource: R, limit: Duration) -> Self {
         Self {
             resource,
@@ -55,6 +64,11 @@ impl<R> DurationBudget<R> {
     ///
     /// `Ok(())` when the duration fits, otherwise a structured error with no
     /// state mutation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DurationBudgetError`] when `duration` exceeds the remaining
+    /// duration.
     pub fn check_available(
         &self,
         duration: Duration,
@@ -84,6 +98,12 @@ impl<R> DurationBudget<R> {
     ///
     /// `Ok(())` after subtraction, or a structured error while leaving the
     /// remaining duration unchanged.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DurationBudgetError`] when `duration` exceeds the remaining
+    /// duration. The budget remains unchanged in that case.
+    #[inline]
     pub fn try_consume(
         &mut self,
         duration: Duration,
@@ -106,6 +126,7 @@ impl<R> DurationBudget<R> {
     ///
     /// The exact duration consumed, equal to the smaller of `requested` and
     /// the current remaining duration.
+    #[inline]
     pub fn consume_available(&mut self, requested: Duration) -> Duration {
         let consumed = requested.min(self.remaining);
         self.remaining -= consumed;
@@ -113,21 +134,25 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns the associated resource.
+    #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
     /// Returns the finite duration limit.
+    #[inline(always)]
     pub const fn limit(&self) -> Duration {
         self.limit
     }
 
     /// Returns remaining duration.
+    #[inline(always)]
     pub const fn remaining(&self) -> Duration {
         self.remaining
     }
 
     /// Returns explicitly consumed duration.
+    #[inline(always)]
     pub const fn used(&self) -> Duration {
         self.limit.saturating_sub(self.remaining)
     }

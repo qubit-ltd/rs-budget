@@ -3,8 +3,7 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines continuous finite monotonic deadline budgets.
 
@@ -21,12 +20,24 @@ use super::TimeBudgetError;
 /// waiting, queueing and backoff all consume the same end-to-end budget. This
 /// type has no mutable state or explicit charge counter. An unconfigured
 /// deadline is represented by `Option<TimeBudget<R, C>> = None`.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
+/// * `C` - Monotonic clock implementation used to sample the budget.
 #[must_use]
 #[derive(Debug)]
 pub struct TimeBudget<R, C> {
+    /// Resource value retained in deadline errors.
     resource: R,
+
+    /// Monotonic clock used for every later sample.
     clock: C,
+
+    /// Instant sampled when the budget was constructed.
     started_at: MonotonicInstant,
+
+    /// Fixed instant at which the budget expires.
     deadline: MonotonicInstant,
 }
 
@@ -43,6 +54,11 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// A deadline budget, or a clock error when the deadline instant cannot be
     /// represented. No budget is returned on error.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TimeBudgetError::Clock`] when adding `duration` to the
+    /// construction sample cannot be represented by the clock instant type.
     pub fn for_duration(
         resource: R,
         clock: C,
@@ -75,6 +91,11 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// A deadline budget, or a clock-domain error when the instant belongs to
     /// another clock domain.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TimeBudgetError::Clock`] when `deadline` belongs to another
+    /// clock domain.
     pub fn until(
         resource: R,
         clock: C,
@@ -96,16 +117,19 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     }
 
     /// Returns the associated resource.
+    #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
     /// Returns the instant sampled at construction.
+    #[inline(always)]
     pub const fn started_at(&self) -> MonotonicInstant {
         self.started_at
     }
 
     /// Returns the fixed deadline.
+    #[inline(always)]
     pub const fn deadline(&self) -> MonotonicInstant {
         self.deadline
     }
@@ -116,6 +140,11 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// The current clock duration since `started_at`, or a structured clock
     /// error if same-domain arithmetic fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TimeBudgetError::Clock`] when the current sample cannot be
+    /// subtracted from `started_at` in the clock domain.
     pub fn elapsed(&self) -> Result<Duration, TimeBudgetError<R>> {
         self.clock
             .now()
@@ -133,6 +162,11 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     /// `Duration::ZERO` once the deadline is reached; otherwise the exact
     /// duration until it. Same-domain arithmetic errors are returned with the
     /// resource value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TimeBudgetError::Clock`] when the current sample and deadline
+    /// cannot be compared or subtracted in the clock domain.
     pub fn remaining(&self) -> Result<Duration, TimeBudgetError<R>> {
         let now = self.clock.now();
         if now >= self.deadline {
@@ -148,6 +182,17 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     }
 
     /// Reports whether the current instant has reached the deadline.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(true)` when the current instant is at or after the deadline;
+    /// otherwise `Ok(false)`.
+    ///
+    /// # Errors
+    ///
+    /// This implementation samples and compares the same clock domain and does
+    /// not currently return an error.
+    #[inline]
     pub fn is_expired(&self) -> Result<bool, TimeBudgetError<R>> {
         Ok(self.clock.now() >= self.deadline)
     }
@@ -158,6 +203,11 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// `Ok(())` before the deadline, or [`TimeBudgetError::Expired`] with the
     /// current sample and fixed deadline after it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TimeBudgetError::Expired`] when the current sample is at or
+    /// after the deadline.
     pub fn check(&self) -> Result<(), TimeBudgetError<R>> {
         let now = self.clock.now();
         if now >= self.deadline {
@@ -182,6 +232,13 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     /// `Ok(())` when `now + duration < deadline`; an expired error when the
     /// budget is already expired; a would-expire error when the prospective
     /// end reaches the deadline; or a clock error on instant overflow.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TimeBudgetError::Expired`] when the budget is already at or
+    /// past its deadline, [`TimeBudgetError::WouldExpire`] when the operation
+    /// would reach or pass the deadline, or [`TimeBudgetError::Clock`] when
+    /// calculating the prospective end instant overflows.
     pub fn check_after(
         &self,
         duration: Duration,

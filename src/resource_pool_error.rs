@@ -3,16 +3,21 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Unified errors emitted by finite releasable resource pools.
 
 use core::fmt;
+use std::error::Error;
 
 use crate::ResourceLimit;
 
 /// Failure facts for either acquisition or release of a resource pool.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
+#[must_use]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResourcePoolError<R> {
     /// The requested acquisition exceeds current availability.
@@ -41,6 +46,7 @@ pub enum ResourcePoolError<R> {
 
 impl<R> ResourcePoolError<R> {
     /// Returns the resource by reference.
+    #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
             Self::Exhausted { resource, .. }
@@ -49,6 +55,7 @@ impl<R> ResourcePoolError<R> {
     }
 
     /// Consumes the error and returns its resource.
+    #[inline(always)]
     pub fn into_resource(self) -> R {
         match self {
             Self::Exhausted { resource, .. }
@@ -57,6 +64,7 @@ impl<R> ResourcePoolError<R> {
     }
 
     /// Returns the finite limit.
+    #[inline(always)]
     pub const fn limit(&self) -> ResourceLimit {
         match self {
             Self::Exhausted { limit, .. }
@@ -65,6 +73,10 @@ impl<R> ResourcePoolError<R> {
     }
 
     /// Returns availability for exhaustion, or `None` for invalid release.
+    ///
+    /// `Some` contains the availability observed before an exhausted
+    /// acquisition; `None` indicates an invalid release error.
+    #[inline(always)]
     pub const fn available(&self) -> Option<u64> {
         match self {
             Self::Exhausted { available, .. } => Some(*available),
@@ -73,6 +85,10 @@ impl<R> ResourcePoolError<R> {
     }
 
     /// Returns occupancy for invalid release, or `None` for exhaustion.
+    ///
+    /// `Some` contains the occupancy observed before an invalid release;
+    /// `None` indicates an exhausted acquisition error.
+    #[inline(always)]
     pub const fn in_use(&self) -> Option<u64> {
         match self {
             Self::Exhausted { .. } => None,
@@ -81,6 +97,7 @@ impl<R> ResourcePoolError<R> {
     }
 
     /// Returns the requested quantity.
+    #[inline(always)]
     pub const fn requested(&self) -> u64 {
         match self {
             Self::Exhausted { requested, .. }
@@ -90,6 +107,7 @@ impl<R> ResourcePoolError<R> {
 }
 
 impl<R: fmt::Debug> fmt::Display for ResourcePoolError<R> {
+    /// Formats the failed acquisition or release request.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Exhausted {
@@ -116,4 +134,4 @@ impl<R: fmt::Debug> fmt::Display for ResourcePoolError<R> {
     }
 }
 
-impl<R: fmt::Debug> std::error::Error for ResourcePoolError<R> {}
+impl<R: fmt::Debug> Error for ResourcePoolError<R> {}

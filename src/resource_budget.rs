@@ -3,8 +3,7 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines monotonic finite resource budgets.
 
@@ -19,11 +18,20 @@ use crate::ResourceLimit;
 /// Callers represent an unconfigured dimension with
 /// `Option<ResourceBudget<R>> = None` rather than constructing an unlimited
 /// object.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceBudget<R> {
+    /// Resource value retained in consumption errors.
     resource: R,
+
+    /// Finite maximum capacity of the budget.
     limit: ResourceLimit,
+
+    /// Capacity that has not yet been consumed.
     remaining: u64,
 }
 
@@ -38,6 +46,7 @@ impl<R> ResourceBudget<R> {
     /// # Returns
     ///
     /// A budget whose remaining capacity equals `limit.maximum()`.
+    #[inline]
     pub fn new(resource: R, limit: ResourceLimit) -> Self {
         Self {
             resource,
@@ -57,6 +66,11 @@ impl<R> ResourceBudget<R> {
     /// `Ok(())` when `amount <= remaining`; otherwise returns
     /// [`ResourceBudgetError`] containing the resource, limit and pre-failure
     /// balance. This method never changes the budget.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ResourceBudgetError`] when `amount` exceeds the remaining
+    /// capacity.
     pub fn check_available(
         &self,
         amount: u64,
@@ -86,6 +100,12 @@ impl<R> ResourceBudget<R> {
     ///
     /// `Ok(())` after subtracting the amount, or a structured error while
     /// leaving `remaining` unchanged when the amount does not fit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ResourceBudgetError`] when `amount` exceeds the remaining
+    /// capacity. The budget remains unchanged in that case.
+    #[inline]
     pub fn try_consume(
         &mut self,
         amount: u64,
@@ -108,6 +128,7 @@ impl<R> ResourceBudget<R> {
     ///
     /// The exact consumed quantity, equal to `min(requested, remaining)`.
     /// This operation always succeeds and never increases the balance.
+    #[inline]
     pub fn consume_available(&mut self, requested: u64) -> u64 {
         let consumed = requested.min(self.remaining);
         self.remaining -= consumed;
@@ -115,21 +136,25 @@ impl<R> ResourceBudget<R> {
     }
 
     /// Returns the associated resource.
+    #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
     /// Returns the finite limit.
+    #[inline(always)]
     pub const fn limit(&self) -> ResourceLimit {
         self.limit
     }
 
     /// Returns remaining capacity.
+    #[inline(always)]
     pub const fn remaining(&self) -> u64 {
         self.remaining
     }
 
     /// Returns the quantity consumed so far.
+    #[inline(always)]
     pub const fn used(&self) -> u64 {
         self.limit.maximum() - self.remaining
     }

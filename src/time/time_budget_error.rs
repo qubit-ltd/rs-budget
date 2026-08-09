@@ -3,18 +3,23 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Errors emitted by continuous monotonic deadline budgets.
 
 use core::fmt;
+use std::error::Error;
 use std::time::Duration;
 
 use qubit_clock::MonotonicInstant;
 use qubit_clock::TimeError;
 
 /// Failure facts for a continuous deadline check.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
+#[must_use]
 #[derive(Debug)]
 pub enum TimeBudgetError<R> {
     /// The clock rejected a domain or instant operation.
@@ -48,6 +53,7 @@ pub enum TimeBudgetError<R> {
 
 impl<R> TimeBudgetError<R> {
     /// Returns the resource by reference.
+    #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
             Self::Clock { resource, .. }
@@ -57,6 +63,7 @@ impl<R> TimeBudgetError<R> {
     }
 
     /// Consumes the error and returns its resource.
+    #[inline(always)]
     pub fn into_resource(self) -> R {
         match self {
             Self::Clock { resource, .. }
@@ -66,6 +73,12 @@ impl<R> TimeBudgetError<R> {
     }
 
     /// Returns the underlying clock error, when present.
+    ///
+    /// # Returns
+    ///
+    /// `Some` contains the underlying clock error for [`Self::Clock`]; `None`
+    /// is returned for [`Self::Expired`] and [`Self::WouldExpire`].
+    #[inline(always)]
     pub const fn clock_error(&self) -> Option<&TimeError> {
         match self {
             Self::Clock { source, .. } => Some(source),
@@ -74,6 +87,12 @@ impl<R> TimeBudgetError<R> {
     }
 
     /// Returns the deadline for deadline-related errors.
+    ///
+    /// # Returns
+    ///
+    /// `Some` contains the fixed deadline for [`Self::Expired`] and
+    /// [`Self::WouldExpire`]; `None` is returned for [`Self::Clock`].
+    #[inline(always)]
     pub const fn deadline(&self) -> Option<MonotonicInstant> {
         match self {
             Self::Expired { deadline, .. }
@@ -83,6 +102,12 @@ impl<R> TimeBudgetError<R> {
     }
 
     /// Returns the sampled instant for deadline-related errors.
+    ///
+    /// # Returns
+    ///
+    /// `Some` contains the sampled instant for [`Self::Expired`] and
+    /// [`Self::WouldExpire`]; `None` is returned for [`Self::Clock`].
+    #[inline(always)]
     pub const fn now(&self) -> Option<MonotonicInstant> {
         match self {
             Self::Expired { now, .. } | Self::WouldExpire { now, .. } => {
@@ -93,6 +118,12 @@ impl<R> TimeBudgetError<R> {
     }
 
     /// Returns the prospective duration for a would-expire error.
+    ///
+    /// # Returns
+    ///
+    /// `Some` contains the requested duration for [`Self::WouldExpire`];
+    /// `None` is returned for [`Self::Clock`] and [`Self::Expired`].
+    #[inline(always)]
     pub const fn requested(&self) -> Option<Duration> {
         match self {
             Self::WouldExpire { requested, .. } => Some(*requested),
@@ -102,6 +133,7 @@ impl<R> TimeBudgetError<R> {
 }
 
 impl<R: fmt::Debug> fmt::Display for TimeBudgetError<R> {
+    /// Formats the clock or deadline failure facts.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Clock { resource, source } => {
@@ -131,8 +163,9 @@ impl<R: fmt::Debug> fmt::Display for TimeBudgetError<R> {
     }
 }
 
-impl<R: fmt::Debug> std::error::Error for TimeBudgetError<R> {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl<R: fmt::Debug> Error for TimeBudgetError<R> {
+    /// Returns the underlying clock error for a clock failure.
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::Clock { source, .. } => Some(source),
             Self::Expired { .. } | Self::WouldExpire { .. } => None,

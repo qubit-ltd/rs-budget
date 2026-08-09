@@ -3,12 +3,12 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Structured facts for a failed point limit check.
 
 use core::fmt;
+use std::error::Error;
 
 use crate::ResourceLimit;
 
@@ -17,11 +17,20 @@ use crate::ResourceLimit;
 /// `R` is the caller-defined resource value retained for diagnostics. The
 /// quantity is always an exact `u64`; this immutable error does not mutate or
 /// synchronize any budget.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LimitExceeded<R> {
+    /// Resource value associated with the rejected observation.
     resource: R,
+
+    /// Finite limit that the observation exceeded.
     limit: ResourceLimit,
+
+    /// Exact observed quantity that exceeded the limit.
     observed: u64,
 }
 
@@ -37,6 +46,7 @@ impl<R> LimitExceeded<R> {
     /// # Returns
     ///
     /// An immutable error fact with no state changes.
+    #[inline]
     pub const fn new(resource: R, limit: ResourceLimit, observed: u64) -> Self {
         Self {
             resource,
@@ -46,27 +56,32 @@ impl<R> LimitExceeded<R> {
     }
 
     /// Returns the resource by reference.
+    #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
     /// Consumes the error and returns its resource.
+    #[inline(always)]
     pub fn into_resource(self) -> R {
         self.resource
     }
 
     /// Returns the finite limit.
+    #[inline(always)]
     pub const fn limit(&self) -> ResourceLimit {
         self.limit
     }
 
     /// Returns the exact rejected observation.
+    #[inline(always)]
     pub const fn observed(&self) -> u64 {
         self.observed
     }
 }
 
 impl<R: fmt::Debug> fmt::Display for LimitExceeded<R> {
+    /// Formats the rejected observation and its finite limit.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
@@ -78,4 +93,4 @@ impl<R: fmt::Debug> fmt::Display for LimitExceeded<R> {
     }
 }
 
-impl<R: fmt::Debug> std::error::Error for LimitExceeded<R> {}
+impl<R: fmt::Debug> Error for LimitExceeded<R> {}
