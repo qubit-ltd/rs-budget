@@ -27,6 +27,8 @@ fn test_duration_error_exposes_all_structured_facts() {
     assert_eq!(error.limit(), Duration::from_secs(1));
     assert_eq!(error.remaining(), Duration::from_secs(1));
     assert_eq!(error.requested(), Duration::from_secs(2));
+    assert_eq!(error.used(), Duration::ZERO);
+    assert_eq!(error.checked_attempted(), Some(Duration::from_secs(2)));
     assert_eq!(error.into_resource(), TestResource::OperationDuration);
 }
 

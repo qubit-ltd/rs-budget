@@ -92,4 +92,19 @@ impl<R> DurationBudgetError<R> {
     pub const fn requested(&self) -> Duration {
         self.requested
     }
+
+    /// Returns the duration consumed before the failed request.
+    #[inline(always)]
+    pub const fn used(&self) -> Duration {
+        self.limit.saturating_sub(self.remaining)
+    }
+
+    /// Returns the exact attempted total duration, when representable.
+    ///
+    /// `None` means that adding the failed request to the consumed duration
+    /// would overflow `Duration`.
+    #[inline(always)]
+    pub const fn checked_attempted(&self) -> Option<Duration> {
+        self.used().checked_add(self.requested)
+    }
 }

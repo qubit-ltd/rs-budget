@@ -97,4 +97,20 @@ impl<R> ResourceBudgetError<R> {
     pub const fn requested(&self) -> u64 {
         self.requested
     }
+
+    /// Returns the quantity consumed before the failed request.
+    #[inline(always)]
+    pub const fn used(&self) -> u64 {
+        self.limit.maximum() - self.remaining
+    }
+
+    /// Returns the exact total that would have been consumed, when
+    /// representable.
+    ///
+    /// `None` means that adding the failed request to the consumed quantity
+    /// would overflow `u64`.
+    #[inline(always)]
+    pub const fn checked_attempted(&self) -> Option<u64> {
+        self.used().checked_add(self.requested)
+    }
 }

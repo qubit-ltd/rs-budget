@@ -25,6 +25,8 @@ fn test_budget_error_exposes_resource_limit_remaining_and_request() {
     assert_eq!(error.limit(), ResourceLimit::new(3));
     assert_eq!(error.remaining(), 1);
     assert_eq!(error.requested(), 2);
+    assert_eq!(error.used(), 2);
+    assert_eq!(error.checked_attempted(), Some(4));
     assert_eq!(error.into_resource(), TestResource::Bytes);
 }
 
