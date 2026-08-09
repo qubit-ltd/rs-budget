@@ -7,8 +7,7 @@
 // =============================================================================
 //! Unified errors emitted by finite releasable resource pools.
 
-use core::fmt;
-use std::error::Error;
+use thiserror::Error;
 
 use crate::ResourceLimit;
 
@@ -18,9 +17,12 @@ use crate::ResourceLimit;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ResourcePoolError<R> {
     /// The requested acquisition exceeds current availability.
+    #[error(
+        "resource {resource:?} has {available} available, but {requested} was requested"
+    )]
     Exhausted {
         /// Resource value associated with the pool.
         resource: R,
@@ -32,6 +34,9 @@ pub enum ResourcePoolError<R> {
         requested: u64,
     },
     /// The requested release exceeds current occupancy.
+    #[error(
+        "resource {resource:?} has {in_use} in use, but {requested} was released"
+    )]
     InvalidRelease {
         /// Resource value associated with the pool.
         resource: R,
@@ -105,33 +110,3 @@ impl<R> ResourcePoolError<R> {
         }
     }
 }
-
-impl<R: fmt::Debug> fmt::Display for ResourcePoolError<R> {
-    /// Formats the failed acquisition or release request.
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Exhausted {
-                resource,
-                available,
-                requested,
-                ..
-            } => write!(
-                formatter,
-                "resource {:?} has {} available, but {} was requested",
-                resource, available, requested
-            ),
-            Self::InvalidRelease {
-                resource,
-                in_use,
-                requested,
-                ..
-            } => write!(
-                formatter,
-                "resource {:?} has {} in use, but {} was released",
-                resource, in_use, requested
-            ),
-        }
-    }
-}
-
-impl<R: fmt::Debug> Error for ResourcePoolError<R> {}
