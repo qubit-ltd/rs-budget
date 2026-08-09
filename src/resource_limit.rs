@@ -3,91 +3,73 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0.
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
+//    You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+//    Unless required by applicable law or agreed to in writing, software
+//    distributed under the License is distributed on an "AS IS" BASIS,
+//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//    See the License for the specific language governing permissions and
+//    limitations under the License.
 // =============================================================================
-//! Immutable limits for one resource dimension.
+//! Defines finite limits for one resource observation.
 
 use crate::LimitExceeded;
 
-/// Immutable maximum for one resource dimension.
+/// An immutable finite inclusive maximum for a resource quantity.
+///
+/// The limit itself is deliberately independent of a resource value. Pass the
+/// resource to [`Self::check`] when an exceeded observation needs structured
+/// diagnostic context. An unconfigured limit is represented by the caller as
+/// `Option::None`; this type has no unlimited variant.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResourceLimit {
-    maximum: usize,
+    maximum: u64,
 }
 
 impl ResourceLimit {
-    /// The largest representable resource limit.
-    pub const UNBOUNDED: Self = Self::new(usize::MAX);
-
-    /// Creates a resource limit with the specified maximum.
+    /// Creates a finite inclusive limit.
     ///
     /// # Parameters
     ///
-    /// - `maximum`: Largest permitted resource value.
+    /// * `maximum` - Largest permitted resource quantity.
     ///
     /// # Returns
     ///
-    /// A resource limit accepting values through `maximum`.
-    #[inline(always)]
-    pub const fn new(maximum: usize) -> Self {
+    /// A limit that accepts observations from zero through `maximum`.
+    pub const fn new(maximum: u64) -> Self {
         Self { maximum }
     }
 
-    /// Returns the largest representable resource limit.
-    ///
-    /// # Returns
-    ///
-    /// A limit whose maximum is `usize::MAX`.
-    #[inline(always)]
-    pub const fn unbounded() -> Self {
-        Self::UNBOUNDED
-    }
-
-    /// Returns the configured maximum.
-    ///
-    /// # Returns
-    ///
-    /// The largest permitted resource value.
-    #[inline(always)]
-    pub const fn maximum(self) -> usize {
+    /// Returns the finite inclusive maximum.
+    pub const fn maximum(&self) -> u64 {
         self.maximum
     }
 
-    /// Returns whether this limit uses `usize::MAX`.
-    ///
-    /// # Returns
-    ///
-    /// `true` when the limit uses the unbounded representation.
-    #[inline(always)]
-    pub const fn is_unbounded(self) -> bool {
-        self.maximum == usize::MAX
-    }
-
-    /// Checks an observed value against this limit.
+    /// Checks one observed resource quantity.
     ///
     /// # Parameters
     ///
-    /// - `kind`: Domain-specific resource category to preserve on failure.
-    /// - `observed`: Value observed by the caller.
+    /// * `resource` - Domain resource value retained in an exceeded error.
+    /// * `observed` - Quantity to compare with this limit.
     ///
     /// # Returns
     ///
-    /// `Ok(())` when `observed` is within the limit.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`LimitExceeded`] when `observed` is greater than the maximum.
-    #[inline]
-    pub fn check<K>(
-        self,
-        kind: K,
-        observed: usize,
-    ) -> Result<(), LimitExceeded<K>> {
-        if observed > self.maximum {
-            Err(LimitExceeded::new(kind, self.maximum, observed))
-        } else {
+    /// `Ok(())` when `observed <= maximum`; otherwise returns exact facts in
+    /// [`LimitExceeded`]. This method has no mutable state or side effects.
+    pub fn check<R>(
+        &self,
+        resource: R,
+        observed: u64,
+    ) -> Result<(), LimitExceeded<R>> {
+        if observed <= self.maximum {
             Ok(())
+        } else {
+            Err(LimitExceeded::new(resource, *self, observed))
         }
     }
 }

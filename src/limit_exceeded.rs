@@ -3,100 +3,79 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0.
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
 // =============================================================================
-//! Structured facts for one exceeded resource limit.
+//! Structured facts for a failed point limit check.
 
-/// Structured facts describing one exceeded resource limit.
+use core::fmt;
+
+use crate::ResourceLimit;
+
+/// Facts from an observation that exceeded a finite resource limit.
+///
+/// `R` is the caller-defined resource value retained for diagnostics. The
+/// quantity is always an exact `u64`; this immutable error does not mutate or
+/// synchronize any budget.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct LimitExceeded<K> {
-    kind: K,
-    maximum: usize,
-    observed_at_least: usize,
+pub struct LimitExceeded<R> {
+    resource: R,
+    limit: ResourceLimit,
+    observed: u64,
 }
 
-impl<K> LimitExceeded<K> {
+impl<R> LimitExceeded<R> {
     /// Creates structured limit-exceeded facts.
     ///
     /// # Parameters
     ///
-    /// - `kind`: Domain-specific resource category.
-    /// - `maximum`: Largest permitted resource value.
-    /// - `observed_at_least`: Saturated value observed by the failed check.
+    /// * `resource` - Resource value associated with the observation.
+    /// * `limit` - Finite limit that was exceeded.
+    /// * `observed` - Exact observed quantity.
     ///
     /// # Returns
     ///
-    /// The structured facts for the exceeded limit.
-    #[inline(always)]
-    pub const fn new(
-        kind: K,
-        maximum: usize,
-        observed_at_least: usize,
-    ) -> Self {
+    /// An immutable error fact with no state changes.
+    pub const fn new(resource: R, limit: ResourceLimit, observed: u64) -> Self {
         Self {
-            kind,
-            maximum,
-            observed_at_least,
+            resource,
+            limit,
+            observed,
         }
     }
 
-    /// Returns the domain-specific resource kind.
-    ///
-    /// # Returns
-    ///
-    /// A reference to the resource category supplied by the caller.
-    #[inline(always)]
-    pub const fn kind(&self) -> &K {
-        &self.kind
+    /// Returns the resource by reference.
+    pub const fn resource(&self) -> &R {
+        &self.resource
     }
 
-    /// Returns the configured maximum.
-    ///
-    /// # Returns
-    ///
-    /// The largest permitted value.
-    #[inline(always)]
-    pub const fn maximum(&self) -> usize {
-        self.maximum
+    /// Consumes the error and returns its resource.
+    pub fn into_resource(self) -> R {
+        self.resource
     }
 
-    /// Returns the saturated observed value that exceeded the limit.
-    ///
-    /// # Returns
-    ///
-    /// The observed value, saturated at `usize::MAX` when arithmetic
-    /// overflowed.
-    #[inline(always)]
-    pub const fn observed_at_least(&self) -> usize {
-        self.observed_at_least
+    /// Returns the finite limit.
+    pub const fn limit(&self) -> ResourceLimit {
+        self.limit
     }
 
-    /// Consumes the facts and returns the resource kind.
-    ///
-    /// # Returns
-    ///
-    /// The domain-specific resource category.
-    #[inline(always)]
-    pub fn into_kind(self) -> K {
-        self.kind
+    /// Returns the exact rejected observation.
+    pub const fn observed(&self) -> u64 {
+        self.observed
     }
+}
 
-    /// Maps the resource kind while preserving the numeric facts.
-    ///
-    /// # Parameters
-    ///
-    /// - `mapper`: Function converting the current resource category.
-    ///
-    /// # Returns
-    ///
-    /// Limit facts containing the converted category.
-    #[inline]
-    pub fn map_kind<T>(self, mapper: impl FnOnce(K) -> T) -> LimitExceeded<T> {
-        LimitExceeded::new(
-            mapper(self.kind),
-            self.maximum,
-            self.observed_at_least,
+impl<R: fmt::Debug> fmt::Display for LimitExceeded<R> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "resource {:?} observed {} exceeds limit {}",
+            self.resource,
+            self.observed,
+            self.limit.maximum(),
         )
     }
 }
+
+impl<R: fmt::Debug> std::error::Error for LimitExceeded<R> {}

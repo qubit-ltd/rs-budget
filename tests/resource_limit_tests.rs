@@ -1,36 +1,40 @@
-// =============================================================================
-//    Copyright (c) 2025 - 2026 Haixing Hu.
-//
-//    SPDX-License-Identifier: Apache-2.0
-//
-//    Licensed under the Apache License, Version 2.0.
-// =============================================================================
 use qubit_budget::LimitExceeded;
 use qubit_budget::ResourceLimit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Kind {
+enum TestResource {
     Bytes,
 }
 
 #[test]
-fn accepts_zero_and_exact_boundary() {
-    assert_eq!(ResourceLimit::new(0).check(Kind::Bytes, 0), Ok(()));
-    assert_eq!(ResourceLimit::new(8).check(Kind::Bytes, 8), Ok(()));
+fn test_check_accepts_values_through_the_inclusive_maximum() {
+    let limit = ResourceLimit::new(4);
+    assert_eq!(limit.maximum(), 4);
+    assert_eq!(limit.check(TestResource::Bytes, 0), Ok(()));
+    assert_eq!(limit.check(TestResource::Bytes, 4), Ok(()));
 }
 
 #[test]
-fn rejects_value_above_boundary_with_the_callers_kind() {
-    assert_eq!(
-        ResourceLimit::new(8).check(Kind::Bytes, 9),
-        Err(LimitExceeded::new(Kind::Bytes, 8, 9)),
-    );
+fn test_check_returns_exact_resource_limit_and_observation() {
+    let limit = ResourceLimit::new(4);
+    let error = limit
+        .check(TestResource::Bytes, 5)
+        .expect_err("five bytes must exceed a four-byte limit");
+    assert_eq!(error.resource(), &TestResource::Bytes);
+    assert_eq!(error.limit(), limit);
+    assert_eq!(error.observed(), 5);
+    assert_eq!(error.into_resource(), TestResource::Bytes);
 }
 
 #[test]
-fn exposes_unbounded_limit() {
-    let limit = ResourceLimit::unbounded();
-    assert!(limit.is_unbounded());
-    assert_eq!(limit.maximum(), usize::MAX);
-    assert_eq!(limit.check(Kind::Bytes, usize::MAX), Ok(()));
+fn test_maximum_u64_is_a_finite_limit() {
+    let limit = ResourceLimit::new(u64::MAX);
+    assert_eq!(limit.check(TestResource::Bytes, u64::MAX), Ok(()));
+}
+
+#[test]
+fn test_limit_exceeded_is_a_concrete_error() {
+    let error =
+        LimitExceeded::new(TestResource::Bytes, ResourceLimit::new(1), 2);
+    assert!(error.to_string().contains("observed 2"));
 }

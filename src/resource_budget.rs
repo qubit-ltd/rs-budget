@@ -3,253 +3,134 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
-//    Licensed under the Apache License, Version 2.0.
+//    Licensed under the Apache License, Version 2.0 (the "License");
+//    you may not use this file except in compliance with the License.
 // =============================================================================
-//! Mutable accounting state for one resource dimension.
+//! Defines monotonic finite resource budgets.
 
-use crate::InvalidRelease;
-use crate::LimitExceeded;
+use crate::ResourceBudgetError;
 use crate::ResourceLimit;
 
-/// Mutable consumption state for one resource category.
+/// A finite, non-releasable resource budget.
 ///
-/// # Type Parameters
-///
-/// - `R`: Resource category represented by this budget and preserved in limit
-///   errors.
+/// The budget stores remaining capacity and only subtracts after a request has
+/// been checked. Therefore `used()` is computed as
+/// `limit.maximum() - remaining` and no cumulative addition can overflow.
+/// Callers represent an unconfigured dimension with
+/// `Option<ResourceBudget<R>> = None` rather than constructing an unlimited
+/// object.
 #[must_use]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceBudget<R> {
     resource: R,
     limit: ResourceLimit,
-    remaining: usize,
+    remaining: u64,
 }
 
 impl<R> ResourceBudget<R> {
-    /// Creates an unused budget for the specified resource and maximum.
+    /// Creates a zero-used finite budget.
     ///
     /// # Parameters
     ///
-    /// - `resource`: Resource category represented by this budget.
-    /// - `maximum`: Largest amount this budget can hold or consume.
+    /// * `resource` - Domain resource value retained in errors.
+    /// * `limit` - Finite maximum for this budget.
     ///
     /// # Returns
     ///
-    /// A budget with all capacity available.
-    #[inline(always)]
-    pub const fn new(resource: R, maximum: usize) -> Self {
+    /// A budget whose remaining capacity equals `limit.maximum()`.
+    pub fn new(resource: R, limit: ResourceLimit) -> Self {
         Self {
             resource,
-            limit: ResourceLimit::new(maximum),
-            remaining: maximum,
+            limit,
+            remaining: limit.maximum(),
         }
     }
 
-    /// Returns the resource category represented by this budget.
-    ///
-    /// # Returns
-    ///
-    /// A reference to the fixed resource category.
-    #[inline(always)]
-    pub const fn resource(&self) -> &R {
-        &self.resource
-    }
-
-    /// Returns the immutable limit governing this budget.
-    ///
-    /// # Returns
-    ///
-    /// The configured resource limit.
-    #[inline(always)]
-    pub const fn limit(&self) -> ResourceLimit {
-        self.limit
-    }
-
-    /// Returns the configured maximum.
-    ///
-    /// # Returns
-    ///
-    /// The largest amount this budget can hold or consume.
-    #[inline(always)]
-    pub const fn maximum(&self) -> usize {
-        self.limit.maximum()
-    }
-
-    /// Returns the remaining capacity.
-    ///
-    /// # Returns
-    ///
-    /// The capacity not yet consumed by this budget.
-    #[inline(always)]
-    pub const fn remaining(&self) -> usize {
-        self.remaining
-    }
-
-    /// Returns the amount consumed by this budget.
-    ///
-    /// # Returns
-    ///
-    /// The configured maximum minus the remaining capacity.
-    #[inline(always)]
-    pub const fn used(&self) -> usize {
-        self.maximum() - self.remaining
-    }
-
-    /// Returns whether no capacity remains.
-    #[inline(always)]
-    pub const fn is_empty(&self) -> bool {
-        self.remaining == 0
-    }
-
-    /// Returns whether this budget has not consumed any capacity.
-    #[inline(always)]
-    pub const fn is_unused(&self) -> bool {
-        self.remaining == self.maximum()
-    }
-
-    /// Checks additional consumption without changing the budget.
+    /// Checks whether a complete consumption would fit.
     ///
     /// # Parameters
     ///
-    /// - `amount`: Additional amount to check.
+    /// * `amount` - Quantity that would be consumed.
     ///
     /// # Returns
     ///
-    /// `Ok(())` when the resulting usage remains within the limit.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`LimitExceeded`] when the resulting usage exceeds the limit.
-    #[inline]
-    pub fn check_additional(
+    /// `Ok(())` when `amount <= remaining`; otherwise returns
+    /// [`ResourceBudgetError`] containing the resource, limit and pre-failure
+    /// balance. This method never changes the budget.
+    pub fn check_available(
         &self,
-        amount: usize,
-    ) -> Result<(), LimitExceeded<R>>
+        amount: u64,
+    ) -> Result<(), ResourceBudgetError<R>>
     where
         R: Clone,
     {
         if amount <= self.remaining {
             Ok(())
         } else {
-            Err(LimitExceeded::new(
+            Err(ResourceBudgetError::new(
                 self.resource.clone(),
-                self.maximum(),
-                self.used().saturating_add(amount),
+                self.limit,
+                self.remaining,
+                amount,
             ))
         }
     }
 
-    /// Consumes an amount while preserving the budget when it does not fit.
+    /// Consumes an amount atomically when it fits.
     ///
     /// # Parameters
     ///
-    /// - `amount`: Additional amount to consume.
+    /// * `amount` - Quantity to consume.
     ///
     /// # Returns
     ///
-    /// `Ok(())` after recording the consumption.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`LimitExceeded`] and leaves the budget unchanged when the
-    /// resulting usage exceeds the limit.
-    #[inline]
-    pub fn try_consume(&mut self, amount: usize) -> Result<(), LimitExceeded<R>>
+    /// `Ok(())` after subtracting the amount, or a structured error while
+    /// leaving `remaining` unchanged when the amount does not fit.
+    pub fn try_consume(
+        &mut self,
+        amount: u64,
+    ) -> Result<(), ResourceBudgetError<R>>
     where
         R: Clone,
     {
-        self.check_additional(amount)?;
+        self.check_available(amount)?;
         self.remaining -= amount;
         Ok(())
     }
 
-    /// Consumes an amount and exhausts the remaining capacity when it does not
-    /// fit.
+    /// Consumes as much of a request as remains available.
     ///
     /// # Parameters
     ///
-    /// - `amount`: Additional amount to consume.
+    /// * `requested` - Maximum quantity the caller wants to consume.
     ///
     /// # Returns
     ///
-    /// `Ok(())` after recording the consumption when `amount` fits.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`LimitExceeded`] and sets the remaining capacity to zero when
-    /// `amount` exceeds the available capacity.
-    #[inline]
-    pub fn consume_or_exhaust(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), LimitExceeded<R>>
-    where
-        R: Clone,
-    {
-        if amount <= self.remaining {
-            self.remaining -= amount;
-            Ok(())
-        } else {
-            let error = LimitExceeded::new(
-                self.resource.clone(),
-                self.maximum(),
-                self.used().saturating_add(amount),
-            );
-            self.remaining = 0;
-            Err(error)
-        }
-    }
-
-    /// Consumes as much of the requested amount as remains available.
-    ///
-    /// # Parameters
-    ///
-    /// - `amount`: Maximum additional amount to consume.
-    ///
-    /// # Returns
-    ///
-    /// The amount actually consumed, which is at most `amount`.
-    #[inline]
-    pub fn consume_available(&mut self, amount: usize) -> usize {
-        let consumed = amount.min(self.remaining);
+    /// The exact consumed quantity, equal to `min(requested, remaining)`.
+    /// This operation always succeeds and never increases the balance.
+    pub fn consume_available(&mut self, requested: u64) -> u64 {
+        let consumed = requested.min(self.remaining);
         self.remaining -= consumed;
         consumed
     }
 
-    /// Releases previously consumed capacity.
-    ///
-    /// # Parameters
-    ///
-    /// - `amount`: Amount to return to this budget.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` after increasing the remaining capacity.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`InvalidRelease`] and leaves the budget unchanged when the
-    /// amount exceeds the capacity currently consumed.
-    #[inline]
-    pub fn release(&mut self, amount: usize) -> Result<(), InvalidRelease> {
-        let used = self.used();
-        if amount > used {
-            Err(InvalidRelease::new(used, amount))
-        } else {
-            self.remaining += amount;
-            Ok(())
-        }
+    /// Returns the associated resource.
+    pub const fn resource(&self) -> &R {
+        &self.resource
     }
 
-    /// Discards all remaining capacity.
-    ///
-    /// # Returns
-    ///
-    /// The amount discarded by this operation.
-    #[inline]
-    pub fn exhaust(&mut self) -> usize {
-        let remaining = self.remaining;
-        self.remaining = 0;
-        remaining
+    /// Returns the finite limit.
+    pub const fn limit(&self) -> ResourceLimit {
+        self.limit
+    }
+
+    /// Returns remaining capacity.
+    pub const fn remaining(&self) -> u64 {
+        self.remaining
+    }
+
+    /// Returns the quantity consumed so far.
+    pub const fn used(&self) -> u64 {
+        self.limit.maximum() - self.remaining
     }
 }
