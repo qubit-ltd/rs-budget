@@ -17,6 +17,25 @@ enum TestResource {
     TotalElapsed,
 }
 
+#[derive(Debug)]
+struct NonCloneResource;
+
+#[test]
+fn test_is_expired_returns_bool_without_clone_resource() {
+    let clock = ManualMonotonicClock::new_shared();
+    let budget = TimeBudget::for_duration(
+        NonCloneResource,
+        clock.clone(),
+        Duration::from_secs(1),
+    )
+    .expect("deadline should be representable");
+    assert!(!budget.is_expired());
+    clock
+        .advance(Duration::from_secs(1))
+        .expect("manual clock should advance");
+    assert!(budget.is_expired());
+}
+
 #[test]
 fn test_for_duration_counts_all_monotonic_elapsed_time() {
     let clock = ManualMonotonicClock::new_shared();
@@ -55,11 +74,7 @@ fn test_deadline_is_expired_at_the_exact_boundary() {
         budget.remaining().expect("remaining should saturate"),
         Duration::ZERO
     );
-    assert!(
-        budget
-            .is_expired()
-            .expect("expiration check should succeed")
-    );
+    assert!(budget.is_expired());
     assert!(matches!(
         budget.check(),
         Err(TimeBudgetError::Expired { .. })
@@ -124,7 +139,7 @@ fn test_until_success_exposes_resource_and_fixed_instants() {
     assert_eq!(budget.resource(), &TestResource::TotalElapsed);
     assert_eq!(budget.started_at(), clock.now());
     assert_eq!(budget.deadline(), deadline);
-    assert!(!budget.is_expired().expect("deadline should not be expired"));
+    assert!(!budget.is_expired());
     budget.check().expect("deadline should still be open");
 }
 

@@ -41,7 +41,7 @@ pub struct TimeBudget<R, C> {
     deadline: MonotonicInstant,
 }
 
-impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
+impl<R, C: MonotonicClock> TimeBudget<R, C> {
     /// Creates a deadline after a relative duration.
     ///
     /// # Parameters
@@ -55,6 +55,24 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     /// A deadline budget, or a clock error when the deadline instant cannot be
     /// represented. No budget is returned on error.
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use qubit_budget::TimeBudget;
+    /// use qubit_clock::ManualMonotonicClock;
+    ///
+    /// let clock = ManualMonotonicClock::new_shared();
+    /// let budget = TimeBudget::for_duration(
+    ///     "request",
+    ///     clock.clone(),
+    ///     Duration::from_secs(1),
+    /// ).expect("one second should be representable");
+    /// assert!(!budget.is_expired());
+    /// clock.advance(Duration::from_secs(1)).expect("clock should advance");
+    /// assert!(budget.is_expired());
+    /// ```
+    ///
     /// # Errors
     ///
     /// Returns [`TimeBudgetError::Clock`] when adding `duration` to the
@@ -65,12 +83,12 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
         duration: Duration,
     ) -> Result<Self, TimeBudgetError<R>> {
         let started_at = clock.now();
-        let deadline = started_at.checked_add(duration).map_err(|source| {
-            TimeBudgetError::Clock {
-                resource: resource.clone(),
-                source,
+        let deadline = match started_at.checked_add(duration) {
+            Ok(deadline) => deadline,
+            Err(source) => {
+                return Err(TimeBudgetError::Clock { resource, source });
             }
-        })?;
+        };
         Ok(Self {
             resource,
             clock,
@@ -101,12 +119,9 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
         clock: C,
         deadline: MonotonicInstant,
     ) -> Result<Self, TimeBudgetError<R>> {
-        deadline.validate_domain(clock.domain()).map_err(|source| {
-            TimeBudgetError::Clock {
-                resource: resource.clone(),
-                source,
-            }
-        })?;
+        if let Err(source) = deadline.validate_domain(clock.domain()) {
+            return Err(TimeBudgetError::Clock { resource, source });
+        }
         let started_at = clock.now();
         Ok(Self {
             resource,
@@ -115,7 +130,9 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
             deadline,
         })
     }
+}
 
+impl<R, C> TimeBudget<R, C> {
     /// Returns the associated resource.
     #[inline(always)]
     pub const fn resource(&self) -> &R {
@@ -133,7 +150,35 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     pub const fn deadline(&self) -> MonotonicInstant {
         self.deadline
     }
+}
 
+impl<R, C: MonotonicClock> TimeBudget<R, C> {
+    /// Reports whether the current instant has reached the deadline.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::time::Duration;
+    /// use qubit_budget::TimeBudget;
+    /// use qubit_clock::ManualMonotonicClock;
+    ///
+    /// let clock = ManualMonotonicClock::new_shared();
+    /// let budget = TimeBudget::for_duration(
+    ///     "request",
+    ///     clock.clone(),
+    ///     Duration::from_secs(1),
+    /// ).expect("deadline should be representable");
+    /// assert!(!budget.is_expired());
+    /// clock.advance(Duration::from_secs(1)).expect("clock should advance");
+    /// assert!(budget.is_expired());
+    /// ```
+    #[inline]
+    pub fn is_expired(&self) -> bool {
+        self.clock.now() >= self.deadline
+    }
+}
+
+impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     /// Returns elapsed time since construction.
     ///
     /// # Returns
@@ -179,22 +224,6 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
                 }
             })
         }
-    }
-
-    /// Reports whether the current instant has reached the deadline.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(true)` when the current instant is at or after the deadline;
-    /// otherwise `Ok(false)`.
-    ///
-    /// # Errors
-    ///
-    /// This implementation samples and compares the same clock domain and does
-    /// not currently return an error.
-    #[inline]
-    pub fn is_expired(&self) -> Result<bool, TimeBudgetError<R>> {
-        Ok(self.clock.now() >= self.deadline)
     }
 
     /// Checks that the deadline has not already been reached.
