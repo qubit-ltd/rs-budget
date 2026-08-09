@@ -22,10 +22,10 @@ Add the published crate to your `Cargo.toml`:
 ```toml
 [dependencies]
 # Default feature set.
-qubit-budget = "0.4"
+qubit-budget = "0.3"
 
 # Or enable duration and monotonic-deadline budgets when needed.
-# qubit-budget = { version = "0.4", features = ["time"] }
+# qubit-budget = { version = "0.3", features = ["time"] }
 ```
 
 ## Quick Start

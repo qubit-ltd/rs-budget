@@ -21,10 +21,10 @@
 ```toml
 [dependencies]
 # 默认 feature 集
-qubit-budget = "0.4"
+qubit-budget = "0.3"
 
 # 或按需启用时长预算和单调 deadline 预算
-# qubit-budget = { version = "0.4", features = ["time"] }
+# qubit-budget = { version = "0.3", features = ["time"] }
 ```
 
 ## 快速开始
