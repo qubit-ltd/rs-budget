@@ -39,5 +39,8 @@ fn test_duration_error_can_be_displayed() {
     let error = budget
         .try_consume(Duration::from_secs(2))
         .expect_err("two seconds should exceed one second");
-    assert!(error.to_string().contains("requested"));
+    assert_eq!(
+        error.to_string(),
+        "resource OperationDuration requested 2s, but only 1s of 1s remains",
+    );
 }
