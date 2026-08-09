@@ -20,36 +20,48 @@
 
 ```toml
 [dependencies]
-qubit-budget = "0.3"
+# 默认 feature 集
+qubit-budget = "0.4"
+
+# 或按需启用时长预算和单调 deadline 预算
+# qubit-budget = { version = "0.4", features = ["time"] }
 ```
 
 ## 快速开始
 
 ```rust
-use qubit_budget::ResourceBudget;
+use qubit_budget::{ResourceBudget, ResourceLimit};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ResourceKind {
+enum Resource {
     Nodes,
 }
 
-let mut budget = ResourceBudget::new(ResourceKind::Nodes, 100);
+let mut budget = ResourceBudget::new(Resource::Nodes, ResourceLimit::new(100));
 budget.try_consume(40).expect("预算足够");
 assert_eq!(budget.remaining(), 60);
 ```
 
+未配置的限制维度由调用方使用 `None` 表示，不创建无限或 no-op budget：
+
+```rust
+let budget: Option<ResourceBudget<Resource>> = None;
+```
+
 ## 能力
 
-- 通过 `ResourceLimit` 表示不可变的单维度限制；
-- 通过 `ResourceBudget` 进行单次操作内的可变累计；
-- 通过调用方定义的资源类别构造强类型 `LimitExceeded<R>` 事实；
-- 提供失败原子、失败耗尽、部分消费和资源归还操作。
+- 通过 `ResourceLimit` 表示有限的不可变单维度限制；
+- 通过 `ResourceBudget<R>` 使用 `u64` 进行不可归还的余额累计；
+- 通过 `ResourcePool<R>` 提供失败原子、可释放并可复用的容量；
+- 通过 `time` feature 提供显式 `DurationBudget<R>` 和连续
+  `TimeBudget<R, C>`。
 
 ## 限制
 
 本 crate 有意不定义 JSON、Serde、I/O、脱敏、解析器、默认限制或领域错误
-策略。使用方应保留自己的公共 limits 类型，并将 `LimitExceeded<R>` 转换为
-已有错误类型。
+策略。使用方应保留自己的公共 resource 类型，并将结构化预算错误转换为
+已有错误类型。`DurationBudget` 只消费调用方显式提交的活动时长；
+`TimeBudget` 会连续包含 operation、等待和 backoff 的时间流逝。
 
 ## 测试
 

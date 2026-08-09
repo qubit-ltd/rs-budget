@@ -21,37 +21,50 @@ Add the published crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-budget = "0.3"
+# Default feature set.
+qubit-budget = "0.4"
+
+# Or enable duration and monotonic-deadline budgets when needed.
+# qubit-budget = { version = "0.4", features = ["time"] }
 ```
 
 ## Quick Start
 
 ```rust
-use qubit_budget::ResourceBudget;
+use qubit_budget::{ResourceBudget, ResourceLimit};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ResourceKind {
+enum Resource {
     Nodes,
 }
 
-let mut budget = ResourceBudget::new(ResourceKind::Nodes, 100);
+let mut budget = ResourceBudget::new(Resource::Nodes, ResourceLimit::new(100));
 budget.try_consume(40).expect("within the budget");
 assert_eq!(budget.remaining(), 60);
 ```
 
+An unconfigured dimension is represented by the caller as `None`; the crate
+does not construct unlimited or no-op budget objects:
+
+```rust
+let budget: Option<ResourceBudget<Resource>> = None;
+```
+
 ## Capabilities
 
-- immutable single-dimension limits through `ResourceLimit`;
-- mutable per-operation accounting through `ResourceBudget`;
-- typed `LimitExceeded<R>` facts for domain-owned resource categories;
-- failure-atomic, fail-closed, partial, and releasable consumption operations.
+- immutable finite single-dimension limits through `ResourceLimit`;
+- monotonic, non-releasable `ResourceBudget<R>` with `u64` quantities;
+- failure-atomic, reusable `ResourcePool<R>` with one unified error type;
+- optional `time` feature with explicit `DurationBudget<R>` and continuous
+  `TimeBudget<R, C>`.
 
 ## Limitations
 
 The crate intentionally does not define JSON, Serde, I/O, redaction, parser,
 default-limit, or domain-error policy. Consuming crates should retain their own
-public limit types and translate `LimitExceeded<R>` into their established
-errors.
+public resource types and translate the structured errors into their established
+errors. `DurationBudget` consumes only durations explicitly submitted by the
+caller; `TimeBudget` includes operation, waiting and backoff time.
 
 ## Testing
 
