@@ -20,7 +20,7 @@
 
 ```toml
 [dependencies]
-qubit-budget = "0.1"
+qubit-budget = "0.2"
 ```
 
 ## 快速开始
@@ -34,7 +34,7 @@ enum ResourceKind {
 }
 
 let mut budget = ResourceLimit::new(100).budget();
-budget.consume(ResourceKind::Nodes, 40).expect("预算足够");
+budget.try_consume(ResourceKind::Nodes, 40).expect("预算足够");
 assert_eq!(budget.remaining(), 60);
 ```
 
@@ -43,7 +43,7 @@ assert_eq!(budget.remaining(), 60);
 - 通过 `ResourceLimit` 表示不可变的单维度限制；
 - 通过 `ResourceBudget` 进行单次操作内的可变累计；
 - 通过调用方定义的资源类别构造强类型 `LimitExceeded<K>` 事实；
-- 使用饱和累计和失败原子性的消费操作。
+- 提供失败原子、失败耗尽、部分消费和资源归还操作。
 
 ## 限制
 

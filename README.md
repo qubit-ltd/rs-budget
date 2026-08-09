@@ -21,7 +21,7 @@ Add the published crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qubit-budget = "0.1"
+qubit-budget = "0.2"
 ```
 
 ## Quick Start
@@ -35,7 +35,7 @@ enum ResourceKind {
 }
 
 let mut budget = ResourceLimit::new(100).budget();
-budget.consume(ResourceKind::Nodes, 40).expect("within the budget");
+budget.try_consume(ResourceKind::Nodes, 40).expect("within the budget");
 assert_eq!(budget.remaining(), 60);
 ```
 
@@ -44,7 +44,7 @@ assert_eq!(budget.remaining(), 60);
 - immutable single-dimension limits through `ResourceLimit`;
 - mutable per-operation accounting through `ResourceBudget`;
 - typed `LimitExceeded<K>` facts for domain-owned resource categories;
-- saturating usage arithmetic and failure-atomic consumption.
+- failure-atomic, fail-closed, partial, and releasable consumption operations.
 
 ## Limitations
 
