@@ -10,6 +10,7 @@
 use qubit_budget::BudgetError;
 use qubit_budget::JsonLimits;
 use qubit_budget::JsonResource;
+use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 
 #[test]
@@ -36,13 +37,13 @@ fn test_json_limits_compose_structure_limits() {
     let limits = JsonLimits::new().with_structure_limits(structure_limits);
 
     let converted = StructureLimits::<JsonResource, usize>::default()
-        .with_depth_limit(qubit_budget::ResourceLimit::new(JsonResource::Depth, 1))
-        .with_nodes_limit(qubit_budget::ResourceLimit::new(JsonResource::Nodes, 2))
-        .with_sequence_items_limit(qubit_budget::ResourceLimit::new(
+        .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 1))
+        .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 2))
+        .with_sequence_items_limit(ResourceLimit::new(
             JsonResource::SequenceItems,
             3,
         ))
-        .with_map_entries_limit(qubit_budget::ResourceLimit::new(
+        .with_map_entries_limit(ResourceLimit::new(
             JsonResource::MapEntries,
             4,
         ));

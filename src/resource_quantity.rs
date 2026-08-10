@@ -23,7 +23,14 @@ mod private {
 /// signed values, floating-point `NaN`/infinity, and rounding-based arithmetic
 /// from the accounting invariants.
 pub trait ResourceQuantity:
-    private::Sealed + Copy + Debug + Display + Eq + Ord + Add<Output = Self> + Sub<Output = Self>
+    private::Sealed
+    + Copy
+    + Debug
+    + Display
+    + Eq
+    + Ord
+    + Add<Output = Self>
+    + Sub<Output = Self>
 {
     /// The additive identity for this quantity type.
     const ZERO: Self;

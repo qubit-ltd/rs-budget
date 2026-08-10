@@ -6,10 +6,13 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 mod budget_error_tests;
+#[cfg(feature = "serde-json")]
+mod json_serde_error_tests;
 mod resource_budget_tests;
 mod resource_limit_tests;
 mod resource_pool_tests;
 mod resource_quantity_tests;
+mod resource_release_error_tests;
 mod structure_budget_tests;
 mod structure_limits_tests;
 mod structure_resource_tests;

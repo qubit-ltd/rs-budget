@@ -45,13 +45,19 @@ where
 
     /// Checks the complete JSON input byte length.
     #[inline]
-    pub fn check_input_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_input_bytes(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.input_bytes_limit(), actual)
     }
 
     /// Checks the complete JSON output byte length.
     #[inline]
-    pub fn check_output_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_output_bytes(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.output_bytes_limit(), actual)
     }
 
@@ -75,13 +81,19 @@ where
 
     /// Checks one JSON array item count.
     #[inline]
-    pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_sequence_items(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_sequence_items(actual)
     }
 
     /// Checks one JSON object entry count.
     #[inline]
-    pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_map_entries(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_map_entries(actual)
     }
 
@@ -93,13 +105,19 @@ where
 
     /// Checks one JSON string byte length.
     #[inline]
-    pub fn check_string_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_string_bytes(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.string_bytes_limit(), actual)
     }
 
     /// Checks one JSON number representation byte length.
     #[inline]
-    pub fn check_number_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_number_bytes(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.number_bytes_limit(), actual)
     }
 
@@ -111,13 +129,21 @@ where
 
     /// Checks an array size and charges one node atomically.
     #[inline]
-    pub fn enter_array(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_array(
+        &mut self,
+        depth: Q,
+        items: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.enter_sequence(depth, items)
     }
 
     /// Checks an object size and charges one node atomically.
     #[inline]
-    pub fn enter_object(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_object(
+        &mut self,
+        depth: Q,
+        entries: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.enter_map(depth, entries)
     }
 

@@ -8,6 +8,7 @@
 //! Tests for structural budget enforcement.
 
 use qubit_budget::BudgetError;
+use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
 
@@ -98,8 +99,8 @@ fn test_generic_structure_budget_uses_custom_resource_and_quantity() {
         Nodes,
     }
 
-    let limits = qubit_budget::StructureLimits::<Resource, u8>::default()
-        .with_nodes_limit(qubit_budget::ResourceLimit::new(Resource::Nodes, 2));
+    let limits = StructureLimits::<Resource, u8>::default()
+        .with_nodes_limit(ResourceLimit::new(Resource::Nodes, 2));
     let mut budget = limits.budget();
     budget.charge_node().expect("first node should fit");
     budget.charge_node().expect("second node should fit");

@@ -81,28 +81,40 @@ where
 
     /// Configures the inclusive complete-input byte limit.
     #[inline]
-    pub fn with_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_input_bytes = Some(limit);
         self
     }
 
     /// Configures the inclusive complete-output byte limit.
     #[inline]
-    pub fn with_output_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_output_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_output_bytes = Some(limit);
         self
     }
 
     /// Configures the inclusive string byte limit.
     #[inline]
-    pub fn with_string_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_string_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_string_bytes = Some(limit);
         self
     }
 
     /// Configures the inclusive number byte limit.
     #[inline]
-    pub fn with_number_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_number_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_number_bytes = Some(limit);
         self
     }
@@ -234,26 +246,33 @@ impl From<StructureLimits<crate::StructureResource, usize>>
     fn from(limits: StructureLimits<crate::StructureResource, usize>) -> Self {
         let mut converted = Self::default();
         if let Some(maximum) = limits.max_depth() {
-            converted =
-                converted.with_depth_limit(ResourceLimit::new(JsonResource::Depth, maximum));
-        }
-        if let Some(maximum) = limits.max_nodes() {
-            converted =
-                converted.with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, maximum));
-        }
-        if let Some(maximum) = limits.max_sequence_items() {
-            converted = converted.with_sequence_items_limit(ResourceLimit::new(
-                JsonResource::SequenceItems,
+            converted = converted.with_depth_limit(ResourceLimit::new(
+                JsonResource::Depth,
                 maximum,
             ));
         }
+        if let Some(maximum) = limits.max_nodes() {
+            converted = converted.with_nodes_limit(ResourceLimit::new(
+                JsonResource::Nodes,
+                maximum,
+            ));
+        }
+        if let Some(maximum) = limits.max_sequence_items() {
+            converted = converted.with_sequence_items_limit(
+                ResourceLimit::new(JsonResource::SequenceItems, maximum),
+            );
+        }
         if let Some(maximum) = limits.max_map_entries() {
-            converted = converted
-                .with_map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, maximum));
+            converted = converted.with_map_entries_limit(ResourceLimit::new(
+                JsonResource::MapEntries,
+                maximum,
+            ));
         }
         if let Some(maximum) = limits.max_key_bytes() {
-            converted =
-                converted.with_key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, maximum));
+            converted = converted.with_key_bytes_limit(ResourceLimit::new(
+                JsonResource::KeyBytes,
+                maximum,
+            ));
         }
         converted
     }
@@ -282,7 +301,8 @@ impl JsonLimits<JsonResource, usize> {
     #[inline]
     pub const fn with_max_input_bytes(self, maximum: usize) -> Self {
         let mut limits = self;
-        limits.max_input_bytes = Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        limits.max_input_bytes =
+            Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
         limits
     }
 
@@ -290,21 +310,24 @@ impl JsonLimits<JsonResource, usize> {
     #[inline]
     pub const fn with_max_output_bytes(self, maximum: usize) -> Self {
         let mut limits = self;
-        limits.max_output_bytes = Some(ResourceLimit::new(JsonResource::OutputBytes, maximum));
+        limits.max_output_bytes =
+            Some(ResourceLimit::new(JsonResource::OutputBytes, maximum));
         limits
     }
 
     /// Configures the inclusive nesting-depth limit.
     #[inline]
     pub const fn with_max_depth(mut self, maximum: usize) -> Self {
-        self.structure.max_depth = Some(ResourceLimit::new(JsonResource::Depth, maximum));
+        self.structure.max_depth =
+            Some(ResourceLimit::new(JsonResource::Depth, maximum));
         self
     }
 
     /// Configures the cumulative node limit.
     #[inline]
     pub const fn with_max_nodes(mut self, maximum: usize) -> Self {
-        self.structure.max_nodes = Some(ResourceLimit::new(JsonResource::Nodes, maximum));
+        self.structure.max_nodes =
+            Some(ResourceLimit::new(JsonResource::Nodes, maximum));
         self
     }
 
@@ -327,7 +350,8 @@ impl JsonLimits<JsonResource, usize> {
     /// Configures the inclusive object-key byte limit.
     #[inline]
     pub const fn with_max_key_bytes(mut self, maximum: usize) -> Self {
-        self.structure.max_key_bytes = Some(ResourceLimit::new(JsonResource::KeyBytes, maximum));
+        self.structure.max_key_bytes =
+            Some(ResourceLimit::new(JsonResource::KeyBytes, maximum));
         self
     }
 
@@ -335,7 +359,8 @@ impl JsonLimits<JsonResource, usize> {
     #[inline]
     pub const fn with_max_string_bytes(self, maximum: usize) -> Self {
         let mut limits = self;
-        limits.max_string_bytes = Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
+        limits.max_string_bytes =
+            Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
         limits
     }
 
@@ -343,7 +368,8 @@ impl JsonLimits<JsonResource, usize> {
     #[inline]
     pub const fn with_max_number_bytes(self, maximum: usize) -> Self {
         let mut limits = self;
-        limits.max_number_bytes = Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
+        limits.max_number_bytes =
+            Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
         limits
     }
 }
