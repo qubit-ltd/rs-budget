@@ -10,6 +10,7 @@
 use crate::BudgetError;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
+use crate::ResourceReleaseError;
 
 /// A finite, non-synchronizing pool of releasable resource capacity.
 ///
@@ -124,20 +125,23 @@ where
     /// # Returns
     ///
     /// `Ok(())` after increasing availability, or
-    /// [`BudgetError::InvalidRelease`] with no state change when the
+    /// [`ResourceReleaseError`] with no state change when the
     /// amount exceeds current occupancy.
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::InvalidRelease`] when `amount` exceeds
+    /// Returns [`ResourceReleaseError`] when `amount` exceeds
     /// current occupancy. The pool remains unchanged in that case.
-    pub fn release(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>>
+    pub fn release(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), ResourceReleaseError<R, Q>>
     where
         R: Clone,
     {
         let in_use = self.in_use();
         if amount > in_use {
-            return Err(BudgetError::InvalidRelease {
+            return Err(ResourceReleaseError::InvalidRelease {
                 resource: self.limit.resource().clone(),
                 limit: self.limit.maximum(),
                 in_use,

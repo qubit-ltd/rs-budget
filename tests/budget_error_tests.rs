@@ -50,22 +50,3 @@ fn test_insufficient_error_exposes_only_consumption_facts() {
     assert_eq!(error.requested(), Some(2));
     assert_eq!(error.into_resource(), TestResource::Depth);
 }
-
-#[test]
-fn test_invalid_release_error_exposes_only_release_facts() {
-    let error = BudgetError::InvalidRelease {
-        resource: TestResource::Depth,
-        limit: 3_usize,
-        in_use: 1,
-        requested: 2,
-    };
-
-    assert_eq!(error.resource(), &TestResource::Depth);
-    assert_eq!(error.limit(), Some(3));
-    assert_eq!(error.actual(), None);
-    assert_eq!(error.maximum(), None);
-    assert_eq!(error.remaining(), None);
-    assert_eq!(error.in_use(), Some(1));
-    assert_eq!(error.requested(), Some(2));
-    assert_eq!(error.into_resource(), TestResource::Depth);
-}

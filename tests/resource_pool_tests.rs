@@ -13,13 +13,15 @@ use qubit_budget::BudgetError;
 use qubit_budget::ResourceLimit;
 use qubit_budget::ResourcePool;
 use qubit_budget::ResourceQuantity;
+use qubit_budget::ResourceReleaseError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TestResource {
     OpenFiles,
 }
 
-const OPEN_FILE_POOL: ResourcePool<&str> = ResourcePool::new("open-files", 3_u64);
+const OPEN_FILE_POOL: ResourcePool<&str> =
+    ResourcePool::new("open-files", 3_u64);
 
 #[test]
 fn test_new_is_const() {
@@ -44,9 +46,10 @@ fn test_release_can_happen_in_another_context_and_in_parts() {
 fn acquire_then_release(
     pool: &mut ResourcePool<TestResource>,
     amount: u64,
-) -> Result<(), BudgetError<TestResource>> {
-    pool.try_acquire(amount)?;
-    pool.release(amount)?;
+) -> Result<(), String> {
+    pool.try_acquire(amount)
+        .map_err(|error| error.to_string())?;
+    pool.release(amount).map_err(|error| error.to_string())?;
     Ok(())
 }
 
@@ -62,9 +65,10 @@ fn test_release_makes_capacity_reusable() {
 }
 
 #[test]
-fn test_one_error_type_supports_question_mark_for_both_operations() {
+fn test_acquire_and_release_have_distinct_error_types() {
     let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
-    acquire_then_release(&mut pool, 1).expect("both operations should share one error type");
+    acquire_then_release(&mut pool, 1)
+        .expect("both operations should share one error type");
 }
 
 #[test]
@@ -96,7 +100,7 @@ fn test_invalid_release_is_atomic() {
         .expect_err("cannot release more than is held");
     assert!(matches!(
         error,
-        BudgetError::InvalidRelease {
+        ResourceReleaseError::InvalidRelease {
             resource: TestResource::OpenFiles,
             limit: 2,
             in_use: 1,

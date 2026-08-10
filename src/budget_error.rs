@@ -13,8 +13,9 @@ use thiserror::Error;
 
 /// Structured facts describing a resource constraint failure.
 ///
-/// Point checks use [`Self::LimitExceeded`], cumulative budgets use
-/// [`Self::Insufficient`], and releasable pools use [`Self::InvalidRelease`].
+/// Point checks use [`Self::LimitExceeded`], and cumulative budgets use
+/// [`Self::Insufficient`]. Releasable pool release failures use the separate
+/// [`crate::ResourceReleaseError`] type because they are not budget failures.
 ///
 /// # Type Parameters
 ///
@@ -27,7 +28,9 @@ where
     Q: Copy + Debug,
 {
     /// A point measurement exceeded its configured maximum.
-    #[error("resource {resource:?} measured {actual:?}, exceeding the maximum of {maximum:?}")]
+    #[error(
+        "resource {resource:?} measured {actual:?}, exceeding the maximum of {maximum:?}"
+    )]
     LimitExceeded {
         /// Resource associated with the failed point check.
         resource: R,
@@ -51,19 +54,6 @@ where
         /// Quantity requested by the failed operation.
         requested: Q,
     },
-
-    /// A release request exceeded the amount currently in use.
-    #[error("resource {resource:?} has {in_use:?} in use, but {requested:?} was released")]
-    InvalidRelease {
-        /// Resource associated with the failed release request.
-        resource: R,
-        /// Configured finite limit.
-        limit: Q,
-        /// Quantity in use before the failed release.
-        in_use: Q,
-        /// Quantity requested by the failed operation.
-        requested: Q,
-    },
 }
 
 impl<R, Q> BudgetError<R, Q>
@@ -75,8 +65,7 @@ where
     pub const fn resource(&self) -> &R {
         match self {
             Self::LimitExceeded { resource, .. }
-            | Self::Insufficient { resource, .. }
-            | Self::InvalidRelease { resource, .. } => resource,
+            | Self::Insufficient { resource, .. } => resource,
         }
     }
 
@@ -85,20 +74,19 @@ where
     pub fn into_resource(self) -> R {
         match self {
             Self::LimitExceeded { resource, .. }
-            | Self::Insufficient { resource, .. }
-            | Self::InvalidRelease { resource, .. } => resource,
+            | Self::Insufficient { resource, .. } => resource,
         }
     }
 
     /// Returns the cumulative limit for budget and pool failures.
     ///
-    /// Returns `Some(limit)` for [`Self::Insufficient`] and
-    /// [`Self::InvalidRelease`], or `None` for a point-limit failure.
+    /// Returns `Some(limit)` for [`Self::Insufficient`], or `None` for a
+    /// point-limit failure.
     #[inline(always)]
     pub const fn limit(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,
-            Self::Insufficient { limit, .. } | Self::InvalidRelease { limit, .. } => Some(*limit),
+            Self::Insufficient { limit, .. } => Some(*limit),
         }
     }
 
@@ -110,7 +98,7 @@ where
     pub const fn actual(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { actual, .. } => Some(*actual),
-            Self::Insufficient { .. } | Self::InvalidRelease { .. } => None,
+            Self::Insufficient { .. } => None,
         }
     }
 
@@ -122,7 +110,7 @@ where
     pub const fn maximum(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { maximum, .. } => Some(*maximum),
-            Self::Insufficient { .. } | Self::InvalidRelease { .. } => None,
+            Self::Insufficient { .. } => None,
         }
     }
 
@@ -134,33 +122,26 @@ where
     pub const fn remaining(&self) -> Option<Q> {
         match self {
             Self::Insufficient { remaining, .. } => Some(*remaining),
-            Self::LimitExceeded { .. } | Self::InvalidRelease { .. } => None,
+            Self::LimitExceeded { .. } => None,
         }
     }
 
-    /// Returns the amount in use for an invalid pool release.
-    ///
-    /// Returns `Some(in_use)` for [`Self::InvalidRelease`], or `None` for a
-    /// point-limit or cumulative-budget failure.
+    /// Returns `None`; release failures are represented by
+    /// [`crate::ResourceReleaseError`] rather than this type.
     #[inline(always)]
     pub const fn in_use(&self) -> Option<Q> {
-        match self {
-            Self::InvalidRelease { in_use, .. } => Some(*in_use),
-            Self::LimitExceeded { .. } | Self::Insufficient { .. } => None,
-        }
+        None
     }
 
-    /// Returns the requested quantity for budget and pool failures.
+    /// Returns the requested quantity for a cumulative budget failure.
     ///
-    /// Returns `Some(requested)` for [`Self::Insufficient`] and
-    /// [`Self::InvalidRelease`], or `None` for a point-limit failure.
+    /// Returns `Some(requested)` for [`Self::Insufficient`], or `None` for a
+    /// point-limit failure.
     #[inline(always)]
     pub const fn requested(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,
-            Self::Insufficient { requested, .. } | Self::InvalidRelease { requested, .. } => {
-                Some(*requested)
-            }
+            Self::Insufficient { requested, .. } => Some(*requested),
         }
     }
 }
