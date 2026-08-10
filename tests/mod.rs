@@ -9,6 +9,7 @@ mod resource_limit_tests;
 mod resource_pool_tests;
 mod resource_quantity_tests;
 mod resource_release_error_tests;
+mod string;
 
 mod structure;
 

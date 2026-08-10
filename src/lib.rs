@@ -21,6 +21,7 @@ mod resource_limit;
 mod resource_pool;
 mod resource_quantity;
 mod resource_release_error;
+pub mod string;
 
 pub mod structure;
 
@@ -42,6 +43,8 @@ pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
 pub use resource_quantity::ResourceQuantity;
 pub use resource_release_error::ResourceReleaseError;
+pub use string::BudgetedStringError;
+pub use string::BudgetedStringWriter;
 #[cfg(feature = "serde-json")]
 pub use serde::JsonSerdeError;
 #[cfg(feature = "serde-json")]
