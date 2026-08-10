@@ -90,3 +90,26 @@ fn test_budget_creates_independent_node_accounting_sessions() {
         .charge_node()
         .expect("second session must start with a fresh node budget");
 }
+
+#[test]
+fn test_generic_structure_budget_uses_custom_resource_and_quantity() {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Resource {
+        Nodes,
+    }
+
+    let limits = qubit_budget::StructureLimits::<Resource, u8>::default()
+        .with_nodes_limit(qubit_budget::ResourceLimit::new(Resource::Nodes, 2));
+    let mut budget = limits.budget();
+    budget.charge_node().expect("first node should fit");
+    budget.charge_node().expect("second node should fit");
+    assert!(matches!(
+        budget.charge_node(),
+        Err(BudgetError::Insufficient {
+            resource: Resource::Nodes,
+            limit: 2,
+            remaining: 0,
+            requested: 1,
+        })
+    ));
+}

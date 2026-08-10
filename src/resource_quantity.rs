@@ -25,6 +25,12 @@ mod private {
 pub trait ResourceQuantity:
     private::Sealed + Copy + Debug + Display + Eq + Ord + Add<Output = Self> + Sub<Output = Self>
 {
+    /// The additive identity for this quantity type.
+    const ZERO: Self;
+
+    /// The unit quantity for this quantity type.
+    const ONE: Self;
+
     /// Adds two quantities when their sum is representable.
     ///
     /// # Parameters
@@ -44,6 +50,9 @@ macro_rules! impl_resource_quantity {
             impl private::Sealed for $quantity {}
 
             impl ResourceQuantity for $quantity {
+                const ZERO: Self = 0;
+                const ONE: Self = 1;
+
                 #[inline]
                 fn checked_add(self, other: Self) -> Option<Self> {
                     Self::checked_add(self, other)

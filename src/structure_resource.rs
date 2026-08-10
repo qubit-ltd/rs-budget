@@ -21,4 +21,7 @@ pub enum StructureResource {
 
     /// The number of entries in one map value.
     MapEntries,
+
+    /// The byte length of one structural key.
+    KeyBytes,
 }

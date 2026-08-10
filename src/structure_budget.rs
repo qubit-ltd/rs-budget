@@ -9,133 +9,126 @@
 
 use crate::BudgetError;
 use crate::ResourceBudget;
+use crate::ResourceQuantity;
 use crate::StructureLimits;
 use crate::StructureResource;
 
 /// Mutable structural accounting for one processing session.
 ///
-/// Point limits do not accumulate between calls. Node charges consume the
-/// session's finite node budget when one was configured.
+/// `R` and `Q` mirror [`StructureLimits`]. Point limits do not accumulate
+/// between calls; node charges consume the session's finite node budget.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct StructureBudget {
+pub struct StructureBudget<R = StructureResource, Q = usize>
+where
+    Q: ResourceQuantity,
+{
     /// Immutable point limits for this session.
-    limits: StructureLimits,
+    limits: StructureLimits<R, Q>,
 
     /// Optional cumulative node budget for this session.
-    nodes: Option<ResourceBudget<StructureResource, usize>>,
+    nodes: Option<ResourceBudget<R, Q>>,
 }
 
-impl StructureBudget {
+impl<R, Q> StructureBudget<R, Q>
+where
+    R: Clone,
+    Q: ResourceQuantity,
+{
     /// Creates a fresh budget session from one structural limit configuration.
-    ///
-    /// # Parameters
-    ///
-    /// * `limits` - Immutable configuration copied into the new session.
-    ///
-    /// # Returns
-    ///
-    /// A session whose optional node budget has its full configured capacity.
     #[inline]
-    pub(crate) fn new(limits: StructureLimits) -> Self {
+    pub(crate) fn new(limits: StructureLimits<R, Q>) -> Self {
         Self {
-            nodes: limits.max_nodes.map(ResourceBudget::from_limit),
+            nodes: limits
+                .nodes_limit()
+                .cloned()
+                .map(ResourceBudget::from_limit),
             limits,
         }
     }
 
     /// Checks one nesting depth against its configured maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Depth of the current value.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when depth is unconfigured or fits the inclusive maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with [`StructureResource::Depth`]
-    /// when `actual` exceeds the configured maximum. This method does not
-    /// mutate the session.
     #[inline]
-    pub fn check_depth(&self, actual: usize) -> Result<(), BudgetError<StructureResource, usize>> {
-        match self.limits.max_depth {
-            Some(limit) => limit.check(actual),
-            None => Ok(()),
-        }
+    pub fn check_depth(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.depth_limit(), actual)
     }
 
     /// Charges one processed node to this session's cumulative node budget.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when nodes are unconfigured or the next node fits.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::Insufficient`] with [`StructureResource::Nodes`]
-    /// when no node capacity remains. A failed charge leaves the node budget
-    /// unchanged.
     #[inline]
-    pub fn charge_node(&mut self) -> Result<(), BudgetError<StructureResource, usize>> {
+    pub fn charge_node(&mut self) -> Result<(), BudgetError<R, Q>> {
+        self.charge_nodes(Q::ONE)
+    }
+
+    /// Charges several processed nodes atomically.
+    #[inline]
+    pub fn charge_nodes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         match &mut self.nodes {
-            Some(nodes) => nodes.try_consume(1),
+            Some(nodes) => nodes.try_consume(amount),
             None => Ok(()),
         }
     }
 
     /// Checks one sequence item count against its configured maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Item count of the current sequence.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when sequence items are unconfigured or fit the inclusive
-    /// maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with
-    /// [`StructureResource::SequenceItems`] when `actual` exceeds the
-    /// configured maximum. This method does not mutate the session.
     #[inline]
-    pub fn check_sequence_items(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<StructureResource, usize>> {
-        match self.limits.max_sequence_items {
-            Some(limit) => limit.check(actual),
-            None => Ok(()),
-        }
+    pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.sequence_items_limit(), actual)
     }
 
     /// Checks one map entry count against its configured maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Entry count of the current map.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when map entries are unconfigured or fit the inclusive maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with
-    /// [`StructureResource::MapEntries`] when `actual` exceeds the configured
-    /// maximum. This method does not mutate the session.
     #[inline]
-    pub fn check_map_entries(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<StructureResource, usize>> {
-        match self.limits.max_map_entries {
-            Some(limit) => limit.check(actual),
-            None => Ok(()),
-        }
+    pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.map_entries_limit(), actual)
+    }
+
+    /// Checks one structural key byte length against its configured maximum.
+    #[inline]
+    pub fn check_key_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.key_bytes_limit(), actual)
+    }
+
+    /// Checks a value depth and charges one node as one atomic traversal step.
+    #[inline]
+    pub fn enter_node(&mut self, depth: Q) -> Result<(), BudgetError<R, Q>> {
+        self.check_depth(depth)?;
+        self.charge_node()
+    }
+
+    /// Checks a sequence size and charges one node as one atomic traversal step.
+    #[inline]
+    pub fn enter_sequence(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
+        self.check_depth(depth)?;
+        self.check_sequence_items(items)?;
+        self.charge_node()
+    }
+
+    /// Checks a map size and charges one node as one atomic traversal step.
+    #[inline]
+    pub fn enter_map(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
+        self.check_depth(depth)?;
+        self.check_map_entries(entries)?;
+        self.charge_node()
+    }
+
+    /// Returns the immutable limits copied into this session.
+    #[must_use = "the configured limits determine which charges can be accepted"]
+    #[inline(always)]
+    pub const fn limits(&self) -> &StructureLimits<R, Q> {
+        &self.limits
+    }
+}
+
+/// Checks an optional structural point limit.
+#[inline]
+fn check_limit<R, Q>(
+    limit: Option<&crate::ResourceLimit<R, Q>>,
+    actual: Q,
+) -> Result<(), BudgetError<R, Q>>
+where
+    R: Clone,
+    Q: ResourceQuantity,
+{
+    match limit {
+        Some(limit) => limit.check(actual),
+        None => Ok(()),
     }
 }
