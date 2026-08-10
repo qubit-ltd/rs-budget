@@ -16,6 +16,8 @@ use serde::de::Error as DeError;
 use serde::de::MapAccess;
 use serde::de::SeqAccess;
 use serde::de::Visitor;
+use serde_json::Deserializer as JsonDeserializer;
+use serde_json::to_vec;
 
 use crate::BudgetError;
 use crate::JsonBudget;
@@ -31,7 +33,7 @@ where
     R: Clone,
 {
     preflight(input, budget)?;
-    let mut deserializer = ::serde_json::Deserializer::from_slice(input);
+    let mut deserializer = JsonDeserializer::from_slice(input);
     let value =
         T::deserialize(&mut deserializer).map_err(JsonSerdeError::Json)?;
     deserializer.end().map_err(JsonSerdeError::Json)?;
@@ -49,7 +51,7 @@ where
     R: Clone,
 {
     preflight(input, budget)?;
-    let mut deserializer = ::serde_json::Deserializer::from_slice(input);
+    let mut deserializer = JsonDeserializer::from_slice(input);
     let value = seed
         .deserialize(&mut deserializer)
         .map_err(JsonSerdeError::Json)?;
@@ -66,7 +68,7 @@ where
     T: Serialize + ?Sized,
     R: Clone,
 {
-    let bytes = ::serde_json::to_vec(value).map_err(JsonSerdeError::Json)?;
+    let bytes = to_vec(value).map_err(JsonSerdeError::Json)?;
     budget
         .check_output_bytes(bytes.len())
         .map_err(JsonSerdeError::Budget)?;
@@ -109,7 +111,7 @@ fn preflight_without_input_limit<R>(
 where
     R: Clone,
 {
-    let mut deserializer = ::serde_json::Deserializer::from_slice(input);
+    let mut deserializer = JsonDeserializer::from_slice(input);
     let (result, violation) = {
         let mut visitor = JsonPreflight::new(budget);
         let result = (&mut visitor).deserialize(&mut deserializer);
@@ -124,7 +126,8 @@ where
     deserializer.end().map_err(JsonSerdeError::Json)
 }
 
-const JSON_NUMBER_TOKEN: &str = "$serde_json::private::Number";
+const JSON_NUMBER_TOKEN: &str =
+    concat!("$", "serde_json", ":", ":private::Number");
 
 struct JsonPreflight<'a, R> {
     budget: &'a mut JsonBudget<R, usize>,

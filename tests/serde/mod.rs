@@ -3,19 +3,7 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 // =============================================================================
-mod budget_error_tests;
-mod resource_budget_tests;
-mod resource_limit_tests;
-mod resource_pool_tests;
-mod resource_quantity_tests;
-mod resource_release_error_tests;
-
-mod structure;
-
-#[cfg(feature = "json")]
-mod json;
-
 #[cfg(feature = "serde-json")]
-mod serde;
-
-mod time;
+mod json_serde_error_tests;
+#[cfg(feature = "serde-json")]
+mod serde_json_tests;

@@ -3,6 +3,6 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 // =============================================================================
-mod json_budget_tests;
-mod json_limits_tests;
-mod json_resource_tests;
+mod structure_budget_tests;
+mod structure_limits_tests;
+mod structure_resource_tests;

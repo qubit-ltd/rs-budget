@@ -7,6 +7,7 @@
 
 use std::fmt;
 
+use serde_json::Error as JsonError;
 use thiserror::Error;
 
 use crate::BudgetError;
@@ -24,7 +25,7 @@ where
 
     /// Serde JSON rejected the document or value.
     #[error("JSON serialization error: {0}")]
-    Json(#[source] ::serde_json::Error),
+    Json(#[source] JsonError),
 
     /// The destination writer rejected serialized bytes.
     #[error("JSON output writer failed: {0}")]

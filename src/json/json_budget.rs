@@ -12,6 +12,7 @@ use crate::ResourceQuantity;
 use crate::StructureBudget;
 use crate::json::JsonLimits;
 use crate::json::JsonResource;
+use crate::resource_limit::check_limit;
 
 /// Mutable JSON accounting for one processing session.
 ///
@@ -159,21 +160,5 @@ where
     #[inline(always)]
     pub const fn structure_budget(&self) -> &StructureBudget<R, Q> {
         &self.structure
-    }
-}
-
-/// Checks an optional JSON point limit.
-#[inline]
-fn check_limit<R, Q>(
-    limit: Option<&crate::ResourceLimit<R, Q>>,
-    actual: Q,
-) -> Result<(), BudgetError<R, Q>>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    match limit {
-        Some(limit) => limit.check(actual),
-        None => Ok(()),
     }
 }

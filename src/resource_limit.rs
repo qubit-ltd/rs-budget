@@ -94,3 +94,34 @@ where
         }
     }
 }
+
+/// Checks an optional point limit.
+///
+/// # Parameters
+///
+/// * `limit` - Configured limit, or `None` when the dimension is unconfigured.
+/// * `actual` - Observed measurement to validate.
+///
+/// # Returns
+///
+/// `Ok(())` when `limit` is `None`, or when [`ResourceLimit::check`] accepts
+/// `actual`.
+///
+/// # Errors
+///
+/// Returns [`BudgetError::LimitExceeded`] when a configured limit rejects
+/// `actual`.
+#[inline]
+pub(crate) fn check_limit<R, Q>(
+    limit: Option<&ResourceLimit<R, Q>>,
+    actual: Q,
+) -> Result<(), BudgetError<R, Q>>
+where
+    R: Clone,
+    Q: Copy + Debug + PartialOrd,
+{
+    match limit {
+        Some(limit) => limit.check(actual),
+        None => Ok(()),
+    }
+}

@@ -12,6 +12,7 @@ use crate::ResourceBudget;
 use crate::ResourceQuantity;
 use crate::StructureLimits;
 use crate::StructureResource;
+use crate::resource_limit::check_limit;
 
 /// Mutable structural accounting for one processing session.
 ///
@@ -129,21 +130,5 @@ where
     #[inline(always)]
     pub const fn limits(&self) -> &StructureLimits<R, Q> {
         &self.limits
-    }
-}
-
-/// Checks an optional structural point limit.
-#[inline]
-fn check_limit<R, Q>(
-    limit: Option<&crate::ResourceLimit<R, Q>>,
-    actual: Q,
-) -> Result<(), BudgetError<R, Q>>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    match limit {
-        Some(limit) => limit.check(actual),
-        None => Ok(()),
     }
 }
