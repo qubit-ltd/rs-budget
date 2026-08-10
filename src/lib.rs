@@ -26,6 +26,12 @@ mod structure_resource;
 pub mod json;
 
 pub use budget_error::BudgetError;
+#[cfg(feature = "json")]
+pub use json::JsonBudget;
+#[cfg(feature = "json")]
+pub use json::JsonLimits;
+#[cfg(feature = "json")]
+pub use json::JsonResource;
 pub use resource_budget::ResourceBudget;
 pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
@@ -33,13 +39,6 @@ pub use resource_quantity::ResourceQuantity;
 pub use structure_budget::StructureBudget;
 pub use structure_limits::StructureLimits;
 pub use structure_resource::StructureResource;
-
-#[cfg(feature = "json")]
-pub use json::JsonBudget;
-#[cfg(feature = "json")]
-pub use json::JsonLimits;
-#[cfg(feature = "json")]
-pub use json::JsonResource;
 
 pub mod time;
 

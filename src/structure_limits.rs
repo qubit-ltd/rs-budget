@@ -26,7 +26,8 @@ pub struct StructureLimits {
     pub(crate) max_nodes: Option<ResourceLimit<StructureResource, usize>>,
 
     /// Optional inclusive maximum number of items in one sequence.
-    pub(crate) max_sequence_items: Option<ResourceLimit<StructureResource, usize>>,
+    pub(crate) max_sequence_items:
+        Option<ResourceLimit<StructureResource, usize>>,
 
     /// Optional inclusive maximum number of entries in one map.
     pub(crate) max_map_entries: Option<ResourceLimit<StructureResource, usize>>,
@@ -60,7 +61,8 @@ impl StructureLimits {
     /// Updated limits that reject depths greater than `maximum`.
     #[inline]
     pub const fn with_max_depth(mut self, maximum: usize) -> Self {
-        self.max_depth = Some(ResourceLimit::new(StructureResource::Depth, maximum));
+        self.max_depth =
+            Some(ResourceLimit::new(StructureResource::Depth, maximum));
         self
     }
 
@@ -75,7 +77,8 @@ impl StructureLimits {
     /// Updated limits whose new budget sessions track at most `maximum` nodes.
     #[inline]
     pub const fn with_max_nodes(mut self, maximum: usize) -> Self {
-        self.max_nodes = Some(ResourceLimit::new(StructureResource::Nodes, maximum));
+        self.max_nodes =
+            Some(ResourceLimit::new(StructureResource::Nodes, maximum));
         self
     }
 
@@ -108,7 +111,8 @@ impl StructureLimits {
     /// Updated limits that reject individual maps larger than `maximum`.
     #[inline]
     pub const fn with_max_map_entries(mut self, maximum: usize) -> Self {
-        self.max_map_entries = Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
+        self.max_map_entries =
+            Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
         self
     }
 
@@ -116,8 +120,8 @@ impl StructureLimits {
     ///
     /// # Returns
     ///
-    /// A session with fresh node capacity. Point limits remain immutable and are
-    /// copied into the session configuration.
+    /// A session with fresh node capacity. Point limits remain immutable and
+    /// are copied into the session configuration.
     #[inline]
     pub fn budget(&self) -> StructureBudget {
         StructureBudget::new(*self)

@@ -96,13 +96,13 @@ where
     /// # Returns
     ///
     /// `Ok(())` when `amount <= remaining`; otherwise returns
-    /// [`BudgetError::Insufficient`] containing the resource, limit and pre-failure
-    /// balance. This method never changes the budget.
+    /// [`BudgetError::Insufficient`] containing the resource, limit and
+    /// pre-failure balance. This method never changes the budget.
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the remaining
-    /// capacity.
+    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the
+    /// remaining capacity.
     pub fn check_available(&self, amount: Q) -> Result<(), BudgetError<R, Q>>
     where
         R: Clone,
@@ -132,8 +132,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the remaining
-    /// capacity. The budget remains unchanged in that case.
+    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the
+    /// remaining capacity. The budget remains unchanged in that case.
     #[inline]
     pub fn try_consume(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>>
     where

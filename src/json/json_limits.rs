@@ -72,7 +72,8 @@ impl JsonLimits {
     /// Updated limits that reject complete inputs larger than `maximum`.
     #[inline]
     pub const fn with_max_input_bytes(mut self, maximum: usize) -> Self {
-        self.max_input_bytes = Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        self.max_input_bytes =
+            Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
         self
     }
 
@@ -117,7 +118,8 @@ impl JsonLimits {
     /// Updated limits that reject individual arrays larger than `maximum`.
     #[inline]
     pub const fn with_max_sequence_items(mut self, maximum: usize) -> Self {
-        self.max_sequence_items = Some(ResourceLimit::new(JsonResource::SequenceItems, maximum));
+        self.max_sequence_items =
+            Some(ResourceLimit::new(JsonResource::SequenceItems, maximum));
         self
     }
 
@@ -132,7 +134,8 @@ impl JsonLimits {
     /// Updated limits that reject individual objects larger than `maximum`.
     #[inline]
     pub const fn with_max_map_entries(mut self, maximum: usize) -> Self {
-        self.max_map_entries = Some(ResourceLimit::new(JsonResource::MapEntries, maximum));
+        self.max_map_entries =
+            Some(ResourceLimit::new(JsonResource::MapEntries, maximum));
         self
     }
 
@@ -147,7 +150,8 @@ impl JsonLimits {
     /// Updated limits that reject individual strings larger than `maximum`.
     #[inline]
     pub const fn with_max_string_bytes(mut self, maximum: usize) -> Self {
-        self.max_string_bytes = Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
+        self.max_string_bytes =
+            Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
         self
     }
 
@@ -163,7 +167,8 @@ impl JsonLimits {
     /// Updated limits that reject individual numbers larger than `maximum`.
     #[inline]
     pub const fn with_max_number_bytes(mut self, maximum: usize) -> Self {
-        self.max_number_bytes = Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
+        self.max_number_bytes =
+            Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
         self
     }
 

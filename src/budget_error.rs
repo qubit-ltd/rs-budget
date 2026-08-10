@@ -25,7 +25,9 @@ where
     Q: Copy + std::fmt::Debug,
 {
     /// A point measurement exceeded its configured maximum.
-    #[error("resource {resource:?} measured {actual:?}, exceeding the maximum of {maximum:?}")]
+    #[error(
+        "resource {resource:?} measured {actual:?}, exceeding the maximum of {maximum:?}"
+    )]
     LimitExceeded {
         /// Resource associated with the failed point check.
         resource: R,
@@ -51,7 +53,9 @@ where
     },
 
     /// A release request exceeded the amount currently in use.
-    #[error("resource {resource:?} has {in_use:?} in use, but {requested:?} was released")]
+    #[error(
+        "resource {resource:?} has {in_use:?} in use, but {requested:?} was released"
+    )]
     InvalidRelease {
         /// Resource associated with the failed release request.
         resource: R,
@@ -96,7 +100,8 @@ where
     pub const fn limit(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,
-            Self::Insufficient { limit, .. } | Self::InvalidRelease { limit, .. } => Some(*limit),
+            Self::Insufficient { limit, .. }
+            | Self::InvalidRelease { limit, .. } => Some(*limit),
         }
     }
 
@@ -156,9 +161,8 @@ where
     pub const fn requested(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,
-            Self::Insufficient { requested, .. } | Self::InvalidRelease { requested, .. } => {
-                Some(*requested)
-            }
+            Self::Insufficient { requested, .. }
+            | Self::InvalidRelease { requested, .. } => Some(*requested),
         }
     }
 }
