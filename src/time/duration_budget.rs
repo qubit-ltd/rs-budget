@@ -9,7 +9,8 @@
 
 use std::time::Duration;
 
-use super::DurationBudgetError;
+use crate::BudgetError;
+use crate::ResourceLimit;
 
 /// A finite, monotonic budget for durations explicitly submitted by callers.
 ///
@@ -24,11 +25,8 @@ use super::DurationBudgetError;
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
 pub struct DurationBudget<R> {
-    /// Resource value retained in consumption errors.
-    resource: R,
-
     /// Finite maximum active duration of the budget.
-    limit: Duration,
+    limit: ResourceLimit<R, Duration>,
 
     /// Duration that has not yet been consumed.
     remaining: Duration,
@@ -59,10 +57,24 @@ impl<R> DurationBudget<R> {
     #[inline]
     pub const fn new(resource: R, limit: Duration) -> Self {
         Self {
-            resource,
-            limit,
+            limit: ResourceLimit::new(resource, limit),
             remaining: limit,
         }
+    }
+
+    /// Creates a zero-used duration budget from an immutable resource limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource identity and finite duration for this budget.
+    ///
+    /// # Returns
+    ///
+    /// A budget whose remaining duration equals the limit maximum.
+    #[inline]
+    pub fn from_limit(limit: ResourceLimit<R, Duration>) -> Self {
+        let remaining = limit.maximum();
+        Self { limit, remaining }
     }
 
     /// Checks whether a complete duration consumption would fit.
@@ -78,24 +90,21 @@ impl<R> DurationBudget<R> {
     ///
     /// # Errors
     ///
-    /// Returns [`DurationBudgetError`] when `duration` exceeds the remaining
+    /// Returns [`BudgetError::Insufficient`] when `duration` exceeds the remaining
     /// duration.
-    pub fn check_available(
-        &self,
-        duration: Duration,
-    ) -> Result<(), DurationBudgetError<R>>
+    pub fn check_available(&self, duration: Duration) -> Result<(), BudgetError<R, Duration>>
     where
         R: Clone,
     {
         if duration <= self.remaining {
             Ok(())
         } else {
-            Err(DurationBudgetError::new(
-                self.resource.clone(),
-                self.limit,
-                self.remaining,
-                duration,
-            ))
+            Err(BudgetError::Insufficient {
+                resource: self.limit.resource().clone(),
+                limit: self.limit.maximum(),
+                remaining: self.remaining,
+                requested: duration,
+            })
         }
     }
 
@@ -112,13 +121,10 @@ impl<R> DurationBudget<R> {
     ///
     /// # Errors
     ///
-    /// Returns [`DurationBudgetError`] when `duration` exceeds the remaining
+    /// Returns [`BudgetError::Insufficient`] when `duration` exceeds the remaining
     /// duration. The budget remains unchanged in that case.
     #[inline]
-    pub fn try_consume(
-        &mut self,
-        duration: Duration,
-    ) -> Result<(), DurationBudgetError<R>>
+    pub fn try_consume(&mut self, duration: Duration) -> Result<(), BudgetError<R, Duration>>
     where
         R: Clone,
     {
@@ -148,13 +154,19 @@ impl<R> DurationBudget<R> {
     /// Returns the associated resource.
     #[inline(always)]
     pub const fn resource(&self) -> &R {
-        &self.resource
+        self.limit.resource()
+    }
+
+    /// Returns the immutable resource limit that configures this budget.
+    #[inline(always)]
+    pub const fn resource_limit(&self) -> &ResourceLimit<R, Duration> {
+        &self.limit
     }
 
     /// Returns the finite duration limit.
     #[inline(always)]
     pub const fn limit(&self) -> Duration {
-        self.limit
+        self.limit.maximum()
     }
 
     /// Returns remaining duration.
@@ -166,6 +178,6 @@ impl<R> DurationBudget<R> {
     /// Returns explicitly consumed duration.
     #[inline(always)]
     pub const fn used(&self) -> Duration {
-        self.limit.saturating_sub(self.remaining)
+        self.limit.maximum().saturating_sub(self.remaining)
     }
 }

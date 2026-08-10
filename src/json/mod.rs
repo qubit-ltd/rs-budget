@@ -5,8 +5,12 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-mod duration_budget_tests;
-#[cfg(feature = "time")]
-mod time_budget_error_tests;
-#[cfg(feature = "time")]
-mod time_budget_tests;
+//! Resource limits and budgets for JSON processing without a JSON parser.
+
+mod json_budget;
+mod json_limits;
+mod json_resource;
+
+pub use json_budget::JsonBudget;
+pub use json_limits::JsonLimits;
+pub use json_resource::JsonResource;

@@ -9,8 +9,9 @@ use proptest::prelude::any;
 use proptest::prelude::prop;
 use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
+use qubit_budget::BudgetError;
+use qubit_budget::ResourceLimit;
 use qubit_budget::ResourcePool;
-use qubit_budget::ResourcePoolError;
 use qubit_budget::ResourceQuantity;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,8 +19,7 @@ enum TestResource {
     OpenFiles,
 }
 
-const OPEN_FILE_POOL: ResourcePool<&str> =
-    ResourcePool::new("open-files", 3_u64);
+const OPEN_FILE_POOL: ResourcePool<&str> = ResourcePool::new("open-files", 3_u64);
 
 #[test]
 fn test_new_is_const() {
@@ -44,7 +44,7 @@ fn test_release_can_happen_in_another_context_and_in_parts() {
 fn acquire_then_release(
     pool: &mut ResourcePool<TestResource>,
     amount: u64,
-) -> Result<(), ResourcePoolError<TestResource>> {
+) -> Result<(), BudgetError<TestResource>> {
     pool.try_acquire(amount)?;
     pool.release(amount)?;
     Ok(())
@@ -64,8 +64,7 @@ fn test_release_makes_capacity_reusable() {
 #[test]
 fn test_one_error_type_supports_question_mark_for_both_operations() {
     let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
-    acquire_then_release(&mut pool, 1)
-        .expect("both operations should share one error type");
+    acquire_then_release(&mut pool, 1).expect("both operations should share one error type");
 }
 
 #[test]
@@ -78,10 +77,11 @@ fn test_acquire_reports_exhaustion_without_mutation() {
         .expect_err("one more unit should be exhausted");
     assert!(matches!(
         error,
-        ResourcePoolError::Exhausted {
-            available: 0,
+        BudgetError::Insufficient {
+            resource: TestResource::OpenFiles,
+            limit: 2,
+            remaining: 0,
             requested: 1,
-            ..
         }
     ));
     assert_eq!(pool.available(), 0);
@@ -96,10 +96,11 @@ fn test_invalid_release_is_atomic() {
         .expect_err("cannot release more than is held");
     assert!(matches!(
         error,
-        ResourcePoolError::InvalidRelease {
+        BudgetError::InvalidRelease {
+            resource: TestResource::OpenFiles,
+            limit: 2,
             in_use: 1,
             requested: 2,
-            ..
         }
     ));
     assert_eq!(pool.available(), 1);
@@ -110,9 +111,18 @@ fn test_pool_accessors_report_the_finite_capacity() {
     let pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     assert_eq!(pool.resource(), &TestResource::OpenFiles);
     assert_eq!(pool.limit(), 2_u64);
+    assert_eq!(pool.resource_limit().resource(), &TestResource::OpenFiles);
+    assert_eq!(pool.resource_limit().maximum(), 2_u64);
     assert_eq!(pool.capacity(), 2);
     assert_eq!(pool.available(), 2);
     assert_eq!(pool.in_use(), 0);
+}
+
+#[test]
+fn test_from_limit_preserves_the_resource_limit() {
+    let limit = ResourceLimit::new(TestResource::OpenFiles, 2_u64);
+    let pool = ResourcePool::from_limit(limit);
+    assert_eq!(pool.resource_limit(), &limit);
 }
 
 proptest! {

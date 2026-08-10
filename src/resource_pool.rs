@@ -7,7 +7,8 @@
 // =============================================================================
 //! Defines finite releasable resource pools.
 
-use crate::ResourcePoolError;
+use crate::BudgetError;
+use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
 /// A finite, non-synchronizing pool of releasable resource capacity.
@@ -27,11 +28,8 @@ pub struct ResourcePool<R, Q = u64>
 where
     Q: ResourceQuantity,
 {
-    /// Resource value retained in acquisition and release errors.
-    resource: R,
-
     /// Finite total capacity of the pool.
-    limit: Q,
+    limit: ResourceLimit<R, Q>,
 
     /// Capacity that is currently available for acquisition.
     available: Q,
@@ -65,10 +63,24 @@ where
     #[inline]
     pub const fn new(resource: R, limit: Q) -> Self {
         Self {
-            resource,
-            limit,
+            limit: ResourceLimit::new(resource, limit),
             available: limit,
         }
+    }
+
+    /// Creates an entirely available pool from an immutable resource limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource identity and finite capacity for this pool.
+    ///
+    /// # Returns
+    ///
+    /// A pool whose available capacity equals the limit maximum.
+    #[inline]
+    pub fn from_limit(limit: ResourceLimit<R, Q>) -> Self {
+        let available = limit.maximum();
+        Self { limit, available }
     }
 
     /// Acquires capacity when enough units are available.
@@ -80,25 +92,22 @@ where
     /// # Returns
     ///
     /// `Ok(())` after subtracting the amount, or
-    /// [`ResourcePoolError::Exhausted`] with no state change when it does
+    /// [`BudgetError::Insufficient`] with no state change when it does
     /// not fit.
     ///
     /// # Errors
     ///
-    /// Returns [`ResourcePoolError::Exhausted`] when `amount` exceeds current
+    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds current
     /// availability. The pool remains unchanged in that case.
-    pub fn try_acquire(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), ResourcePoolError<R, Q>>
+    pub fn try_acquire(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>>
     where
         R: Clone,
     {
         if amount > self.available {
-            return Err(ResourcePoolError::Exhausted {
-                resource: self.resource.clone(),
-                limit: self.limit,
-                available: self.available,
+            return Err(BudgetError::Insufficient {
+                resource: self.limit.resource().clone(),
+                limit: self.limit.maximum(),
+                remaining: self.available,
                 requested: amount,
             });
         }
@@ -115,22 +124,22 @@ where
     /// # Returns
     ///
     /// `Ok(())` after increasing availability, or
-    /// [`ResourcePoolError::InvalidRelease`] with no state change when the
+    /// [`BudgetError::InvalidRelease`] with no state change when the
     /// amount exceeds current occupancy.
     ///
     /// # Errors
     ///
-    /// Returns [`ResourcePoolError::InvalidRelease`] when `amount` exceeds
+    /// Returns [`BudgetError::InvalidRelease`] when `amount` exceeds
     /// current occupancy. The pool remains unchanged in that case.
-    pub fn release(&mut self, amount: Q) -> Result<(), ResourcePoolError<R, Q>>
+    pub fn release(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>>
     where
         R: Clone,
     {
         let in_use = self.in_use();
         if amount > in_use {
-            return Err(ResourcePoolError::InvalidRelease {
-                resource: self.resource.clone(),
-                limit: self.limit,
+            return Err(BudgetError::InvalidRelease {
+                resource: self.limit.resource().clone(),
+                limit: self.limit.maximum(),
                 in_use,
                 requested: amount,
             });
@@ -142,19 +151,25 @@ where
     /// Returns the associated resource.
     #[inline(always)]
     pub const fn resource(&self) -> &R {
-        &self.resource
+        self.limit.resource()
+    }
+
+    /// Returns the immutable resource limit that configures this pool.
+    #[inline(always)]
+    pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
+        &self.limit
     }
 
     /// Returns the finite pool limit.
     #[inline(always)]
     pub const fn limit(&self) -> Q {
-        self.limit
+        self.limit.maximum()
     }
 
     /// Returns the total finite capacity.
     #[inline(always)]
     pub const fn capacity(&self) -> Q {
-        self.limit
+        self.limit.maximum()
     }
 
     /// Returns currently available capacity.
@@ -166,6 +181,6 @@ where
     /// Returns currently acquired capacity.
     #[inline(always)]
     pub fn in_use(&self) -> Q {
-        self.limit - self.available
+        self.limit.maximum() - self.available
     }
 }

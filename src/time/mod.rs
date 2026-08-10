@@ -8,14 +8,12 @@
 //! Finite budgets for explicit durations and continuous monotonic deadlines.
 
 mod duration_budget;
-mod duration_budget_error;
 #[cfg(feature = "time")]
 mod time_budget;
 #[cfg(feature = "time")]
 mod time_budget_error;
 
 pub use duration_budget::DurationBudget;
-pub use duration_budget_error::DurationBudgetError;
 #[cfg(feature = "time")]
 pub use time_budget::TimeBudget;
 #[cfg(feature = "time")]

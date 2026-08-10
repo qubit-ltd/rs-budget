@@ -7,7 +7,8 @@
 // =============================================================================
 //! Defines monotonic finite resource budgets.
 
-use crate::ResourceBudgetError;
+use crate::BudgetError;
+use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
 /// A finite, non-releasable resource budget.
@@ -29,11 +30,8 @@ pub struct ResourceBudget<R, Q = u64>
 where
     Q: ResourceQuantity,
 {
-    /// Resource value retained in consumption errors.
-    resource: R,
-
     /// Finite maximum capacity of the budget.
-    limit: Q,
+    limit: ResourceLimit<R, Q>,
 
     /// Capacity that has not yet been consumed.
     remaining: Q,
@@ -67,9 +65,25 @@ where
     #[inline]
     pub const fn new(resource: R, limit: Q) -> Self {
         Self {
-            resource,
-            limit,
+            limit: ResourceLimit::new(resource, limit),
             remaining: limit,
+        }
+    }
+
+    /// Creates a zero-used budget from an immutable resource limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource identity and finite maximum for this budget.
+    ///
+    /// # Returns
+    ///
+    /// A budget whose remaining capacity equals the limit maximum.
+    #[inline]
+    pub fn from_limit(limit: ResourceLimit<R, Q>) -> Self {
+        Self {
+            remaining: limit.maximum(),
+            limit,
         }
     }
 
@@ -82,29 +96,26 @@ where
     /// # Returns
     ///
     /// `Ok(())` when `amount <= remaining`; otherwise returns
-    /// [`ResourceBudgetError`] containing the resource, limit and pre-failure
+    /// [`BudgetError::Insufficient`] containing the resource, limit and pre-failure
     /// balance. This method never changes the budget.
     ///
     /// # Errors
     ///
-    /// Returns [`ResourceBudgetError`] when `amount` exceeds the remaining
+    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the remaining
     /// capacity.
-    pub fn check_available(
-        &self,
-        amount: Q,
-    ) -> Result<(), ResourceBudgetError<R, Q>>
+    pub fn check_available(&self, amount: Q) -> Result<(), BudgetError<R, Q>>
     where
         R: Clone,
     {
         if amount <= self.remaining {
             Ok(())
         } else {
-            Err(ResourceBudgetError::new(
-                self.resource.clone(),
-                self.limit,
-                self.remaining,
-                amount,
-            ))
+            Err(BudgetError::Insufficient {
+                resource: self.limit.resource().clone(),
+                limit: self.limit.maximum(),
+                remaining: self.remaining,
+                requested: amount,
+            })
         }
     }
 
@@ -121,13 +132,10 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`ResourceBudgetError`] when `amount` exceeds the remaining
+    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the remaining
     /// capacity. The budget remains unchanged in that case.
     #[inline]
-    pub fn try_consume(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), ResourceBudgetError<R, Q>>
+    pub fn try_consume(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -157,13 +165,19 @@ where
     /// Returns the associated resource.
     #[inline(always)]
     pub const fn resource(&self) -> &R {
-        &self.resource
+        self.limit.resource()
+    }
+
+    /// Returns the immutable resource limit that configures this budget.
+    #[inline(always)]
+    pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
+        &self.limit
     }
 
     /// Returns the finite limit.
     #[inline(always)]
     pub const fn limit(&self) -> Q {
-        self.limit
+        self.limit.maximum()
     }
 
     /// Returns remaining capacity.
@@ -175,6 +189,6 @@ where
     /// Returns the quantity consumed so far.
     #[inline(always)]
     pub fn used(&self) -> Q {
-        self.limit - self.remaining
+        self.limit.maximum() - self.remaining
     }
 }

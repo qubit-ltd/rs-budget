@@ -13,22 +13,37 @@
 //! no-op or unlimited budget object. Resource quantities use an exact unsigned
 //! integer type, defaulting to `u64`.
 
+mod budget_error;
 mod resource_budget;
-mod resource_budget_error;
+mod resource_limit;
 mod resource_pool;
-mod resource_pool_error;
 mod resource_quantity;
+mod structure_budget;
+mod structure_limits;
+mod structure_resource;
 
+#[cfg(feature = "json")]
+pub mod json;
+
+pub use budget_error::BudgetError;
 pub use resource_budget::ResourceBudget;
-pub use resource_budget_error::ResourceBudgetError;
+pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
-pub use resource_pool_error::ResourcePoolError;
 pub use resource_quantity::ResourceQuantity;
+pub use structure_budget::StructureBudget;
+pub use structure_limits::StructureLimits;
+pub use structure_resource::StructureResource;
+
+#[cfg(feature = "json")]
+pub use json::JsonBudget;
+#[cfg(feature = "json")]
+pub use json::JsonLimits;
+#[cfg(feature = "json")]
+pub use json::JsonResource;
 
 pub mod time;
 
 pub use time::DurationBudget;
-pub use time::DurationBudgetError;
 #[cfg(feature = "time")]
 pub use time::TimeBudget;
 #[cfg(feature = "time")]

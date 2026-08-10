@@ -29,6 +29,7 @@ miri = true
 
 [features]
 default = []
+json = []
 time = ["dep:qubit-clock"]
 
 [dependencies]

@@ -9,7 +9,9 @@ use proptest::prelude::prop;
 use proptest::prelude::prop_assert;
 use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
+use qubit_budget::BudgetError;
 use qubit_budget::ResourceBudget;
+use qubit_budget::ResourceLimit;
 use qubit_budget::ResourceQuantity;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,38 +49,16 @@ fn test_failed_consume_is_atomic_and_reports_exact_facts() {
     budget
         .try_consume(2)
         .expect("initial consumption should fit");
-    let error = budget
-        .try_consume(4)
-        .expect_err("four bytes should not fit");
-    assert_eq!(error.resource(), &TestResource::Bytes);
-    assert_eq!(error.limit(), 5_u64);
-    assert_eq!(error.remaining(), 3);
-    assert_eq!(error.requested(), 4);
+    assert!(matches!(
+        budget.try_consume(4),
+        Err(BudgetError::Insufficient {
+            resource: TestResource::Bytes,
+            limit: 5,
+            remaining: 3,
+            requested: 4,
+        })
+    ));
     assert_eq!(budget.remaining(), 3);
-}
-
-#[test]
-fn test_error_reports_used_and_checked_attempted() {
-    let mut budget = ResourceBudget::new("body", 10_u64);
-    budget.try_consume(7).expect("seven bytes should fit");
-    let error = budget
-        .try_consume(5)
-        .expect_err("five bytes should exceed the remainder");
-    assert_eq!(error.used(), 7);
-    assert_eq!(error.checked_attempted(), Some(12));
-}
-
-#[test]
-fn test_error_checked_attempted_reports_overflow() {
-    let mut budget = ResourceBudget::new("body", u64::MAX);
-    budget
-        .try_consume(u64::MAX)
-        .expect("the maximum amount should fit");
-    let error = budget
-        .try_consume(1)
-        .expect_err("an exhausted budget should reject more input");
-    assert_eq!(error.used(), u64::MAX);
-    assert_eq!(error.checked_attempted(), None);
 }
 
 #[test]
@@ -95,6 +75,15 @@ fn test_budget_accessors_preserve_resource_and_limit() {
     let budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
     assert_eq!(budget.resource(), &TestResource::Bytes);
     assert_eq!(budget.limit(), 5_u64);
+    assert_eq!(budget.resource_limit().resource(), &TestResource::Bytes);
+    assert_eq!(budget.resource_limit().maximum(), 5_u64);
+}
+
+#[test]
+fn test_from_limit_preserves_the_resource_limit() {
+    let limit = ResourceLimit::new(TestResource::Bytes, 5_u64);
+    let budget = ResourceBudget::from_limit(limit);
+    assert_eq!(budget.resource_limit(), &limit);
 }
 
 proptest! {

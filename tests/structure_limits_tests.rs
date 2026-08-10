@@ -1,0 +1,57 @@
+// =============================================================================
+//    Copyright (c) 2025 - 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+//! Tests for structural limit configuration.
+
+use qubit_budget::BudgetError;
+use qubit_budget::StructureLimits;
+use qubit_budget::StructureResource;
+
+#[test]
+fn test_with_max_methods_bind_each_limit_to_its_structure_resource() {
+    let mut budget = StructureLimits::new()
+        .with_max_depth(1)
+        .with_max_nodes(1)
+        .with_max_sequence_items(1)
+        .with_max_map_entries(1)
+        .budget();
+
+    assert!(matches!(
+        budget.check_depth(2),
+        Err(BudgetError::LimitExceeded {
+            resource: StructureResource::Depth,
+            actual: 2,
+            maximum: 1,
+        })
+    ));
+    assert!(matches!(budget.charge_node(), Ok(())));
+    assert!(matches!(
+        budget.charge_node(),
+        Err(BudgetError::Insufficient {
+            resource: StructureResource::Nodes,
+            limit: 1,
+            remaining: 0,
+            requested: 1,
+        })
+    ));
+    assert!(matches!(
+        budget.check_sequence_items(2),
+        Err(BudgetError::LimitExceeded {
+            resource: StructureResource::SequenceItems,
+            actual: 2,
+            maximum: 1,
+        })
+    ));
+    assert!(matches!(
+        budget.check_map_entries(2),
+        Err(BudgetError::LimitExceeded {
+            resource: StructureResource::MapEntries,
+            actual: 2,
+            maximum: 1,
+        })
+    ));
+}
