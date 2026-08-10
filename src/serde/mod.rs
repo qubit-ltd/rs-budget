@@ -7,6 +7,7 @@
 // =============================================================================
 //! Budget-aware JSON/Serde adapters.
 
+mod internal;
 mod json_serde_error;
 mod serde_json;
 
