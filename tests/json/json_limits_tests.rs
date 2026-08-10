@@ -10,6 +10,33 @@
 use qubit_budget::BudgetError;
 use qubit_budget::JsonLimits;
 use qubit_budget::JsonResource;
+use qubit_budget::StructureLimits;
+
+#[test]
+fn test_json_limits_expose_configured_values() {
+    let limits = JsonLimits::new()
+        .with_max_depth(1)
+        .with_max_nodes(2)
+        .with_max_sequence_items(3)
+        .with_max_map_entries(4);
+
+    assert_eq!(limits.max_depth(), Some(1));
+    assert_eq!(limits.max_nodes(), Some(2));
+    assert_eq!(limits.max_sequence_items(), Some(3));
+    assert_eq!(limits.max_map_entries(), Some(4));
+}
+
+#[test]
+fn test_json_limits_compose_structure_limits() {
+    let structure_limits = StructureLimits::new()
+        .with_max_depth(1)
+        .with_max_nodes(2)
+        .with_max_sequence_items(3)
+        .with_max_map_entries(4);
+    let limits = JsonLimits::new().with_structure_limits(structure_limits);
+
+    assert_eq!(limits.structure_limits(), structure_limits);
+}
 
 #[test]
 fn test_with_max_methods_bind_each_limit_to_its_json_resource() {

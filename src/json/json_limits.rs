@@ -8,6 +8,7 @@
 //! Defines optional JSON processing limits.
 
 use crate::ResourceLimit;
+use crate::StructureLimits;
 use crate::json::JsonBudget;
 use crate::json::JsonResource;
 
@@ -72,8 +73,7 @@ impl JsonLimits {
     /// Updated limits that reject complete inputs larger than `maximum`.
     #[inline]
     pub const fn with_max_input_bytes(mut self, maximum: usize) -> Self {
-        self.max_input_bytes =
-            Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        self.max_input_bytes = Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
         self
     }
 
@@ -118,8 +118,7 @@ impl JsonLimits {
     /// Updated limits that reject individual arrays larger than `maximum`.
     #[inline]
     pub const fn with_max_sequence_items(mut self, maximum: usize) -> Self {
-        self.max_sequence_items =
-            Some(ResourceLimit::new(JsonResource::SequenceItems, maximum));
+        self.max_sequence_items = Some(ResourceLimit::new(JsonResource::SequenceItems, maximum));
         self
     }
 
@@ -134,8 +133,7 @@ impl JsonLimits {
     /// Updated limits that reject individual objects larger than `maximum`.
     #[inline]
     pub const fn with_max_map_entries(mut self, maximum: usize) -> Self {
-        self.max_map_entries =
-            Some(ResourceLimit::new(JsonResource::MapEntries, maximum));
+        self.max_map_entries = Some(ResourceLimit::new(JsonResource::MapEntries, maximum));
         self
     }
 
@@ -150,8 +148,7 @@ impl JsonLimits {
     /// Updated limits that reject individual strings larger than `maximum`.
     #[inline]
     pub const fn with_max_string_bytes(mut self, maximum: usize) -> Self {
-        self.max_string_bytes =
-            Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
+        self.max_string_bytes = Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
         self
     }
 
@@ -167,9 +164,89 @@ impl JsonLimits {
     /// Updated limits that reject individual numbers larger than `maximum`.
     #[inline]
     pub const fn with_max_number_bytes(mut self, maximum: usize) -> Self {
-        self.max_number_bytes =
-            Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
+        self.max_number_bytes = Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
         self
+    }
+
+    /// Replaces the structural limits with the supplied configuration.
+    #[inline]
+    pub const fn with_structure_limits(mut self, limits: StructureLimits) -> Self {
+        self.max_depth = match limits.max_depth() {
+            Some(maximum) => Some(ResourceLimit::new(JsonResource::Depth, maximum)),
+            None => None,
+        };
+        self.max_nodes = match limits.max_nodes() {
+            Some(maximum) => Some(ResourceLimit::new(JsonResource::Nodes, maximum)),
+            None => None,
+        };
+        self.max_sequence_items = match limits.max_sequence_items() {
+            Some(maximum) => Some(ResourceLimit::new(JsonResource::SequenceItems, maximum)),
+            None => None,
+        };
+        self.max_map_entries = match limits.max_map_entries() {
+            Some(maximum) => Some(ResourceLimit::new(JsonResource::MapEntries, maximum)),
+            None => None,
+        };
+        self
+    }
+
+    /// Returns the structural limits represented by this JSON configuration.
+    #[inline(always)]
+    pub const fn structure_limits(&self) -> StructureLimits {
+        let mut limits = StructureLimits::new();
+        if let Some(maximum) = self.max_depth() {
+            limits = limits.with_max_depth(maximum);
+        }
+        if let Some(maximum) = self.max_nodes() {
+            limits = limits.with_max_nodes(maximum);
+        }
+        if let Some(maximum) = self.max_sequence_items() {
+            limits = limits.with_max_sequence_items(maximum);
+        }
+        if let Some(maximum) = self.max_map_entries() {
+            limits = limits.with_max_map_entries(maximum);
+        }
+        limits
+    }
+
+    /// Returns the configured maximum root-inclusive nesting depth.
+    #[must_use]
+    #[inline(always)]
+    pub const fn max_depth(&self) -> Option<usize> {
+        match self.max_depth {
+            Some(limit) => Some(limit.maximum()),
+            None => None,
+        }
+    }
+
+    /// Returns the configured maximum number of processed nodes.
+    #[must_use]
+    #[inline(always)]
+    pub const fn max_nodes(&self) -> Option<usize> {
+        match self.max_nodes {
+            Some(limit) => Some(limit.maximum()),
+            None => None,
+        }
+    }
+
+    /// Returns the configured maximum number of items in one array.
+    #[must_use]
+    #[inline(always)]
+    pub const fn max_sequence_items(&self) -> Option<usize> {
+        match self.max_sequence_items {
+            Some(limit) => Some(limit.maximum()),
+            None => None,
+        }
+    }
+
+    /// Returns the configured maximum number of entries in one object.
+    #[must_use]
+    #[inline(always)]
+    pub const fn max_map_entries(&self) -> Option<usize> {
+        match self.max_map_entries {
+            Some(limit) => Some(limit.maximum()),
+            None => None,
+        }
     }
 
     /// Creates an independent JSON budget session from these limits.

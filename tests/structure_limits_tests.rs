@@ -12,6 +12,20 @@ use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
 
 #[test]
+fn test_structure_limits_expose_configured_values() {
+    let limits = StructureLimits::new()
+        .with_max_depth(1)
+        .with_max_nodes(2)
+        .with_max_sequence_items(3)
+        .with_max_map_entries(4);
+
+    assert_eq!(limits.max_depth(), Some(1));
+    assert_eq!(limits.max_nodes(), Some(2));
+    assert_eq!(limits.max_sequence_items(), Some(3));
+    assert_eq!(limits.max_map_entries(), Some(4));
+}
+
+#[test]
 fn test_with_max_methods_bind_each_limit_to_its_structure_resource() {
     let mut budget = StructureLimits::new()
         .with_max_depth(1)
