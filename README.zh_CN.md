@@ -7,12 +7,13 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![English Document](https://img.shields.io/badge/Document-English-blue.svg)](README.md)
 
-为 Qubit Rust crate 提供无领域依赖的资源限制与预算累计原语。
+为 Qubit Rust crate 提供轻量的有限资源限制和预算记账原语。使用方可以约束
+自身的输入与处理过程，同时继续掌握领域策略和对外错误类型。
 
 ## 目标用户
 
-需要限制输入、输出、深度、节点或条目处理量，同时希望把领域策略和错误
-诊断保留在自身 crate 中的 Rust 库作者。
+适合需要限制输入、深度、节点、条目或字节处理量的 Rust 库作者；资源分类、
+默认值、诊断信息和错误模型仍由使用方定义。
 
 ## 安装
 
@@ -23,45 +24,67 @@
 # 默认 feature 集
 qubit-budget = "0.3"
 
-# 或按需启用时长预算和单调 deadline 预算
+# 仅在需要 JSON 限制记账时启用 json feature
+# qubit-budget = { version = "0.3", features = ["json"] }
+
+# 按需启用时长预算和单调 deadline 预算
 # qubit-budget = { version = "0.3", features = ["time"] }
 ```
 
 ## 快速开始
 
-```rust
-use qubit_budget::{ResourceBudget, ResourceLimit};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Resource {
-    Nodes,
-}
-
-let mut budget = ResourceBudget::new(Resource::Nodes, ResourceLimit::new(100));
-budget.try_consume(40).expect("预算足够");
-assert_eq!(budget.remaining(), 60);
-```
-
-未配置的限制维度由调用方使用 `None` 表示，不创建无限或 no-op budget：
+已有 JSON 遍历逻辑的解码器可以自行配置上限并在遍历时记账。`json` feature
+不提供 Serde 集成，也不提供解析器；它只提供限制配置与记账 API。
 
 ```rust
-let budget: Option<ResourceBudget<Resource>> = None;
+use qubit_budget::JsonLimits;
+
+let limits = JsonLimits::new()
+    .with_max_depth(64)
+    .with_max_nodes(100_000);
+let mut budget = limits.budget();
+budget.check_depth(1)?;
+budget.charge_node()?;
 ```
+
+`check_depth`、输入字节、数组条目、对象条目、字符串字节和数字字节都是点检查：
+每次都把一个观测值与包含边界在内的上限独立比较。`charge_node` 则会消耗当前
+会话的累计节点预算；再次调用 `limits.budget()` 会创建一个拥有全新节点余额的
+会话。
 
 ## 能力
 
-- 通过 `ResourceLimit` 表示有限的不可变单维度限制；
-- 通过 `ResourceBudget<R>` 使用 `u64` 进行不可归还的余额累计；
-- 通过 `ResourcePool<R>` 提供失败原子、可释放并可复用的容量；
-- 通过 `time` feature 提供显式 `DurationBudget<R>` 和连续
+- `ResourceLimit<R, Q>` 用于检查一个包含边界在内的点值。
+- `ResourceBudget<R, Q>` 用于有限、不可归还的累计消耗；
+  `ResourcePool<R, Q>` 用于有限且可释放的容量。
+- `BudgetError<R, Q>` 是统一的结构化失败类型：点检查失败为
+  `LimitExceeded`，预算消耗或获取容量失败为 `Insufficient`，超量释放为
+  `InvalidRelease`。
+- `StructureLimits` 生成 `StructureBudget` 会话，可限制深度、累计节点、序列
+  条目和映射条目，但不绑定任何数据格式。
+- 可选 `json` feature 提供 `JsonLimits` 和 `JsonBudget`，覆盖 JSON 输入字节、
+  即完整输入的字节数、根节点计入的深度、累计节点、数组/对象大小、解码后的
+  UTF-8 字符串字节数以及数字词法表示的字节数。
+- 可选 `time` feature 提供显式 `DurationBudget<R>` 与连续的
   `TimeBudget<R, C>`。
+
+## 错误边界
+
+`BudgetError` 只描述限制失败的事实，并不决定应用策略。使用方应在自己的边界
+根据资源和值的变体匹配它，再转换为本领域的公开错误。点限制、累计预算与容量池
+失败都由同一个错误类型承载。
 
 ## 限制
 
-本 crate 有意不定义 JSON、Serde、I/O、脱敏、解析器、默认限制或领域错误
-策略。使用方应保留自己的公共 resource 类型，并将结构化预算错误转换为
-已有错误类型。`DurationBudget` 只消费调用方显式提交的活动时长；
-`TimeBudget` 会连续包含 operation、等待和 backoff 的时间流逝。
+本 crate 有意不提供 JSON 解析器、Serde 集成、I/O、脱敏、默认上限、重试策略
+或领域错误策略。parser 或 wire crate 决定何时执行检查与节点记账，并将
+`BudgetError` 转换为已有错误模型。`DurationBudget` 只消费调用方显式提交的
+时长；`TimeBudget` 会包含 operation、等待、排队和 backoff 的时间流逝。
+
+## 延伸阅读
+
+可阅读[英文用户指南](doc/user_guide.md)、[中文用户指南](doc/user_guide.zh_CN.md)
+或 [API 文档](https://docs.rs/qubit-budget)。
 
 ## 测试
 
