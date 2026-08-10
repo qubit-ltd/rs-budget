@@ -89,7 +89,10 @@ fn test_render_failure_rolls_back() {
             Err::<(), _>("renderer failed")
         })
         .expect_err("renderer failure must abort the transaction");
-    assert!(matches!(error, BudgetedStringError::Render("renderer failed")));
+    assert!(matches!(
+        error,
+        BudgetedStringError::Render("renderer failed")
+    ));
     assert_eq!(budget.used(), 0);
 }
 

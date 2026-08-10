@@ -43,8 +43,6 @@ pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
 pub use resource_quantity::ResourceQuantity;
 pub use resource_release_error::ResourceReleaseError;
-pub use string::BudgetedStringError;
-pub use string::BudgetedStringWriter;
 #[cfg(feature = "serde-json")]
 pub use serde::JsonSerdeError;
 #[cfg(feature = "serde-json")]
@@ -55,6 +53,8 @@ pub use serde::from_slice_with_budget;
 pub use serde::to_vec_with_budget;
 #[cfg(feature = "serde-json")]
 pub use serde::to_writer_with_budget;
+pub use string::BudgetedStringError;
+pub use string::BudgetedStringWriter;
 pub use structure::StructureBudget;
 pub use structure::StructureLimits;
 pub use structure::StructureResource;

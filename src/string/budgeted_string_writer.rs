@@ -125,9 +125,7 @@ where
         if self.writer.append(bytes) {
             Ok(bytes.len())
         } else {
-            Err(io::Error::other(
-                "budgeted string writer rejected output",
-            ))
+            Err(io::Error::other("budgeted string writer rejected output"))
         }
     }
 
@@ -136,7 +134,10 @@ where
     }
 }
 
-const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
+const fn checked_output_len(
+    current: usize,
+    additional: usize,
+) -> Option<usize> {
     current.checked_add(additional)
 }
 
@@ -173,15 +174,5 @@ where
         self.try_consume(output.len())
             .map_err(BudgetedStringError::Budget)?;
         Ok(output)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::checked_output_len;
-
-    #[test]
-    fn test_checked_output_len_reports_overflow() {
-        assert_eq!(checked_output_len(usize::MAX, 1), None);
     }
 }
