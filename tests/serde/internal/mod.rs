@@ -3,9 +3,8 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 // =============================================================================
-#[cfg(feature = "serde-json")]
-mod internal;
-#[cfg(feature = "serde-json")]
-mod json_serde_error_tests;
-#[cfg(feature = "serde-json")]
-mod serde_json_tests;
+//! Public behavior tests for private JSON preflight modules.
+
+mod json_preflight_child_seed_tests;
+mod json_preflight_tests;
+mod json_preflight_visitor_tests;

@@ -114,3 +114,20 @@ fn test_generic_structure_budget_uses_custom_resource_and_quantity() {
         })
     ));
 }
+
+/// Verifies sequence and map entry points perform all atomic checks.
+#[test]
+fn test_structure_budget_enters_sequences_and_maps() {
+    let limits = StructureLimits::new()
+        .with_max_depth(2)
+        .with_max_nodes(2)
+        .with_max_sequence_items(1)
+        .with_max_map_entries(1);
+    let mut budget = limits.budget();
+
+    budget
+        .enter_sequence(1, 1)
+        .expect("the sequence entry should fit");
+    budget.enter_map(1, 1).expect("the map entry should fit");
+    assert_eq!(budget.limits(), &limits);
+}

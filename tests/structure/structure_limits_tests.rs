@@ -8,6 +8,7 @@
 //! Tests for structural limit configuration.
 
 use qubit_budget::BudgetError;
+use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
 
@@ -17,12 +18,32 @@ fn test_structure_limits_expose_configured_values() {
         .with_max_depth(1)
         .with_max_nodes(2)
         .with_max_sequence_items(3)
-        .with_max_map_entries(4);
+        .with_max_map_entries(4)
+        .with_max_key_bytes(5);
 
     assert_eq!(limits.max_depth(), Some(1));
     assert_eq!(limits.max_nodes(), Some(2));
     assert_eq!(limits.max_sequence_items(), Some(3));
     assert_eq!(limits.max_map_entries(), Some(4));
+    assert_eq!(limits.max_key_bytes(), Some(5));
+}
+
+/// Verifies custom-resource structural limits use the generic key setter.
+#[test]
+fn test_generic_structure_limits_support_custom_key_limit() {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Resource {
+        KeyBytes,
+    }
+
+    let limits = StructureLimits::<Resource, u8>::empty()
+        .with_key_bytes_limit(ResourceLimit::new(Resource::KeyBytes, 3));
+
+    assert_eq!(limits.max_key_bytes(), Some(3));
+    assert_eq!(
+        limits.key_bytes_limit().unwrap().resource(),
+        &Resource::KeyBytes
+    );
 }
 
 #[test]

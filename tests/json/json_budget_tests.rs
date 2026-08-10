@@ -161,3 +161,26 @@ fn test_json_budget_delegates_structure_and_output_key_limits() {
         })
     ));
 }
+
+/// Verifies that container entry points share limits and node accounting.
+#[test]
+fn test_json_budget_enters_containers_and_exposes_shared_limits() {
+    let limits = JsonLimits::new()
+        .with_max_depth(2)
+        .with_max_nodes(2)
+        .with_max_sequence_items(1)
+        .with_max_map_entries(1);
+    let mut budget = limits.budget();
+
+    budget
+        .enter_array(1, 1)
+        .expect("the array entry should fit");
+    budget
+        .enter_object(1, 1)
+        .expect("the object entry should fit");
+    assert_eq!(budget.limits(), &limits);
+    assert_eq!(
+        budget.structure_budget().limits(),
+        &limits.structure_limits()
+    );
+}
