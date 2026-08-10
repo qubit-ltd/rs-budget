@@ -7,6 +7,8 @@
 // =============================================================================
 //! Defines immutable point limits bound to resource identities.
 
+use std::fmt::Debug;
+
 use crate::BudgetError;
 
 /// An inclusive immutable maximum for one resource measurement.
@@ -19,7 +21,7 @@ use crate::BudgetError;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResourceLimit<R, Q = u64>
 where
-    Q: Copy + std::fmt::Debug,
+    Q: Copy + Debug,
 {
     /// Resource bound to this limit.
     resource: R,
@@ -30,7 +32,7 @@ where
 
 impl<R, Q> ResourceLimit<R, Q>
 where
-    Q: Copy + std::fmt::Debug,
+    Q: Copy + Debug,
 {
     /// Creates an immutable limit bound to `resource`.
     ///

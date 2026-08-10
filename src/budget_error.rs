@@ -7,6 +7,8 @@
 // =============================================================================
 //! Defines unified errors for finite resource constraints.
 
+use std::fmt::Debug;
+
 use thiserror::Error;
 
 /// Structured facts describing a resource constraint failure.
@@ -22,7 +24,7 @@ use thiserror::Error;
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum BudgetError<R, Q = u64>
 where
-    Q: Copy + std::fmt::Debug,
+    Q: Copy + Debug,
 {
     /// A point measurement exceeded its configured maximum.
     #[error(
@@ -70,7 +72,7 @@ where
 
 impl<R, Q> BudgetError<R, Q>
 where
-    Q: Copy + std::fmt::Debug,
+    Q: Copy + Debug,
 {
     /// Returns the resource associated with this failure.
     #[inline(always)]
