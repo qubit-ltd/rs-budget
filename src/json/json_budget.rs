@@ -8,217 +8,144 @@
 //! Enforces JSON processing limits during one processing session.
 
 use crate::BudgetError;
-use crate::ResourceBudget;
-use crate::ResourceLimit;
+use crate::ResourceQuantity;
+use crate::StructureBudget;
 use crate::json::JsonLimits;
 use crate::json::JsonResource;
 
 /// Mutable JSON accounting for one processing session.
 ///
-/// Point limits do not accumulate between calls. Node charges consume the
-/// session's finite node budget when one was configured.
+/// The structural part is a [`StructureBudget`] stored directly, so all JSON
+/// depth, node, container, and key checks preserve the same resource and
+/// quantity types without an adapter or a second node counter.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct JsonBudget {
-    /// Immutable point limits for this session.
-    limits: JsonLimits,
+pub struct JsonBudget<R = JsonResource, Q = usize>
+where
+    Q: ResourceQuantity,
+{
+    /// Immutable JSON limits for this session.
+    limits: JsonLimits<R, Q>,
 
-    /// Optional cumulative node budget for this session.
-    nodes: Option<ResourceBudget<JsonResource, usize>>,
+    /// Shared structural accounting for this session.
+    structure: StructureBudget<R, Q>,
 }
 
-impl JsonBudget {
+impl<R, Q> JsonBudget<R, Q>
+where
+    R: Clone,
+    Q: ResourceQuantity,
+{
     /// Creates a fresh budget session from one JSON limit configuration.
-    ///
-    /// # Parameters
-    ///
-    /// * `limits` - Immutable configuration copied into the new session.
-    ///
-    /// # Returns
-    ///
-    /// A session whose optional node budget has its full configured capacity.
     #[inline]
-    pub(crate) fn new(limits: JsonLimits) -> Self {
-        Self {
-            nodes: limits.max_nodes.map(ResourceBudget::from_limit),
-            limits,
-        }
+    pub(crate) fn new(limits: JsonLimits<R, Q>) -> Self {
+        let structure = limits.structure.budget();
+        Self { limits, structure }
     }
 
-    /// Checks the complete JSON input byte length against its maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Byte length of the complete JSON input.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when input bytes are unconfigured or fit the inclusive
-    /// maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with
-    /// [`JsonResource::InputBytes`] when `actual` exceeds the configured
-    /// maximum. This method does not mutate the session.
+    /// Checks the complete JSON input byte length.
     #[inline]
-    pub fn check_input_bytes(&self, actual: usize) -> Result<(), BudgetError<JsonResource, usize>> {
-        check_limit(self.limits.max_input_bytes, actual)
+    pub fn check_input_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.input_bytes_limit(), actual)
     }
 
-    /// Checks root-inclusive JSON nesting depth against its maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Root-inclusive depth of the current JSON value.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when depth is unconfigured or fits the inclusive maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with [`JsonResource::Depth`]
-    /// when `actual` exceeds the configured maximum. This method does not
-    /// mutate the session.
+    /// Checks the complete JSON output byte length.
     #[inline]
-    pub fn check_depth(&self, actual: usize) -> Result<(), BudgetError<JsonResource, usize>> {
-        check_limit(self.limits.max_depth, actual)
+    pub fn check_output_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.output_bytes_limit(), actual)
     }
 
-    /// Charges one processed JSON node to this session's cumulative budget.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when nodes are unconfigured or the next node fits.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::Insufficient`] with [`JsonResource::Nodes`]
-    /// when no node capacity remains. A failed charge leaves the node budget
-    /// unchanged.
+    /// Checks root-inclusive JSON nesting depth.
     #[inline]
-    pub fn charge_node(&mut self) -> Result<(), BudgetError<JsonResource, usize>> {
-        match &mut self.nodes {
-            Some(nodes) => nodes.try_consume(1),
-            None => Ok(()),
-        }
+    pub fn check_depth(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.check_depth(actual)
     }
 
-    /// Checks one JSON array item count against its maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Item count of the current JSON array.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when array items are unconfigured or fit the inclusive
-    /// maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with
-    /// [`JsonResource::SequenceItems`] when `actual` exceeds the configured
-    /// maximum. This method does not mutate the session.
+    /// Charges one processed JSON node.
     #[inline]
-    pub fn check_sequence_items(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<JsonResource, usize>> {
-        check_limit(self.limits.max_sequence_items, actual)
+    pub fn charge_node(&mut self) -> Result<(), BudgetError<R, Q>> {
+        self.structure.charge_node()
     }
 
-    /// Checks one JSON object entry count against its maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Entry count of the current JSON object.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when object entries are unconfigured or fit the inclusive
-    /// maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with
-    /// [`JsonResource::MapEntries`] when `actual` exceeds the configured
-    /// maximum. This method does not mutate the session.
+    /// Charges several processed JSON nodes atomically.
     #[inline]
-    pub fn check_map_entries(&self, actual: usize) -> Result<(), BudgetError<JsonResource, usize>> {
-        check_limit(self.limits.max_map_entries, actual)
+    pub fn charge_nodes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.charge_nodes(amount)
     }
 
-    /// Checks one JSON string byte length against its maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Byte length of the current JSON string.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when string bytes are unconfigured or fit the inclusive
-    /// maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with
-    /// [`JsonResource::StringBytes`] when `actual` exceeds the configured
-    /// maximum. This method does not mutate the session.
+    /// Checks one JSON array item count.
     #[inline]
-    pub fn check_string_bytes(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<JsonResource, usize>> {
-        check_limit(self.limits.max_string_bytes, actual)
+    pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.check_sequence_items(actual)
     }
 
-    /// Checks one JSON number representation byte length against its maximum.
-    ///
-    /// # Parameters
-    ///
-    /// * `actual` - Byte length of the current JSON number representation.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when number bytes are unconfigured or fit the inclusive
-    /// maximum.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetError::LimitExceeded`] with
-    /// [`JsonResource::NumberBytes`] when `actual` exceeds the configured
-    /// maximum. This method does not mutate the session.
+    /// Checks one JSON object entry count.
     #[inline]
-    pub fn check_number_bytes(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<JsonResource, usize>> {
-        check_limit(self.limits.max_number_bytes, actual)
+    pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.check_map_entries(actual)
+    }
+
+    /// Checks one JSON object key byte length.
+    #[inline]
+    pub fn check_key_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.check_key_bytes(actual)
+    }
+
+    /// Checks one JSON string byte length.
+    #[inline]
+    pub fn check_string_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.string_bytes_limit(), actual)
+    }
+
+    /// Checks one JSON number representation byte length.
+    #[inline]
+    pub fn check_number_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+        check_limit(self.limits.number_bytes_limit(), actual)
+    }
+
+    /// Checks a value depth and charges one node as one traversal step.
+    #[inline]
+    pub fn enter_node(&mut self, depth: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.enter_node(depth)
+    }
+
+    /// Checks an array size and charges one node atomically.
+    #[inline]
+    pub fn enter_array(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.enter_sequence(depth, items)
+    }
+
+    /// Checks an object size and charges one node atomically.
+    #[inline]
+    pub fn enter_object(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
+        self.structure.enter_map(depth, entries)
+    }
+
+    /// Returns the immutable limits copied into this session.
+    #[must_use = "the configured limits determine which JSON charges can be accepted"]
+    #[inline(always)]
+    pub const fn limits(&self) -> &JsonLimits<R, Q> {
+        &self.limits
+    }
+
+    /// Returns the shared structural budget.
+    #[must_use = "the structural budget tracks shared JSON structure usage"]
+    #[inline(always)]
+    pub const fn structure_budget(&self) -> &StructureBudget<R, Q> {
+        &self.structure
     }
 }
 
 /// Checks an optional JSON point limit.
-///
-/// # Parameters
-///
-/// * `limit` - Optional inclusive resource limit for one JSON measurement.
-/// * `actual` - Observed measurement to validate.
-///
-/// # Returns
-///
-/// `Ok(())` when `limit` is absent or accepts `actual`.
-///
-/// # Errors
-///
-/// Returns [`BudgetError::LimitExceeded`] when `limit` is configured and
-/// `actual` exceeds its inclusive maximum. This helper has no side effects.
 #[inline]
-fn check_limit(
-    limit: Option<ResourceLimit<JsonResource, usize>>,
-    actual: usize,
-) -> Result<(), BudgetError<JsonResource, usize>> {
+fn check_limit<R, Q>(
+    limit: Option<&crate::ResourceLimit<R, Q>>,
+    actual: Q,
+) -> Result<(), BudgetError<R, Q>>
+where
+    R: Clone,
+    Q: ResourceQuantity,
+{
     match limit {
         Some(limit) => limit.check(actual),
         None => Ok(()),

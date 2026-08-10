@@ -11,7 +11,9 @@
 //! A budget object always represents a configured finite constraint. When a
 //! dimension is unconfigured, callers use `Option::None` and do not create a
 //! no-op or unlimited budget object. Resource quantities use an exact unsigned
-//! integer type, defaulting to `u64`.
+//! integer type. Generic resource budgets default to `u64`; the structural and
+//! JSON limit families default to `usize` because their measurements are
+//! normally byte lengths or collection sizes.
 
 mod budget_error;
 mod resource_budget;

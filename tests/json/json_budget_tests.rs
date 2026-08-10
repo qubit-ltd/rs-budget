@@ -135,3 +135,29 @@ fn test_unconfigured_json_limits_allow_all_checks() {
         .check_number_bytes(usize::MAX)
         .expect("number bytes are unconfigured");
 }
+
+#[test]
+fn test_json_budget_delegates_structure_and_output_key_limits() {
+    let mut budget = JsonLimits::new()
+        .with_max_depth(1)
+        .with_max_key_bytes(2)
+        .with_max_output_bytes(3)
+        .with_max_nodes(2)
+        .budget();
+
+    budget.check_depth(1).expect("depth should fit");
+    budget.check_key_bytes(2).expect("key bytes should fit");
+    budget
+        .check_output_bytes(3)
+        .expect("output bytes should fit");
+    budget.charge_node().expect("first node should fit");
+    budget.charge_nodes(1).expect("second node should fit");
+    assert!(matches!(
+        budget.check_output_bytes(4),
+        Err(BudgetError::LimitExceeded {
+            resource: JsonResource::OutputBytes,
+            actual: 4,
+            maximum: 3,
+        })
+    ));
+}

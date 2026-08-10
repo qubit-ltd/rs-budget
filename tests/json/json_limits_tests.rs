@@ -35,17 +35,30 @@ fn test_json_limits_compose_structure_limits() {
         .with_max_map_entries(4);
     let limits = JsonLimits::new().with_structure_limits(structure_limits);
 
-    assert_eq!(limits.structure_limits(), structure_limits);
+    let converted = StructureLimits::<JsonResource, usize>::default()
+        .with_depth_limit(qubit_budget::ResourceLimit::new(JsonResource::Depth, 1))
+        .with_nodes_limit(qubit_budget::ResourceLimit::new(JsonResource::Nodes, 2))
+        .with_sequence_items_limit(qubit_budget::ResourceLimit::new(
+            JsonResource::SequenceItems,
+            3,
+        ))
+        .with_map_entries_limit(qubit_budget::ResourceLimit::new(
+            JsonResource::MapEntries,
+            4,
+        ));
+    assert_eq!(limits.structure_limits(), converted);
 }
 
 #[test]
 fn test_with_max_methods_bind_each_limit_to_its_json_resource() {
     let mut budget = JsonLimits::new()
         .with_max_input_bytes(1)
+        .with_max_output_bytes(1)
         .with_max_depth(1)
         .with_max_nodes(1)
         .with_max_sequence_items(1)
         .with_max_map_entries(1)
+        .with_max_key_bytes(1)
         .with_max_string_bytes(1)
         .with_max_number_bytes(1)
         .budget();
@@ -54,6 +67,14 @@ fn test_with_max_methods_bind_each_limit_to_its_json_resource() {
         budget.check_input_bytes(2),
         Err(BudgetError::LimitExceeded {
             resource: JsonResource::InputBytes,
+            actual: 2,
+            maximum: 1
+        })
+    ));
+    assert!(matches!(
+        budget.check_output_bytes(2),
+        Err(BudgetError::LimitExceeded {
+            resource: JsonResource::OutputBytes,
             actual: 2,
             maximum: 1
         })
@@ -88,6 +109,14 @@ fn test_with_max_methods_bind_each_limit_to_its_json_resource() {
         budget.check_map_entries(2),
         Err(BudgetError::LimitExceeded {
             resource: JsonResource::MapEntries,
+            actual: 2,
+            maximum: 1
+        })
+    ));
+    assert!(matches!(
+        budget.check_key_bytes(2),
+        Err(BudgetError::LimitExceeded {
+            resource: JsonResource::KeyBytes,
             actual: 2,
             maximum: 1
         })

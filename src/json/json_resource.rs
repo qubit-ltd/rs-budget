@@ -13,6 +13,9 @@ pub enum JsonResource {
     /// The total byte length of one complete JSON input.
     InputBytes,
 
+    /// The total byte length of one complete JSON output.
+    OutputBytes,
+
     /// The root-inclusive nesting depth of the current JSON value.
     Depth,
 
@@ -24,6 +27,9 @@ pub enum JsonResource {
 
     /// The number of entries in one JSON object.
     MapEntries,
+
+    /// The byte length of one JSON object key.
+    KeyBytes,
 
     /// The byte length of one JSON string value.
     StringBytes,
