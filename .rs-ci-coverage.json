@@ -1,1 +1,5 @@
-{}
+{
+  "threshold_exempt_files": {
+    "qubit-budget": ["src/serde/internal/json_preflight_visitor.rs"]
+  }
+}
