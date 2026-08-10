@@ -62,10 +62,7 @@ impl JsonBudget {
     /// [`JsonResource::InputBytes`] when `actual` exceeds the configured
     /// maximum. This method does not mutate the session.
     #[inline]
-    pub fn check_input_bytes(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<JsonResource, usize>> {
+    pub fn check_input_bytes(&self, actual: usize) -> Result<(), BudgetError<JsonResource, usize>> {
         check_limit(self.limits.max_input_bytes, actual)
     }
 
@@ -85,10 +82,7 @@ impl JsonBudget {
     /// when `actual` exceeds the configured maximum. This method does not
     /// mutate the session.
     #[inline]
-    pub fn check_depth(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<JsonResource, usize>> {
+    pub fn check_depth(&self, actual: usize) -> Result<(), BudgetError<JsonResource, usize>> {
         check_limit(self.limits.max_depth, actual)
     }
 
@@ -104,9 +98,7 @@ impl JsonBudget {
     /// when no node capacity remains. A failed charge leaves the node budget
     /// unchanged.
     #[inline]
-    pub fn charge_node(
-        &mut self,
-    ) -> Result<(), BudgetError<JsonResource, usize>> {
+    pub fn charge_node(&mut self) -> Result<(), BudgetError<JsonResource, usize>> {
         match &mut self.nodes {
             Some(nodes) => nodes.try_consume(1),
             None => Ok(()),
@@ -154,10 +146,7 @@ impl JsonBudget {
     /// [`JsonResource::MapEntries`] when `actual` exceeds the configured
     /// maximum. This method does not mutate the session.
     #[inline]
-    pub fn check_map_entries(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<JsonResource, usize>> {
+    pub fn check_map_entries(&self, actual: usize) -> Result<(), BudgetError<JsonResource, usize>> {
         check_limit(self.limits.max_map_entries, actual)
     }
 

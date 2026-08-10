@@ -60,10 +60,7 @@ impl StructureBudget {
     /// when `actual` exceeds the configured maximum. This method does not
     /// mutate the session.
     #[inline]
-    pub fn check_depth(
-        &self,
-        actual: usize,
-    ) -> Result<(), BudgetError<StructureResource, usize>> {
+    pub fn check_depth(&self, actual: usize) -> Result<(), BudgetError<StructureResource, usize>> {
         match self.limits.max_depth {
             Some(limit) => limit.check(actual),
             None => Ok(()),
@@ -82,9 +79,7 @@ impl StructureBudget {
     /// when no node capacity remains. A failed charge leaves the node budget
     /// unchanged.
     #[inline]
-    pub fn charge_node(
-        &mut self,
-    ) -> Result<(), BudgetError<StructureResource, usize>> {
+    pub fn charge_node(&mut self) -> Result<(), BudgetError<StructureResource, usize>> {
         match &mut self.nodes {
             Some(nodes) => nodes.try_consume(1),
             None => Ok(()),
