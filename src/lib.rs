@@ -20,12 +20,19 @@ mod resource_budget;
 mod resource_limit;
 mod resource_pool;
 mod resource_quantity;
+mod resource_release_error;
 mod structure_budget;
 mod structure_limits;
 mod structure_resource;
 
+#[cfg(feature = "serde-json")]
+mod json_serde_error;
+
 #[cfg(feature = "json")]
 pub mod json;
+
+#[cfg(feature = "serde-json")]
+pub mod serde_json;
 
 pub use budget_error::BudgetError;
 #[cfg(feature = "json")]
@@ -34,10 +41,21 @@ pub use json::JsonBudget;
 pub use json::JsonLimits;
 #[cfg(feature = "json")]
 pub use json::JsonResource;
+#[cfg(feature = "serde-json")]
+pub use json_serde_error::JsonSerdeError;
 pub use resource_budget::ResourceBudget;
 pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
 pub use resource_quantity::ResourceQuantity;
+pub use resource_release_error::ResourceReleaseError;
+#[cfg(feature = "serde-json")]
+pub use serde_json::from_slice_seed_with_budget;
+#[cfg(feature = "serde-json")]
+pub use serde_json::from_slice_with_budget;
+#[cfg(feature = "serde-json")]
+pub use serde_json::to_vec_with_budget;
+#[cfg(feature = "serde-json")]
+pub use serde_json::to_writer_with_budget;
 pub use structure_budget::StructureBudget;
 pub use structure_limits::StructureLimits;
 pub use structure_resource::StructureResource;

@@ -8,3 +8,6 @@
 mod json_budget_tests;
 mod json_limits_tests;
 mod json_resource_tests;
+
+#[cfg(feature = "serde-json")]
+mod serde_json_tests;
