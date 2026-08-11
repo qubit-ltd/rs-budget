@@ -12,10 +12,15 @@ use serde::de::Error as _;
 use crate::JsonSerdeError;
 use crate::JsonValueBudget;
 
+#[inline]
+fn as_u64(value: usize) -> u64 {
+    u64::try_from(value).expect("Rust usize fits in u64")
+}
+
 /// Lexically validates and charges one JSON document without recursion.
 pub(in crate::serde) struct JsonLexicalPreflight<'a, R> {
     /// JSON value resources charged while scanning the document.
-    budget: &'a mut JsonValueBudget<R, usize>,
+    budget: &'a mut JsonValueBudget<R, u64>,
 
     /// Root-inclusive depth assigned to the inspected value.
     root_depth: usize,
@@ -26,9 +31,7 @@ where
     R: Clone,
 {
     /// Creates a lexical preflight bound to one mutable value budget.
-    pub(in crate::serde) const fn new(
-        budget: &'a mut JsonValueBudget<R, usize>,
-    ) -> Self {
+    pub(in crate::serde) const fn new(budget: &'a mut JsonValueBudget<R, u64>) -> Self {
         Self {
             budget,
             root_depth: 1,
@@ -37,7 +40,7 @@ where
 
     /// Creates a lexical preflight rooted at an enclosing serializer depth.
     pub(in crate::serde) const fn at_depth(
-        budget: &'a mut JsonValueBudget<R, usize>,
+        budget: &'a mut JsonValueBudget<R, u64>,
         root_depth: usize,
     ) -> Self {
         Self { budget, root_depth }
@@ -49,10 +52,7 @@ where
     ///
     /// Returns [`JsonSerdeError::Budget`] for the first resource violation, or
     /// [`JsonSerdeError::Json`] when `input` is not one complete JSON value.
-    pub(in crate::serde) fn inspect(
-        &mut self,
-        input: &[u8],
-    ) -> Result<(), JsonSerdeError<R>> {
+    pub(in crate::serde) fn inspect(&mut self, input: &[u8]) -> Result<(), JsonSerdeError<R>> {
         let mut cursor = JsonCursor::new(input, self.budget);
         let mut stack = Vec::new();
         cursor.skip_whitespace();
@@ -117,7 +117,7 @@ struct JsonCursor<'a, 'budget, R> {
     position: usize,
 
     /// Value budget charged by lexical admission.
-    budget: &'budget mut JsonValueBudget<R, usize>,
+    budget: &'budget mut JsonValueBudget<R, u64>,
 }
 
 impl<'a, 'budget, R> JsonCursor<'a, 'budget, R>
@@ -125,10 +125,7 @@ where
     R: Clone,
 {
     /// Creates a cursor positioned at the beginning of `input`.
-    const fn new(
-        input: &'a [u8],
-        budget: &'budget mut JsonValueBudget<R, usize>,
-    ) -> Self {
+    const fn new(input: &'a [u8], budget: &'budget mut JsonValueBudget<R, u64>) -> Self {
         Self {
             input,
             position: 0,
@@ -158,7 +155,7 @@ where
         match self.peek() {
             Some(b'{') => {
                 self.budget
-                    .enter_node(depth)
+                    .enter_node(as_u64(depth))
                     .map_err(JsonSerdeError::Budget)?;
                 self.position += 1;
                 stack.push(ContainerFrame::ObjectKey { depth, entries: 0 });
@@ -166,7 +163,7 @@ where
             }
             Some(b'[') => {
                 self.budget
-                    .enter_node(depth)
+                    .enter_node(as_u64(depth))
                     .map_err(JsonSerdeError::Budget)?;
                 self.position += 1;
                 stack.push(ContainerFrame::ArrayValue { depth, items: 0 });
@@ -174,20 +171,20 @@ where
             }
             Some(b'"') => {
                 self.budget
-                    .enter_node(depth)
+                    .enter_node(as_u64(depth))
                     .map_err(JsonSerdeError::Budget)?;
                 let bytes = self.string_bytes()?;
                 self.budget
-                    .consume_string_bytes(bytes)
+                    .consume_string_bytes(as_u64(bytes))
                     .map_err(JsonSerdeError::Budget)
             }
             Some(b'-' | b'0'..=b'9') => {
                 self.budget
-                    .enter_node(depth)
+                    .enter_node(as_u64(depth))
                     .map_err(JsonSerdeError::Budget)?;
                 let bytes = self.number_bytes()?;
                 self.budget
-                    .consume_number_bytes(bytes)
+                    .consume_number_bytes(as_u64(bytes))
                     .map_err(JsonSerdeError::Budget)
             }
             Some(b't') => self.literal(depth, b"true"),
@@ -198,11 +195,7 @@ where
     }
 
     /// Charges and consumes one scalar literal.
-    fn literal(
-        &mut self,
-        depth: usize,
-        literal: &[u8],
-    ) -> Result<(), JsonSerdeError<R>> {
+    fn literal(&mut self, depth: usize, literal: &[u8]) -> Result<(), JsonSerdeError<R>> {
         if !self.input[self.position..].starts_with(literal) {
             return Err(invalid_json());
         }
@@ -211,7 +204,7 @@ where
             return Err(invalid_json());
         }
         self.budget
-            .enter_node(depth)
+            .enter_node(as_u64(depth))
             .map_err(JsonSerdeError::Budget)?;
         self.position = end;
         Ok(())
@@ -235,7 +228,7 @@ where
                 }
                 let items = items.checked_add(1).ok_or_else(invalid_json)?;
                 self.budget
-                    .check_sequence_items(items)
+                    .check_sequence_items(as_u64(items))
                     .map_err(JsonSerdeError::Budget)?;
                 stack.push(ContainerFrame::ArrayDelimiter { depth, items });
                 self.value(depth.saturating_add(1), stack)
@@ -267,14 +260,13 @@ where
                 if self.peek() != Some(b'"') {
                     return Err(invalid_json());
                 }
-                let entries =
-                    entries.checked_add(1).ok_or_else(invalid_json)?;
+                let entries = entries.checked_add(1).ok_or_else(invalid_json)?;
                 self.budget
-                    .check_map_entries(entries)
+                    .check_map_entries(as_u64(entries))
                     .map_err(JsonSerdeError::Budget)?;
                 let bytes = self.string_bytes()?;
                 self.budget
-                    .consume_key_bytes(bytes)
+                    .consume_key_bytes(as_u64(bytes))
                     .map_err(JsonSerdeError::Budget)?;
                 self.skip_whitespace();
                 if self.peek() != Some(b':') {
@@ -289,8 +281,7 @@ where
                 match self.peek() {
                     Some(b',') => {
                         self.position += 1;
-                        stack
-                            .push(ContainerFrame::ObjectKey { depth, entries });
+                        stack.push(ContainerFrame::ObjectKey { depth, entries });
                         Ok(())
                     }
                     Some(b'}') => {
@@ -317,30 +308,22 @@ where
                 Some(b'\\') => {
                     self.position += 1;
                     let bytes = match self.peek() {
-                        Some(
-                            b'"' | b'\\' | b'/' | b'b' | b'f' | b'n' | b'r'
-                            | b't',
-                        ) => {
+                        Some(b'"' | b'\\' | b'/' | b'b' | b'f' | b'n' | b'r' | b't') => {
                             self.position += 1;
                             1
                         }
                         Some(b'u') => self.unicode_escape_bytes()?,
                         _ => return Err(invalid_json()),
                     };
-                    decoded =
-                        decoded.checked_add(bytes).ok_or_else(invalid_json)?;
+                    decoded = decoded.checked_add(bytes).ok_or_else(invalid_json)?;
                 }
                 Some(0x20..=0x7F) => {
                     self.position += 1;
-                    decoded =
-                        decoded.checked_add(1).ok_or_else(invalid_json)?;
+                    decoded = decoded.checked_add(1).ok_or_else(invalid_json)?;
                 }
                 Some(byte) if byte >= 0x80 => {
                     let width = utf8_width(byte).ok_or_else(invalid_json)?;
-                    let end = self
-                        .position
-                        .checked_add(width)
-                        .ok_or_else(invalid_json)?;
+                    let end = self.position.checked_add(width).ok_or_else(invalid_json)?;
                     let text = self
                         .input
                         .get(self.position..end)
@@ -378,9 +361,7 @@ where
             if !(0xDC00..=0xDFFF).contains(&second) {
                 return Err(invalid_json());
             }
-            0x1_0000
-                + ((u32::from(first) - 0xD800) << 10)
-                + (u32::from(second) - 0xDC00)
+            0x1_0000 + ((u32::from(first) - 0xD800) << 10) + (u32::from(second) - 0xDC00)
         } else {
             if (0xDC00..=0xDFFF).contains(&first) {
                 return Err(invalid_json());

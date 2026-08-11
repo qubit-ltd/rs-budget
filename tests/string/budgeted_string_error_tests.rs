@@ -10,8 +10,7 @@
 use qubit_budget::BudgetedStringError;
 
 #[test]
-fn test_budgeted_string_error_debug_representation_is_stable_enough_to_inspect()
-{
+fn test_budgeted_string_error_debug_representation_is_stable_enough_to_inspect() {
     let error = BudgetedStringError::<(), &'static str>::LengthOverflow;
     assert_eq!(format!("{error:?}"), "LengthOverflow");
 }

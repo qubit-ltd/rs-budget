@@ -18,7 +18,7 @@ use crate::ResourceQuantity;
 /// through [`JsonValueLimits`].
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct JsonDecodeLimits<R = JsonResource, Q = usize>
+pub struct JsonDecodeLimits<R = JsonResource, Q = u64>
 where
     Q: ResourceQuantity,
 {
@@ -54,10 +54,7 @@ where
 
     /// Configures the cumulative input-byte budget for one decode session.
     #[inline]
-    pub fn with_input_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.input = Some(limit);
         self
     }
@@ -97,7 +94,7 @@ where
     }
 }
 
-impl JsonDecodeLimits<JsonResource, usize> {
+impl JsonDecodeLimits<JsonResource, u64> {
     /// Creates a decoding limit set with every dimension unconfigured.
     #[inline]
     pub const fn empty() -> Self {

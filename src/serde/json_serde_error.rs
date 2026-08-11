@@ -17,7 +17,7 @@ use crate::BudgetError;
 /// Errors returned by budget-aware JSON/Serde adapters.
 #[must_use]
 #[derive(Debug, Error)]
-pub enum JsonSerdeError<R, Q = usize>
+pub enum JsonSerdeError<R, Q = u64>
 where
     Q: Copy + fmt::Debug,
 {

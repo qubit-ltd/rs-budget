@@ -21,7 +21,7 @@ enum TestResource {
 
 #[test]
 fn test_fmt_output_commits_exact_utf8_bytes() {
-    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 8_usize);
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 8_u64);
     let output = budget
         .try_write_string(|writer| {
             let mut output = writer.as_fmt();
@@ -35,7 +35,7 @@ fn test_fmt_output_commits_exact_utf8_bytes() {
 
 #[test]
 fn test_io_output_commits_only_after_success() {
-    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 5_usize);
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 5_u64);
     let output = budget
         .try_write_string(|writer| {
             let mut output = writer.as_io();
@@ -48,7 +48,7 @@ fn test_io_output_commits_only_after_success() {
 
 #[test]
 fn test_budget_failure_rolls_back_and_reports_first_failing_prefix() {
-    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 3_usize);
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 3_u64);
     let error = budget
         .try_write_string(|writer| {
             let mut output = writer.as_io();
@@ -71,7 +71,7 @@ fn test_budget_failure_rolls_back_and_reports_first_failing_prefix() {
 
 #[test]
 fn test_render_failure_rolls_back() {
-    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 8_usize);
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 8_u64);
     let error = budget
         .try_write_string(|writer| {
             let mut output = writer.as_io();
@@ -88,7 +88,7 @@ fn test_render_failure_rolls_back() {
 
 #[test]
 fn test_writer_failure_wins_over_wrapped_render_error() {
-    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 1_usize);
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 1_u64);
     let error = budget
         .try_write_string(|writer| {
             let mut output = writer.as_io();
@@ -101,7 +101,7 @@ fn test_writer_failure_wins_over_wrapped_render_error() {
 
 #[test]
 fn test_invalid_utf8_rolls_back() {
-    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 2_usize);
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 2_u64);
     let error = budget
         .try_write_string(|writer| {
             let mut output = writer.as_io();
@@ -115,7 +115,7 @@ fn test_invalid_utf8_rolls_back() {
 
 #[test]
 fn test_empty_output_is_a_successful_zero_cost_transaction() {
-    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 0_usize);
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 0_u64);
     let output = budget
         .try_write_string(|_| Ok::<(), Infallible>(()))
         .expect("empty output should fit a zero budget");

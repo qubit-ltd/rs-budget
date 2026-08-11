@@ -21,7 +21,7 @@ use crate::resource_limit::check_limit;
 /// Object-key, string and number payloads share one optional cumulative budget.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct JsonValueBudget<R = JsonResource, Q = usize>
+pub struct JsonValueBudget<R = JsonResource, Q = u64>
 where
     Q: ResourceQuantity,
 {
@@ -76,19 +76,13 @@ where
 
     /// Checks the item count of one JSON array.
     #[inline]
-    pub fn check_sequence_items(
-        &self,
-        actual: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_sequence_items(actual)
     }
 
     /// Checks the entry count of one JSON object.
     #[inline]
-    pub fn check_map_entries(
-        &self,
-        actual: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_map_entries(actual)
     }
 
@@ -100,19 +94,13 @@ where
 
     /// Checks the byte length of one JSON string value.
     #[inline]
-    pub fn check_string_bytes(
-        &self,
-        actual: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_string_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.string_bytes_limit(), actual)
     }
 
     /// Checks the byte length of one JSON number representation.
     #[inline]
-    pub fn check_number_bytes(
-        &self,
-        actual: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_number_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.number_bytes_limit(), actual)
     }
 
@@ -125,22 +113,14 @@ where
     /// Checks an array's depth and item count, then charges its node
     /// atomically.
     #[inline]
-    pub fn enter_array(
-        &mut self,
-        depth: Q,
-        items: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_array(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
         self.structure.enter_sequence(depth, items)
     }
 
     /// Checks an object's depth and entry count, then charges its node
     /// atomically.
     #[inline]
-    pub fn enter_object(
-        &mut self,
-        depth: Q,
-        entries: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_object(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
         self.structure.enter_map(depth, entries)
     }
 
@@ -149,10 +129,7 @@ where
     /// The key point limit is checked before payload accounting, so a rejected
     /// key never changes the cumulative payload budget.
     #[inline]
-    pub fn consume_key_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_key_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_key_bytes(amount)?;
         self.consume_payload_bytes(amount)
     }
@@ -162,10 +139,7 @@ where
     /// The string point limit is checked before payload accounting, so a
     /// rejected string never changes the cumulative payload budget.
     #[inline]
-    pub fn consume_string_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_string_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_string_bytes(amount)?;
         self.consume_payload_bytes(amount)
     }
@@ -175,10 +149,7 @@ where
     /// The number point limit is checked before payload accounting, so a
     /// rejected number never changes the cumulative payload budget.
     #[inline]
-    pub fn consume_number_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_number_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_number_bytes(amount)?;
         self.consume_payload_bytes(amount)
     }
@@ -211,10 +182,7 @@ where
     /// This operation is used after a key, string or number point check. A
     /// failed request leaves the optional payload budget unchanged.
     #[inline]
-    fn consume_payload_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    fn consume_payload_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         match &mut self.payload {
             Some(payload) => payload.try_consume(amount),
             None => Ok(()),

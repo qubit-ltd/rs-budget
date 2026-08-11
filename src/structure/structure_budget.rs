@@ -71,19 +71,13 @@ where
 
     /// Checks one sequence item count against its configured maximum.
     #[inline]
-    pub fn check_sequence_items(
-        &self,
-        actual: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.sequence_items_limit(), actual)
     }
 
     /// Checks one map entry count against its configured maximum.
     #[inline]
-    pub fn check_map_entries(
-        &self,
-        actual: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.map_entries_limit(), actual)
     }
 
@@ -103,11 +97,7 @@ where
     /// Checks a sequence size and charges one node as one atomic traversal
     /// step.
     #[inline]
-    pub fn enter_sequence(
-        &mut self,
-        depth: Q,
-        items: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_sequence(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;
         self.check_sequence_items(items)?;
         self.charge_node()
@@ -115,11 +105,7 @@ where
 
     /// Checks a map size and charges one node as one atomic traversal step.
     #[inline]
-    pub fn enter_map(
-        &mut self,
-        depth: Q,
-        entries: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_map(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;
         self.check_map_entries(entries)?;
         self.charge_node()
@@ -130,5 +116,14 @@ where
     #[inline(always)]
     pub const fn limits(&self) -> &StructureLimits<R, Q> {
         &self.limits
+    }
+
+    /// Returns the number of nodes consumed by this session.
+    #[inline(always)]
+    pub fn used_nodes(&self) -> Q {
+        match &self.nodes {
+            Some(nodes) => nodes.used(),
+            None => Q::ZERO,
+        }
     }
 }
