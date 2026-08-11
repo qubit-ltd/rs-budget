@@ -44,7 +44,7 @@ The default feature set is empty. Enable only the extensions you need:
 
 | Feature | Adds |
 | --- | --- |
-| `json` | Generic JSON input/output and structural limits through `JsonLimits` and `JsonBudget` |
+| `json` | Directional `JsonDecodeLimits`/`JsonEncodeLimits`, shared `JsonValueLimits`, and operation sessions |
 | `serde-json` | Budget-aware Serde JSON deserialization and serialization adapters; also enables `json` |
 | `time` | Explicit-duration `DurationBudget` and monotonic-clock `TimeBudget` |
 
@@ -62,15 +62,22 @@ serde_json = "1.0"
 
 ## Quick Start
 
-Imagine a wire decoder that must reject inputs that exceed its depth, node,
-container, key, or byte policy before they become an unbounded in-memory value.
-With `serde-json`, the crate supplies the parser adapter as well as the budget
-session; with `json` alone, the same session can be driven by another parser.
+Imagine a wire boundary that must admit an untrusted JSON document and then
+emit a bounded response. Decode and encode use separate directional sessions:
+input bytes can only be charged while decoding, output bytes can only be
+charged while encoding, and both directions reuse the same value limits.
 
 ```rust
-use qubit_budget::{JsonLimits, StructureLimits};
-use qubit_budget::from_slice_with_budget;
-use qubit_budget::to_vec_with_budget;
+use qubit_budget::decode_slice;
+use qubit_budget::encode_to_vec;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonEncodeSession;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -82,43 +89,76 @@ struct Document {
 
 let input = br#"{"items":["alpha"]}"#;
 
-let structure_limits = StructureLimits::new()
-    .with_max_depth(64)
-    .with_max_nodes(100_000)
-    .with_max_sequence_items(10_000)
-    .with_max_map_entries(10_000)
-    .with_max_key_bytes(256);
-let limits = JsonLimits::new()
-    .with_structure_limits(structure_limits)
-    .with_max_input_bytes(1_048_576)
-    .with_max_output_bytes(1_048_576)
-    .with_max_string_bytes(256 * 1024)
-    .with_max_number_bytes(4_096);
-let mut budget = limits.budget();
-let document: Document = from_slice_with_budget(input, &mut budget)?;
-let output = to_vec_with_budget(&document, &mut budget)?;
+let structure = StructureLimits::empty()
+    .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 64))
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 100_000))
+    .with_sequence_items_limit(ResourceLimit::new(
+        JsonResource::SequenceItems,
+        10_000,
+    ))
+    .with_map_entries_limit(ResourceLimit::new(
+        JsonResource::MapEntries,
+        10_000,
+    ))
+    .with_key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, 256));
+let value_limits = JsonValueLimits::empty()
+    .with_structure_limits(structure)
+    .with_string_bytes_limit(ResourceLimit::new(
+        JsonResource::StringBytes,
+        256 * 1024,
+    ))
+    .with_number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, 4_096))
+    .with_payload_bytes_limit(ResourceLimit::new(
+        JsonResource::PayloadBytes,
+        512 * 1024,
+    ));
+
+let decode_limits = JsonDecodeLimits::empty()
+    .with_input_bytes_limit(ResourceLimit::new(
+        JsonResource::InputBytes,
+        1_048_576,
+    ))
+    .with_value_limits(value_limits);
+let mut decode_session = JsonDecodeSession::new(decode_limits);
+let document: Document = decode_slice(input, &mut decode_session)?;
+
+let encode_limits = JsonEncodeLimits::empty()
+    .with_output_bytes_limit(ResourceLimit::new(
+        JsonResource::OutputBytes,
+        1_048_576,
+    ))
+    .with_value_limits(value_limits);
+let mut encode_session = JsonEncodeSession::new(encode_limits);
+let output = encode_to_vec(&document, &mut encode_session)?;
 assert_eq!(output, input);
 # Ok(())
 # }
 ```
 
-The adapter preflights complete input bytes, depth, cumulative nodes, container
-sizes, object-key bytes, string bytes, and number bytes before returning the
-decoded value. It checks the complete output size and its structure before
-`to_writer_with_budget` writes anything. `enter_object`, `enter_array`, and
-`enter_node` are the lower-level operations used when a consumer drives another
-parser. Calling `limits.budget()` for another document creates a fresh session;
-it does not share node usage with the previous document.
+`decode_slice` first consumes the complete input length from the caller-owned
+`JsonDecodeSession`, then performs lexical admission and typed Serde decoding.
+`encode_to_vec` charges structure and emitted bytes online through the
+`JsonEncodeSession`; `encode_to_writer` buffers the accepted document before
+touching the destination. Create a new session for each independently bounded
+operation. Reusing a session intentionally shares cumulative input/output,
+node, and payload consumption across calls.
 
 The same state rules make failure handling predictable. For example, a node
 budget of one accepts its first charge and rejects the second without changing
 the accepted count:
 
 ```rust
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueBudget;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
 
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+let structure = StructureLimits::empty()
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 1));
+let limits = JsonValueLimits::empty().with_structure_limits(structure);
+let mut budget = JsonValueBudget::new(limits);
 budget.charge_node()?;
 assert!(budget.charge_node().is_err());
 # Ok(())
@@ -132,22 +172,23 @@ domain error, just as `rs-value` translates JSON resource facts into
 ## From Configuration to Session
 
 `StructureLimits<R, Q>` is the reusable structural part: depth, cumulative
-nodes, sequence items, map entries, and structural key bytes. `JsonLimits<R, Q>`
-composes it with complete input/output bytes, string bytes, and numeric
-representation bytes. The default resource identities are `StructureResource`
-and `JsonResource`; custom resource identities can be supplied with
-`ResourceLimit<R, Q>` when a consuming crate needs its own taxonomy.
+nodes, sequence items, map entries, and structural key bytes.
+`JsonValueLimits<R, Q>` adds per-string, per-number, and cumulative payload
+limits. `JsonDecodeLimits` then adds input bytes, while `JsonEncodeLimits` adds
+output bytes. The corresponding session owns mutable operation state; immutable
+limits can be reused to construct as many fresh sessions as needed.
 
-The configuration is immutable from the accounting session's point of view.
-Each `budget()` call creates a new session with fresh cumulative capacity. An
-unconfigured dimension is represented by `Option::None`; it is not an
-unlimited budget object that needs to be driven through every call.
+An unconfigured dimension is represented by `Option::None`; it is not an
+unlimited budget object that needs to be driven through every call. Point-limit
+and cumulative-consumption failures do not roll back consumption accepted
+earlier in the same operation. The rejected point check or cumulative request
+itself is atomic and leaves that dimension unchanged.
 
 ## How Downstream Crates Use It
 
 | Downstream crate | Actual use | What it demonstrates |
 | --- | --- | --- |
-| `rs-value` | Composes `StructureLimits` into `JsonLimits`, runs one `JsonBudget` through wire/JSON traversal, and maps `BudgetError` to `ValueWireDecodeError`. | Multi-dimensional limits can be reused without duplicating traversal accounting or domain errors. |
+| `rs-value` | Uses separate `JsonDecodeLimits` and `JsonEncodeLimits`, runs one directional session through each wire operation, and maps `BudgetError` to its wire errors. | Read and write policies cannot accidentally charge the wrong byte direction. |
 | `rs-redact` | Shares operation-scoped input, output, and mask budgets across nested diagnostic renderers. | A child component cannot silently reset the allowance for the enclosing operation. |
 | `rs-http`, `rs-io`, `rs-fs` | Charges response bodies, streams, and file reads as data arrives, including unknown-length inputs. | The same cumulative invariant works independently of chunk boundaries and transport errors. |
 | `rs-retry` | Combines an attempt-count `ResourceBudget`, an explicit `DurationBudget`, and a continuous elapsed-time deadline. | Different resources can use different accounting semantics in one domain policy. |
@@ -159,9 +200,11 @@ unlimited budget object that needs to be driven through every call.
 | One inclusive point check | `ResourceLimit<R, Q>` |
 | Non-releasable cumulative consumption | `ResourceBudget<R, Q>` |
 | Releasable capacity | `ResourcePool<R, Q>` |
-| Structured failure facts | `BudgetError<R, Q>`: `LimitExceeded`, `Insufficient`, `InvalidRelease` |
+| Point/cumulative failure facts | `BudgetError<R, Q>`: `LimitExceeded`, `Insufficient` |
+| Invalid pool release facts | `ResourceReleaseError<R, Q>` |
 | Generic nested-data limits | `StructureLimits<R, Q>` and `StructureBudget<R, Q>` |
-| JSON input/output and traversal limits (`json`) | `JsonLimits<R, Q>`, `JsonBudget<R, Q>`, and `JsonResource` |
+| JSON value traversal limits (`json`) | `JsonValueLimits<R, Q>` and `JsonValueBudget<R, Q>` |
+| Directional JSON operations (`json`) | `JsonDecodeLimits`/`JsonDecodeSession` and `JsonEncodeLimits`/`JsonEncodeSession` |
 | Explicit or clock-backed time limits (`time`) | `DurationBudget<R>` and `TimeBudget<R, C>` |
 
 Quantities are exact unsigned values. Generic resource budgets default to `u64`,
@@ -178,6 +221,9 @@ are normally lengths, counts, and depths.
   or application-specific error types.
 - `BudgetError` reports mechanism facts, not a universal domain error. A
   consumer should map its resource and variant at its own public boundary.
+- Releasing more capacity than a `ResourcePool` currently has in use is not a
+  budget exhaustion. `ResourcePool::release` returns the separate
+  `ResourceReleaseError` type.
 - `ResourcePool` is a finite, non-synchronizing capacity object. It does not
   provide waiting, fairness, permits, cancellation, or concurrent access.
 - `DurationBudget` consumes only durations explicitly submitted by its caller.

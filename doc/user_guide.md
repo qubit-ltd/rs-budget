@@ -2,78 +2,153 @@
 
 [中文用户指南](user_guide.zh_CN.md) | [README](../README.md) | [API documentation](https://docs.rs/qubit-budget)
 
-`qubit-budget` separates finite accounting mechanics from domain policy. It is
-for library authors who need a parser, decoder, or traversal to stop at a
-bounded resource limit while preserving the caller's resource names and public
-error model. Every budget object represents a configured finite limit; use
-`Option::None` for an unconfigured dimension. Quantities are `u64` by default,
-while structural and JSON helpers use `usize`.
+This guide covers `qubit-budget` 0.3 for library authors who need one parser,
+decoder, encoder, or traversal to stop at explicit resource boundaries while
+preserving their own resource names and public errors.
 
-## Concepts
+## Conceptual model
 
-`ResourceLimit<R, Q>` is an immutable inclusive maximum for one observation:
-`check(actual)` either succeeds or returns `BudgetError::LimitExceeded`.
-`ResourceBudget<R, Q>` records non-releasable cumulative consumption;
-`ResourcePool<R, Q>` supports acquisition and release of reusable capacity.
-Their failures are all `BudgetError<R, Q>`: `Insufficient` reports a request
-that does not fit the remaining capacity, and `InvalidRelease` reports a
-release that exceeds the amount in use.
+`ResourceLimit<R, Q>` is an immutable inclusive maximum for one observation;
+`ResourceBudget<R, Q>` records non-releasable cumulative consumption; and
+`ResourcePool<R, Q>` models reusable capacity. A point-limit failure is
+`BudgetError::LimitExceeded`, while a cumulative request that does not fit is
+`BudgetError::Insufficient`. Releasing more than a pool currently has in use
+returns the separate `ResourceReleaseError`; it is not a `BudgetError`.
 
-`StructureLimits` packages optional limits for generic nested data and creates
-independent `StructureBudget` sessions. `JsonLimits` and `JsonBudget`, behind
-the `json` feature, apply the same model to JSON-specific resource identities.
-Neither the generic structural types nor the JSON feature parse data.
+JSON accounting has three layers:
 
-## JSON traversal scenario
+- `JsonValueLimits` and `JsonValueBudget` cover direction-independent
+  structure, nodes, keys, strings, numbers, and cumulative payload.
+- `JsonDecodeLimits` and `JsonDecodeSession` add cumulative input bytes.
+- `JsonEncodeLimits` and `JsonEncodeSession` add cumulative output bytes.
 
-Assume a service already has a JSON parser and wants its traversal to reject a
-root depth above 64 or more than 100,000 visited nodes. Enable `json`, create
-one session for each input, call point checks when the parser observes a value,
-and charge a node whenever the traversal processes one:
+Limits are immutable configuration. A session is mutable state for one
+operation. `Option::None` represents an unconfigured dimension.
 
-```rust
-use qubit_budget::JsonLimits;
+## Scenario: admit a request and bound its response
 
-let limits = JsonLimits::new()
-    .with_max_depth(64)
-    .with_max_nodes(100_000);
-let mut budget = limits.budget();
-budget.check_depth(1)?;
-budget.charge_node()?;
+Assume an endpoint accepts a small JSON request and returns compact JSON. The
+success criterion is that the request is admitted before typed decoding and
+the complete response never exceeds its output policy.
+
+## Installation and minimal configuration
+
+```toml
+[dependencies]
+qubit-budget = { version = "0.3", features = ["serde-json"] }
+serde = { version = "1.0", features = ["derive"] }
 ```
 
-The complete input byte length, root-inclusive depth, array items, object
-entries, decoded UTF-8 string byte length, and numeric lexical byte length are
-point limits. Repeating an accepted point check does not consume any balance.
-Nodes are cumulative: each `charge_node()` consumes one unit from that session,
-and a failed charge leaves it unchanged. Calling `limits.budget()` for the next
-input restores the configured node capacity for that new session.
+Build the shared value policy once, then embed it in independent directional
+limits:
 
-`JsonLimits` is deliberately not a parser and the `json` feature includes no
-Serde integration. The consuming parser remains responsible for identifying
-the measurements and scheduling the checks.
+```rust
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
 
-## Error mapping
+let structure = StructureLimits::empty()
+    .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 8))
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 128));
+let values = JsonValueLimits::empty()
+    .with_structure_limits(structure)
+    .with_payload_bytes_limit(ResourceLimit::new(
+        JsonResource::PayloadBytes,
+        4096,
+    ));
+let decode_limits = JsonDecodeLimits::empty()
+    .with_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 4096))
+    .with_value_limits(values);
+let encode_limits = JsonEncodeLimits::empty()
+    .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 4096))
+    .with_value_limits(values);
+```
 
-The crate exposes structured facts rather than a domain-wide error policy. At
-the parser or wire boundary, map `BudgetError` to the error already exposed by
-that crate. For example, a caller can use `JsonResource` and the error variant
-to distinguish a depth violation from exhausted cumulative nodes.
+## Core workflow
 
-## Other budgets
+The caller owns the sessions and passes them into the Serde adapters. This is
+the external admission boundary: `decode_slice` charges the complete input
+before lexical validation and typed deserialization. `encode_to_vec` checks
+the value and charges bytes as compact output is produced.
 
-Use `StructureLimits` when the traversal is not specifically JSON. Its depth,
-sequence-item, and map-entry limits are point checks; its node limit is
-cumulative exactly as in `JsonBudget`. For a one-dimensional domain quantity,
-use `ResourceLimit`, `ResourceBudget`, or `ResourcePool` directly. The optional
-`time` feature provides `DurationBudget<R>` for explicitly submitted active
-durations and `TimeBudget<R, C>` for one monotonic deadline that includes
-operation, waiting, queueing, and backoff time.
+```rust
+use qubit_budget::decode_slice;
+use qubit_budget::encode_to_vec;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonEncodeSession;
+use qubit_budget::JsonResource;
+use qubit_budget::ResourceLimit;
+use serde::Deserialize;
+use serde::Serialize;
 
-## Limits and best practices
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[derive(Debug, Deserialize, Serialize)]
+struct Request {
+    name: String,
+}
 
-This crate does not choose byte, node, depth, or property limits; it provides
-no JSON parser, Serde integration, I/O, redaction, default limits, retry
-policy, or application error type. Configure limits at the owning boundary,
-create a fresh structure or JSON budget for each independently bounded input,
-and translate `BudgetError` there.
+let input = br#"{"name":"Ada"}"#;
+let decode_limits = JsonDecodeLimits::empty().with_input_bytes_limit(
+    ResourceLimit::new(JsonResource::InputBytes, 64),
+);
+let mut decode_session = JsonDecodeSession::new(decode_limits);
+let request: Request = decode_slice(input, &mut decode_session)?;
+
+let encode_limits = JsonEncodeLimits::empty().with_output_bytes_limit(
+    ResourceLimit::new(JsonResource::OutputBytes, 64),
+);
+let mut encode_session = JsonEncodeSession::new(encode_limits);
+let output = encode_to_vec(&request, &mut encode_session)?;
+assert_eq!(output, input);
+# Ok(())
+# }
+```
+
+Use `encode_to_writer` when the final destination implements `Write`. Budget
+and Serde failures leave that destination untouched because the adapter first
+buffers the accepted document. An I/O failure during the final `write_all` can
+still leave partial output because `Write` has no rollback operation.
+
+## Advanced usage
+
+With only the `json` feature, drive `JsonValueBudget` and the directional
+sessions from another parser. Use `StructureLimits` for non-JSON nested data,
+or `ResourceLimit`, `ResourceBudget`, and `ResourcePool` for one-dimensional
+resources. The `time` feature provides explicit-duration and monotonic-clock
+budgets.
+
+## Errors and diagnostics
+
+The crate reports accounting facts, not an application-wide error policy. Map
+`BudgetError` or `ResourceReleaseError` at the domain boundary. A rejected point
+check or cumulative request does not change that dimension, but consumption
+accepted earlier in the operation remains committed. `decode_slice` therefore
+keeps input bytes consumed even if later lexical or typed decoding fails.
+
+## Troubleshooting
+
+- If a second document unexpectedly fails, check whether the same session was
+  reused. Construct a fresh session for an independent operation.
+- If depth passes but nodes fail, remember that depth is a point limit while
+  nodes are cumulative.
+- If the external writer contains a prefix after failure, inspect the I/O error;
+  budget and Serde failures occur before the final write.
+
+## Limitations and best practices
+
+This crate does not choose default byte, node, depth, retry, or redaction
+policies and does not define an application's public error type. Configure
+limits at the owning boundary. Reuse immutable limits freely, create fresh
+sessions for independently bounded operations, and reuse a session only when
+cumulative accounting across calls is intentional.
+
+## Further reading
+
+- [README](../README.md)
+- [中文用户指南](user_guide.zh_CN.md)
+- [API documentation](https://docs.rs/qubit-budget)

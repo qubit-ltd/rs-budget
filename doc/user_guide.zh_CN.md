@@ -2,66 +2,140 @@
 
 [English guide](user_guide.md) | [README](../README.zh_CN.md) | [API 文档](https://docs.rs/qubit-budget)
 
-`qubit-budget` 将有限记账机制与领域策略分离，适合希望在解析、解码或遍历时
-及时停止资源消耗、又要保留自身资源名称和对外错误模型的库作者。每个 budget
-对象都表示一个已经配置的有限上限；未配置的维度使用 `Option::None`。默认数量
-类型为 `u64`，结构化和 JSON 辅助类型使用 `usize`。
+本手册适用于 `qubit-budget` 0.3，面向需要为 parser、decoder、encoder 或遍历过程
+设置明确资源边界，同时保留自身资源名称和公开错误模型的库作者。
 
 ## 概念模型
 
-`ResourceLimit<R, Q>` 是一个不可变的包含边界在内的单次观测上限：
-`check(actual)` 成功，或返回 `BudgetError::LimitExceeded`。
-`ResourceBudget<R, Q>` 记录不可归还的累计消耗，`ResourcePool<R, Q>` 支持获取
-和释放可复用容量。它们统一使用 `BudgetError<R, Q>` 报错：`Insufficient` 表示
-请求超出剩余容量，`InvalidRelease` 表示释放数量超过当前已使用数量。
+`ResourceLimit<R, Q>` 表示包含边界的单次观测上限；`ResourceBudget<R, Q>` 记录
+不可归还的累计消耗；`ResourcePool<R, Q>` 表示可复用容量。点限制失败返回
+`BudgetError::LimitExceeded`，累计请求超过余额返回 `BudgetError::Insufficient`。
+释放量超过 pool 当前占用量时返回独立的 `ResourceReleaseError`，而不是
+`BudgetError`。
 
-`StructureLimits` 用于组合嵌套数据的可选限制，并创建相互独立的
-`StructureBudget` 会话。启用 `json` feature 后，`JsonLimits` 和 `JsonBudget`
-将同一模型用于 JSON 专属资源。通用结构类型和 JSON feature 都不负责解析数据。
+JSON 记账分为三层：
 
-## JSON 遍历场景
+- `JsonValueLimits` 与 `JsonValueBudget` 负责与方向无关的结构、节点、key、字符串、
+  数字和累计 payload。
+- `JsonDecodeLimits` 与 `JsonDecodeSession` 只增加累计输入字节。
+- `JsonEncodeLimits` 与 `JsonEncodeSession` 只增加累计输出字节。
 
-假设服务已经拥有 JSON parser，现在需要拒绝根深度大于 64 或遍历节点超过
-100,000 的输入。启用 `json` 后，为每份输入建立一个会话；parser 观察到数据时
-调用点检查，每处理一个节点时记账：
+Limits 是不可变配置，session 是一次操作的可变状态；未配置的维度使用
+`Option::None` 表示。
 
-```rust
-use qubit_budget::JsonLimits;
+## 贯穿场景：接纳请求并限制响应
 
-let limits = JsonLimits::new()
-    .with_max_depth(64)
-    .with_max_nodes(100_000);
-let mut budget = limits.budget();
-budget.check_depth(1)?;
-budget.charge_node()?;
+假设一个 endpoint 接收小型 JSON 请求并返回紧凑 JSON。成功标准是：在类型化解码
+前完成输入准入，并保证完整响应不超过输出策略。
+
+## 安装与最小配置
+
+```toml
+[dependencies]
+qubit-budget = { version = "0.3", features = ["serde-json"] }
+serde = { version = "1.0", features = ["derive"] }
 ```
 
-完整输入的字节数、根节点计入的深度、数组条目、对象条目、解码后的 UTF-8 字符串
-字节数和数字词法表示的字节数都属于点限制。重复通过同一项点检查不会减少余额。
-节点是累计限制：每次 `charge_node()` 都会消耗当前会话的一个单位，失败不会改变
-会话状态。下一份输入调用 `limits.budget()` 后，会得到已恢复到配置上限的新节点
-预算。
+先构造一份共享 value 策略，再把它分别放入解码和编码限制：
 
-`JsonLimits` 有意不是 parser，`json` feature 也不包含 Serde 集成。识别各项
-测量值并决定何时检查，仍是使用方 parser 的职责。
+```rust
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
 
-## 错误映射
+let structure = StructureLimits::empty()
+    .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 8))
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 128));
+let values = JsonValueLimits::empty()
+    .with_structure_limits(structure)
+    .with_payload_bytes_limit(ResourceLimit::new(
+        JsonResource::PayloadBytes,
+        4096,
+    ));
+let decode_limits = JsonDecodeLimits::empty()
+    .with_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 4096))
+    .with_value_limits(values);
+let encode_limits = JsonEncodeLimits::empty()
+    .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 4096))
+    .with_value_limits(values);
+```
 
-本 crate 提供的是结构化事实，而不是领域通用错误策略。应在 parser 或 wire 的
-边界，把 `BudgetError` 映射为该 crate 已经对外暴露的错误。例如，使用方可通过
-`JsonResource` 和错误变体区分深度越界与累计节点耗尽。
+## 核心工作流
 
-## 其他预算类型
+调用方持有 session，并把它传给 Serde adapter。这就是外部准入边界：
+`decode_slice` 会在词法检查和类型化反序列化之前消耗完整输入字节；
+`encode_to_vec` 在生成紧凑输出时检查 value 并累计字节。
 
-非 JSON 的嵌套遍历使用 `StructureLimits`。其中深度、序列条目和映射条目都是点
-检查，节点与 `JsonBudget` 一样按会话累计。单维领域数量可直接使用
-`ResourceLimit`、`ResourceBudget` 或 `ResourcePool`。可选 `time` feature 提供
-`DurationBudget<R>`，用于调用方显式提交的活动时长；`TimeBudget<R, C>` 则提供
-一个连续的单调 deadline，会包含 operation、等待、排队和 backoff 时间。
+```rust
+use qubit_budget::decode_slice;
+use qubit_budget::encode_to_vec;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonEncodeSession;
+use qubit_budget::JsonResource;
+use qubit_budget::ResourceLimit;
+use serde::Deserialize;
+use serde::Serialize;
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[derive(Debug, Deserialize, Serialize)]
+struct Request {
+    name: String,
+}
+
+let input = br#"{"name":"Ada"}"#;
+let decode_limits = JsonDecodeLimits::empty().with_input_bytes_limit(
+    ResourceLimit::new(JsonResource::InputBytes, 64),
+);
+let mut decode_session = JsonDecodeSession::new(decode_limits);
+let request: Request = decode_slice(input, &mut decode_session)?;
+
+let encode_limits = JsonEncodeLimits::empty().with_output_bytes_limit(
+    ResourceLimit::new(JsonResource::OutputBytes, 64),
+);
+let mut encode_session = JsonEncodeSession::new(encode_limits);
+let output = encode_to_vec(&request, &mut encode_session)?;
+assert_eq!(output, input);
+# Ok(())
+# }
+```
+
+目标实现 `Write` 时可使用 `encode_to_writer`。预算或 Serde 失败发生时，adapter
+尚未触碰目标 writer；最后一次 `write_all` 如果发生 I/O 失败，仍可能留下部分输出，
+因为 `Write` 没有回滚操作。
+
+## 进阶用法
+
+只启用 `json` feature 时，可以由其他 parser 驱动 `JsonValueBudget` 和定向 session。
+非 JSON 嵌套数据使用 `StructureLimits`；单维资源使用 `ResourceLimit`、
+`ResourceBudget` 或 `ResourcePool`。`time` feature 另外提供显式时长和单调时钟预算。
+
+## 错误与诊断
+
+本 crate 报告记账事实，不规定应用级错误策略；请在领域边界转换 `BudgetError` 或
+`ResourceReleaseError`。被拒绝的点检查或累计请求不会改变对应维度，但本次操作
+此前已经接受的消耗不会回滚。因此，即使后续词法检查或类型化解码失败，
+`decode_slice` 已消费的输入字节仍会保留。
+
+## 排障
+
+- 第二份文档意外失败时，先检查是否复用了同一个 session；独立操作应新建 session。
+- 深度检查通过但节点耗尽时，注意深度是点限制，而节点按会话累计。
+- 外部 writer 在失败后留下前缀时，应检查 I/O 错误；预算和 Serde 失败发生在最终
+  写出之前。
 
 ## 限制与最佳实践
 
-本 crate 不决定字节、节点、深度或属性上限，不提供 JSON parser、Serde 集成、
-I/O、脱敏、默认上限、重试策略或应用错误类型。请在拥有领域策略的边界配置上限，
-为每份独立受限的输入创建新的 structure 或 JSON budget，并在那里转换
-`BudgetError`。
+本 crate 不决定默认字节、节点、深度、重试或脱敏策略，也不定义应用的公开错误类型。
+请在拥有策略的边界配置 limits。不可变 limits 可以复用；独立操作应创建新 session；
+只有确实需要跨调用累计时才复用 session。
+
+## 延伸阅读
+
+- [README](../README.zh_CN.md)
+- [English guide](user_guide.md)
+- [API 文档](https://docs.rs/qubit-budget)

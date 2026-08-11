@@ -37,7 +37,7 @@ qubit-budget = "0.3"
 
 | Feature | 提供内容 |
 | --- | --- |
-| `json` | 通过 `JsonLimits` 和 `JsonBudget` 提供 JSON 输入/输出与结构限制 |
+| `json` | 提供方向明确的 `JsonDecodeLimits`/`JsonEncodeLimits`、共享 `JsonValueLimits` 和操作会话 |
 | `serde-json` | 提供带预算检查的 Serde JSON 序列化/反序列化 adapter，同时启用 `json` |
 | `time` | 显式时长预算 `DurationBudget` 与单调时钟预算 `TimeBudget` |
 
@@ -55,14 +55,21 @@ serde_json = "1.0"
 
 ## 快速开始
 
-假设 wire decoder 需要在输入变成无界的内存对象之前，拒绝超过深度、节点、容器、key
-或字节策略的输入。启用 `serde-json` 后，crate 同时提供 parser adapter 和预算会话；
-只启用 `json` 时，也可以把同一个会话交给其他 parser：
+假设一个 wire 边界既要接纳不可信 JSON 文档，又要输出大小受限的响应。解码和编码
+使用不同方向的会话：只有解码会消耗输入字节，只有编码会消耗输出字节，两者可以
+复用同一套 JSON value 限制。
 
 ```rust
-use qubit_budget::{JsonLimits, StructureLimits};
-use qubit_budget::from_slice_with_budget;
-use qubit_budget::to_vec_with_budget;
+use qubit_budget::decode_slice;
+use qubit_budget::encode_to_vec;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonEncodeSession;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -74,40 +81,73 @@ struct Document {
 
 let input = br#"{"items":["alpha"]}"#;
 
-let structure_limits = StructureLimits::new()
-    .with_max_depth(64)
-    .with_max_nodes(100_000)
-    .with_max_sequence_items(10_000)
-    .with_max_map_entries(10_000)
-    .with_max_key_bytes(256);
-let limits = JsonLimits::new()
-    .with_structure_limits(structure_limits)
-    .with_max_input_bytes(1_048_576)
-    .with_max_output_bytes(1_048_576)
-    .with_max_string_bytes(256 * 1024)
-    .with_max_number_bytes(4_096);
-let mut budget = limits.budget();
-let document: Document = from_slice_with_budget(input, &mut budget)?;
-let output = to_vec_with_budget(&document, &mut budget)?;
+let structure = StructureLimits::empty()
+    .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 64))
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 100_000))
+    .with_sequence_items_limit(ResourceLimit::new(
+        JsonResource::SequenceItems,
+        10_000,
+    ))
+    .with_map_entries_limit(ResourceLimit::new(
+        JsonResource::MapEntries,
+        10_000,
+    ))
+    .with_key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, 256));
+let value_limits = JsonValueLimits::empty()
+    .with_structure_limits(structure)
+    .with_string_bytes_limit(ResourceLimit::new(
+        JsonResource::StringBytes,
+        256 * 1024,
+    ))
+    .with_number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, 4_096))
+    .with_payload_bytes_limit(ResourceLimit::new(
+        JsonResource::PayloadBytes,
+        512 * 1024,
+    ));
+
+let decode_limits = JsonDecodeLimits::empty()
+    .with_input_bytes_limit(ResourceLimit::new(
+        JsonResource::InputBytes,
+        1_048_576,
+    ))
+    .with_value_limits(value_limits);
+let mut decode_session = JsonDecodeSession::new(decode_limits);
+let document: Document = decode_slice(input, &mut decode_session)?;
+
+let encode_limits = JsonEncodeLimits::empty()
+    .with_output_bytes_limit(ResourceLimit::new(
+        JsonResource::OutputBytes,
+        1_048_576,
+    ))
+    .with_value_limits(value_limits);
+let mut encode_session = JsonEncodeSession::new(encode_limits);
+let output = encode_to_vec(&document, &mut encode_session)?;
 assert_eq!(output, input);
 # Ok(())
 # }
 ```
 
-adapter 会在返回解码结果前预检查完整输入字节、深度、累计节点、容器大小、对象 key
-字节、字符串字节和数字字节；`to_writer_with_budget` 写出数据前会先检查完整输出及其
-结构。若使用方自行驱动其他 parser，底层的 `enter_object`、`enter_array` 和
-`enter_node` 仍可直接使用。下一份文档调用 `limits.budget()` 后会得到全新的会话，
-不会继承上一份文档已经消耗的节点额度。
+`decode_slice` 先从调用方持有的 `JsonDecodeSession` 消耗完整输入长度，再执行词法
+准入和类型化 Serde 解码。`encode_to_vec` 通过 `JsonEncodeSession` 在线累计结构与
+输出字节；`encode_to_writer` 会先缓冲已通过检查的完整文档，再触碰外部 writer。
+每个独立边界应创建新会话；重复使用同一会话则会有意跨调用累计输入/输出、节点和
+payload 消耗。
 
 同样的状态规则也让失败处理保持明确。例如，节点上限为 1 时，第一次记账成功，
 第二次记账失败，并且已接受的节点数不会被改变：
 
 ```rust
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonValueBudget;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
 
 # fn main() -> Result<(), Box<dyn std::error::Error>> {
-let mut budget = JsonLimits::new().with_max_nodes(1).budget();
+let structure = StructureLimits::empty()
+    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 1));
+let limits = JsonValueLimits::empty().with_structure_limits(structure);
+let mut budget = JsonValueBudget::new(limits);
 budget.charge_node()?;
 assert!(budget.charge_node().is_err());
 # Ok(())
@@ -120,19 +160,20 @@ JSON 资源事实转换为 `ValueWireDecodeError`。
 ## 从配置到会话
 
 `StructureLimits<R, Q>` 是可复用的结构部分，包含深度、累计节点、序列条目、映射
-条目和结构化 key 字节限制。`JsonLimits<R, Q>` 在此基础上组合完整输入/输出字节、
-字符串字节和数字表示字节限制。默认资源标识为 `StructureResource` 和 `JsonResource`；
-如果下游需要自己的资源分类，也可以使用 `ResourceLimit<R, Q>` 提供自定义标识。
+条目和结构化 key 字节限制。`JsonValueLimits<R, Q>` 再增加单字符串、单数字和累计
+payload 限制；`JsonDecodeLimits` 只增加输入字节，`JsonEncodeLimits` 只增加输出
+字节。对应 session 持有一次操作的可变状态；同一份不可变 limits 可以构造任意多个
+全新会话。
 
-配置在预算会话中保持不可变。每次调用 `budget()` 都会创建拥有全新累计额度的会话。
 未配置的维度用 `Option::None` 表示，而不是创建一个需要在每次调用中驱动的“无限”
-预算对象。
+预算对象。点检查或累计消费失败不会回滚本次操作此前已经接受的消耗；但被拒绝的
+检查或消费请求本身是原子的，不会改变对应维度的剩余额度。
 
 ## 下游如何使用
 
 | 下游 crate | 实际用法 | 体现的价值 |
 | --- | --- | --- |
-| `rs-value` | 将 `StructureLimits` 组合进 `JsonLimits`，用一个 `JsonBudget` 执行 wire/JSON 遍历，再把 `BudgetError` 映射为 `ValueWireDecodeError`。 | 多维限制可以复用，不需要复制遍历记账逻辑或领域错误。 |
+| `rs-value` | 分别使用 `JsonDecodeLimits` 和 `JsonEncodeLimits`，让一个方向会话贯穿一次 wire 操作，再把 `BudgetError` 映射为自身 wire 错误。 | 读取与写出策略不会意外消耗错误方向的字节额度。 |
 | `rs-redact` | 在嵌套诊断渲染器之间共享一次操作的输入、输出和掩码预算。 | 子组件不能静默重置外层操作的额度。 |
 | `rs-http`、`rs-io`、`rs-fs` | 数据到达时为 response body、stream 和文件读取记账，包括长度未知的输入。 | 不同分块方式和 transport 错误不会破坏累计上限。 |
 | `rs-retry` | 组合尝试次数 `ResourceBudget`、显式时长 `DurationBudget` 和连续 elapsed deadline。 | 同一个领域策略可以组合不同资源语义。 |
@@ -144,9 +185,11 @@ JSON 资源事实转换为 `ValueWireDecodeError`。
 | 单次、包含边界的点检查 | `ResourceLimit<R, Q>` |
 | 不可归还的累计消耗 | `ResourceBudget<R, Q>` |
 | 可获取和释放的容量 | `ResourcePool<R, Q>` |
-| 结构化失败事实 | `BudgetError<R, Q>`：`LimitExceeded`、`Insufficient`、`InvalidRelease` |
+| 点限制/累计预算失败事实 | `BudgetError<R, Q>`：`LimitExceeded`、`Insufficient` |
+| 非法 pool 释放事实 | `ResourceReleaseError<R, Q>` |
 | 通用嵌套数据限制 | `StructureLimits<R, Q>`、`StructureBudget<R, Q>` |
-| JSON 输入/输出和遍历限制（`json`） | `JsonLimits<R, Q>`、`JsonBudget<R, Q>`、`JsonResource` |
+| JSON value 遍历限制（`json`） | `JsonValueLimits<R, Q>`、`JsonValueBudget<R, Q>` |
+| 定向 JSON 操作（`json`） | `JsonDecodeLimits`/`JsonDecodeSession`、`JsonEncodeLimits`/`JsonEncodeSession` |
 | 显式或基于时钟的时间限制（`time`） | `DurationBudget<R>`、`TimeBudget<R, C>` |
 
 数量使用精确的无符号类型。通用资源预算默认为 `u64`；结构化和 JSON 辅助类型默认
@@ -160,6 +203,8 @@ JSON 资源事实转换为 `ValueWireDecodeError`。
 - 它不选择默认上限、重试策略、脱敏策略、调度方式或应用专属错误类型。
 - `BudgetError` 描述的是机制事实，不是所有应用都必须暴露的统一领域错误。使用方
   应在自己的公开边界根据资源和值的变体完成转换。
+- 释放量超过 `ResourcePool` 当前占用量不属于预算耗尽；`ResourcePool::release`
+  返回独立的 `ResourceReleaseError`。
 - `ResourcePool` 是有限且不提供同步的容量对象，不包含等待、公平性、permit、取消
   或并发访问机制。
 - `DurationBudget` 只计算调用方显式提交的时长。`TimeBudget` 观察注入的单调时钟，
