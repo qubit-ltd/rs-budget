@@ -46,6 +46,8 @@ The default feature set is empty. Enable only the extensions you need:
 | --- | --- |
 | `json` | Directional `JsonDecodeLimits`/`JsonEncodeLimits`, shared `JsonValueLimits`, and operation sessions |
 | `serde-json` | Budget-aware Serde JSON deserialization and serialization adapters; also enables `json` |
+| `big-integer` | `BigIntegerLimits` for magnitude bits and significant decimal digits |
+| `big-decimal` | `BigDecimalLimits` for coefficient and scale magnitude limits |
 | `time` | Explicit-duration `DurationBudget` and monotonic-clock `TimeBudget` |
 
 The minimum supported Rust version is 1.94.
@@ -119,7 +121,7 @@ let decode_limits = JsonDecodeLimits::empty()
         1_048_576,
     ))
     .with_value_limits(value_limits);
-let mut decode_session = JsonDecodeSession::new(decode_limits);
+let mut decode_session = JsonDecodeSession::owned(decode_limits);
 let document: Document = decode_slice(input, &mut decode_session)?;
 
 let encode_limits = JsonEncodeLimits::empty()
@@ -128,7 +130,7 @@ let encode_limits = JsonEncodeLimits::empty()
         1_048_576,
     ))
     .with_value_limits(value_limits);
-let mut encode_session = JsonEncodeSession::new(encode_limits);
+let mut encode_session = JsonEncodeSession::owned(encode_limits);
 let output = encode_to_vec(&document, &mut encode_session)?;
 assert_eq!(output, input);
 # Ok(())
@@ -207,9 +209,24 @@ itself is atomic and leaves that dimension unchanged.
 | Directional JSON operations (`json`) | `JsonDecodeLimits`/`JsonDecodeSession` and `JsonEncodeLimits`/`JsonEncodeSession` |
 | Explicit or clock-backed time limits (`time`) | `DurationBudget<R>` and `TimeBudget<R, C>` |
 
-Quantities are exact unsigned values. Generic resource budgets default to `u64`,
-while structural and JSON helpers default to `usize` because their measurements
-are normally lengths, counts, and depths.
+Quantities are exact unsigned values. Generic resource budgets remain generic,
+while string, big-number, structural JSON, and Serde JSON helpers use `u64` so
+limits have the same meaning on 32-bit and 64-bit targets. JSON decode sessions
+can be `owned(...)` or can borrow caller-owned input and value budgets with
+`borrowing(...)`.
+
+`BudgetError::LimitExceeded` reports `Observation::Exact` when the measurement
+is known and `Observation::AtLeast` when only a safe lower bound is available;
+consumers must not treat an `AtLeast` value as an exact measurement.
+
+For non-JSON text, the same stable quantity semantics are available directly:
+
+```rust
+let limits = StringLimits::empty().with_utf8_bytes_limit(
+    ResourceLimit::new(MyResource::TextBytes, 1024_u64),
+);
+limits.check(input)?;
+```
 
 ## Boundaries
 

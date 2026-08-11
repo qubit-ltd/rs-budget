@@ -11,17 +11,19 @@
 //! A budget object always represents a configured finite constraint. When a
 //! dimension is unconfigured, callers use `Option::None` and do not create a
 //! no-op or unlimited budget object. Resource quantities use an exact unsigned
-//! integer type. Generic resource budgets default to `u64`; the structural and
-//! JSON limit families default to `usize` because their measurements are
-//! normally byte lengths or collection sizes.
+//! integer type. Generic accounting remains parameterized, while structural,
+//! string, big-number, and JSON value limits use `u64` for stable cross-target
+//! byte, count, and depth semantics.
 
 mod budget_error;
+mod observation;
 mod resource_budget;
 mod resource_limit;
 mod resource_pool;
 mod resource_quantity;
 mod resource_release_error;
 pub mod string;
+mod value;
 
 pub mod structure;
 
@@ -46,6 +48,7 @@ pub use json::JsonResource;
 pub use json::JsonValueBudget;
 #[cfg(feature = "json")]
 pub use json::JsonValueLimits;
+pub use observation::Observation;
 pub use resource_budget::ResourceBudget;
 pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
@@ -66,6 +69,11 @@ pub use string::BudgetedStringWriter;
 pub use structure::StructureBudget;
 pub use structure::StructureLimits;
 pub use structure::StructureResource;
+#[cfg(feature = "big-decimal")]
+pub use value::BigDecimalLimits;
+#[cfg(feature = "big-integer")]
+pub use value::BigIntegerLimits;
+pub use value::StringLimits;
 
 pub mod time;
 

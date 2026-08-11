@@ -12,12 +12,13 @@ use std::error::Error;
 use qubit_budget::BudgetError;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonSerdeError;
+use qubit_budget::Observation;
 
 #[test]
 fn test_budget_error_is_the_direct_source() {
     let error = JsonSerdeError::Budget(BudgetError::LimitExceeded {
         resource: JsonResource::StringBytes,
-        actual: 4,
+        observed: Observation::Exact(4),
         maximum: 3,
     });
 

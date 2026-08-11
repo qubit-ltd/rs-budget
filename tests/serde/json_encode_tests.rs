@@ -209,8 +209,8 @@ fn assert_online_rejection<T>(
     T: Serialize + ?Sized,
 {
     let mut session = limits.encode_session();
-    let error = encode_to_vec(value, &mut session)
-        .expect_err("the first value must be rejected online");
+    let error =
+        encode_to_vec(value, &mut session).expect_err("the first value must be rejected online");
     let JsonSerdeError::Budget(error) = error else {
         panic!("expected a budget error, got {error:?}");
     };
@@ -221,10 +221,9 @@ fn assert_online_rejection<T>(
 /// Verifies a budget failure leaves the destination writer unchanged.
 #[test]
 fn test_encode_to_writer_failure_does_not_touch_external_writer() {
-    let limits = JsonEncodeLimits::empty().with_output_bytes_limit(
-        ResourceLimit::new(JsonResource::OutputBytes, 3),
-    );
-    let mut session = JsonEncodeSession::new(limits);
+    let limits = JsonEncodeLimits::empty()
+        .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 3));
+    let mut session = JsonEncodeSession::owned(limits);
     let mut output = Vec::new();
 
     let error = encode_to_writer(&mut output, &"long", &mut session)
@@ -239,10 +238,9 @@ fn test_encode_to_writer_failure_does_not_touch_external_writer() {
 fn test_encode_to_vec_counts_raw_value_once() {
     let raw = RawValue::from_string(String::from(r#"{"k":"v"}"#))
         .expect("the fixture must be valid raw JSON");
-    let mut session = JsonEncodeSession::new(JsonEncodeLimits::empty());
+    let mut session = JsonEncodeSession::owned(JsonEncodeLimits::empty());
 
-    let output = encode_to_vec(raw.as_ref(), &mut session)
-        .expect("the raw JSON value must encode");
+    let output = encode_to_vec(raw.as_ref(), &mut session).expect("the raw JSON value must encode");
 
     assert_eq!(output, br#"{"k":"v"}"#);
 }
@@ -250,7 +248,7 @@ fn test_encode_to_vec_counts_raw_value_once() {
 /// Verifies a custom Serde failure does not commit its buffered prefix.
 #[test]
 fn test_encode_to_writer_serde_failure_does_not_touch_external_writer() {
-    let mut session = JsonEncodeSession::new(JsonEncodeLimits::empty());
+    let mut session = JsonEncodeSession::owned(JsonEncodeLimits::empty());
     let mut output = Vec::new();
 
     let error = encode_to_writer(&mut output, &FailsAfterPrefix, &mut session)
@@ -268,10 +266,9 @@ fn test_encode_to_vec_output_limit_stops_before_source_tail() {
         serialized: &serialized,
         len: 1_000,
     };
-    let limits = JsonEncodeLimits::empty().with_output_bytes_limit(
-        ResourceLimit::new(JsonResource::OutputBytes, 8),
-    );
-    let mut session = JsonEncodeSession::new(limits);
+    let limits = JsonEncodeLimits::empty()
+        .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 8));
+    let mut session = JsonEncodeSession::owned(limits);
 
     let error = encode_to_vec(&value, &mut session)
         .expect_err("the output budget must reject the long sequence");
@@ -283,7 +280,7 @@ fn test_encode_to_vec_output_limit_stops_before_source_tail() {
 /// Verifies final writer I/O can leave an accepted prefix in the destination.
 #[test]
 fn test_encode_to_writer_io_failure_can_leave_partial_output() {
-    let mut session = JsonEncodeSession::new(JsonEncodeLimits::empty());
+    let mut session = JsonEncodeSession::owned(JsonEncodeLimits::empty());
     let mut writer = PrefixThenFailWriter {
         bytes: Vec::new(),
         accepted: 2,
@@ -346,8 +343,7 @@ fn test_encode_to_vec_number_limit_stops_before_source_tail() {
 
     assert_online_rejection(
         &value,
-        JsonTestLimits::new()
-            .with_max_number_bytes(LARGE_NUMBER_TEXT.len() - 1),
+        JsonTestLimits::new().with_max_number_bytes(LARGE_NUMBER_TEXT.len() - 1),
         JsonResource::NumberBytes,
         &serialized_tail,
     );
