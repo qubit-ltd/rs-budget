@@ -9,6 +9,7 @@ use crate::BudgetError;
 use crate::JsonDecodeLimits;
 use crate::JsonResource;
 use crate::JsonValueBudget;
+use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
@@ -54,7 +55,10 @@ where
 
     /// Consumes input bytes atomically for this decoding operation.
     #[inline]
-    pub fn consume_input_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_input_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         match &mut self.storage {
             DecodeStorage::Owned { input, .. } => match input {
                 Some(input) => input.try_consume(amount),
@@ -67,17 +71,43 @@ where
         }
     }
 
+    /// Converts and consumes native input bytes atomically.
+    ///
+    /// Conversion is skipped when input-byte accounting is not configured.
+    #[inline]
+    pub fn consume_input_bytes_usize(
+        &mut self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let input = match &mut self.storage {
+            DecodeStorage::Owned { input, .. } => input.as_mut(),
+            DecodeStorage::Borrowed { input, .. } => input.as_deref_mut(),
+        };
+        let Some(input) = input else {
+            return Ok(());
+        };
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(input.resource().clone(), source)
+        })?;
+        input.try_consume(amount).map_err(MeasuredBudgetError::from)
+    }
+
     /// Returns the configured cumulative input-byte maximum.
     #[must_use]
     #[inline]
     pub fn max_input_bytes(&self) -> Option<Q> {
         match &self.storage {
-            DecodeStorage::Owned { input, .. } => input.as_ref().map(|budget| budget.limit()),
-            DecodeStorage::Borrowed { input, .. } => input.as_ref().map(|budget| budget.limit()),
+            DecodeStorage::Owned { input, .. } => {
+                input.as_ref().map(|budget| budget.limit())
+            }
+            DecodeStorage::Borrowed { input, .. } => {
+                input.as_ref().map(|budget| budget.limit())
+            }
         }
     }
 
-    /// Returns the owned input budget, or `None` for an unconfigured/borrowed budget.
+    /// Returns the owned input budget, or `None` for an unconfigured/borrowed
+    /// budget.
     #[inline]
     pub const fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {

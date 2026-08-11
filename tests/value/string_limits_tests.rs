@@ -1,3 +1,4 @@
+use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceLimit;
 use qubit_budget::StringLimits;
 
@@ -8,10 +9,15 @@ enum TestResource {
 
 #[test]
 fn test_check_uses_utf8_bytes_and_check_name() {
-    let limits =
-        StringLimits::empty().with_utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 2));
+    let limits = StringLimits::empty()
+        .with_utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 2_u64));
     let error = limits.check("中").expect_err("three bytes exceed two");
-    assert_eq!(error.exact_observed(), Some(3));
+    assert_eq!(
+        error
+            .budget_error()
+            .and_then(|budget_error| budget_error.exact_observed()),
+        Some(3)
+    );
 }
 
 #[test]
@@ -19,4 +25,33 @@ fn test_empty_limits_accept_any_string() {
     StringLimits::<TestResource>::empty()
         .check("arbitrary")
         .expect("unconfigured string limits must accept the value");
+}
+
+#[test]
+fn test_string_limits_support_usize_quantities() {
+    let limits = StringLimits::<TestResource, usize>::empty()
+        .with_utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 3));
+
+    limits
+        .check("abc")
+        .expect("three bytes should fit the usize limit");
+    let error = limits.check("abcd").expect_err("four bytes exceed three");
+    assert_eq!(
+        error.budget_error().and_then(|error| error.maximum()),
+        Some(3)
+    );
+}
+
+#[test]
+fn test_string_limits_reject_unrepresentable_measurements() {
+    let limits =
+        StringLimits::<TestResource, u8>::empty().with_utf8_bytes_limit(
+            ResourceLimit::new(TestResource::Bytes, u8::MAX),
+        );
+    let text = "x".repeat(usize::from(u8::MAX) + 1);
+
+    assert!(matches!(
+        limits.check(&text),
+        Err(MeasuredBudgetError::Quantity { .. })
+    ));
 }

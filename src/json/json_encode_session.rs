@@ -11,6 +11,7 @@ use crate::BudgetError;
 use crate::JsonEncodeLimits;
 use crate::JsonResource;
 use crate::JsonValueBudget;
+use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
@@ -52,11 +53,31 @@ where
     ///
     /// A failed request leaves the remaining output capacity unchanged.
     #[inline]
-    pub fn consume_output_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_output_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         match &mut self.output {
             Some(output) => output.try_consume(amount),
             None => Ok(()),
         }
+    }
+
+    /// Converts and consumes native output bytes atomically.
+    #[inline]
+    pub fn consume_output_bytes_usize(
+        &mut self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let Some(output) = &mut self.output else {
+            return Ok(());
+        };
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(output.resource().clone(), source)
+        })?;
+        output
+            .try_consume(amount)
+            .map_err(MeasuredBudgetError::from)
     }
 
     /// Returns the configured cumulative output-byte maximum.

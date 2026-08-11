@@ -11,12 +11,14 @@
 //! A budget object always represents a configured finite constraint. When a
 //! dimension is unconfigured, callers use `Option::None` and do not create a
 //! no-op or unlimited budget object. Resource quantities use an exact unsigned
-//! integer type. Generic accounting remains parameterized, while structural,
-//! string, big-number, and JSON value limits use `u64` for stable cross-target
-//! byte, count, and depth semantics.
+//! integer type. High-level limits remain generic so callers can preserve their
+//! native measurements; conversions from machine-sized measurements are checked
+//! and reported as resource-accounting errors.
 
 mod budget_error;
+mod measured_budget_error;
 mod observation;
+mod quantity_conversion_error;
 mod resource_budget;
 mod resource_limit;
 mod resource_pool;
@@ -48,7 +50,10 @@ pub use json::JsonResource;
 pub use json::JsonValueBudget;
 #[cfg(feature = "json")]
 pub use json::JsonValueLimits;
+pub use measured_budget_error::MeasuredBudgetError;
 pub use observation::Observation;
+pub use quantity_conversion_error::QuantityConversionError;
+pub use quantity_conversion_error::QuantityMeasurement;
 pub use resource_budget::ResourceBudget;
 pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
@@ -56,6 +61,8 @@ pub use resource_quantity::ResourceQuantity;
 pub use resource_release_error::ResourceReleaseError;
 #[cfg(feature = "serde-json")]
 pub use serde::JsonSerdeError;
+#[cfg(feature = "serde-json")]
+pub use serde::account_value;
 #[cfg(feature = "serde-json")]
 pub use serde::decode_slice;
 #[cfg(feature = "serde-json")]
