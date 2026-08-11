@@ -6,15 +6,18 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Bounded output buffer for budget-aware JSON encoding.
+// qubit-style: allow source-test-pair
+// qubit-style: allow multiple-public-types
 
 use std::cell::RefCell;
 use std::io;
 use std::io::Write;
 use std::rc::Rc;
 
-use crate::BudgetError;
 use crate::JsonSerdeError;
+use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
+use crate::ResourceQuantity;
 
 /// Shared output accounting used by the serializer and byte buffer.
 pub(in crate::serde) struct JsonOutputAccounting<'a, R> {
@@ -22,7 +25,7 @@ pub(in crate::serde) struct JsonOutputAccounting<'a, R> {
     output: Option<&'a mut ResourceBudget<R, u64>>,
 
     /// First budget violation hidden behind a Serde or I/O error.
-    violation: Option<BudgetError<R, u64>>,
+    violation: Option<MeasuredBudgetError<R, u64>>,
 }
 
 impl<'a, R> JsonOutputAccounting<'a, R> {
@@ -36,7 +39,9 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     ///
     /// Fresh accounting with no recorded violation.
     #[inline]
-    pub(in crate::serde) const fn new(output: Option<&'a mut ResourceBudget<R, u64>>) -> Self {
+    pub(in crate::serde) const fn new(
+        output: Option<&'a mut ResourceBudget<R, u64>>,
+    ) -> Self {
         Self {
             output,
             violation: None,
@@ -58,12 +63,20 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// Returns the output budget error without consuming any capacity when the
     /// amount exceeds the live remaining capacity.
     #[inline]
-    pub(super) fn check_available(&self, amount: usize) -> Result<(), BudgetError<R, u64>>
+    pub(super) fn check_available(
+        &self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, u64>>
     where
         R: Clone,
     {
         self.output.as_deref().map_or(Ok(()), |output| {
-            output.check_available(u64::try_from(amount).expect("Rust usize fits in u64"))
+            let amount = u64::try_from_usize(amount).map_err(|source| {
+                MeasuredBudgetError::quantity(output.resource().clone(), source)
+            })?;
+            output
+                .check_available(amount)
+                .map_err(MeasuredBudgetError::from)
         })
     }
 
@@ -82,12 +95,20 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// Returns the output budget error while leaving capacity unchanged when
     /// the amount exceeds the live remaining capacity.
     #[inline]
-    fn consume(&mut self, amount: usize) -> Result<(), BudgetError<R, u64>>
+    fn consume(
+        &mut self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, u64>>
     where
         R: Clone,
     {
         self.output.as_deref_mut().map_or(Ok(()), |output| {
-            output.try_consume(u64::try_from(amount).expect("Rust usize fits in u64"))
+            let amount = u64::try_from_usize(amount).map_err(|source| {
+                MeasuredBudgetError::quantity(output.resource().clone(), source)
+            })?;
+            output
+                .try_consume(amount)
+                .map_err(MeasuredBudgetError::from)
         })
     }
 
@@ -96,7 +117,10 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// # Parameters
     ///
     /// * `error` - Typed budget error hidden by Serde or I/O.
-    pub(super) fn record_violation(&mut self, error: BudgetError<R, u64>) {
+    pub(super) fn record_violation(
+        &mut self,
+        error: MeasuredBudgetError<R, u64>,
+    ) {
         if self.violation.is_none() {
             self.violation = Some(error);
         }
@@ -107,7 +131,7 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// # Returns
     ///
     /// The first typed violation, or `None` when no budget check failed.
-    fn take_violation(&mut self) -> Option<BudgetError<R, u64>> {
+    fn take_violation(&mut self) -> Option<MeasuredBudgetError<R, u64>> {
         self.violation.take()
     }
 }
@@ -161,7 +185,7 @@ impl<'a, R> JsonOutputBuffer<'a, R> {
     ) -> Result<Vec<u8>, JsonSerdeError<R>> {
         let violation = self.accounting.borrow_mut().take_violation();
         if let Some(error) = violation {
-            return Err(JsonSerdeError::Budget(error));
+            return Err(JsonSerdeError::from(error));
         }
         result.map_err(JsonSerdeError::Json)?;
         Ok(self.bytes)
@@ -177,11 +201,10 @@ where
     /// The buffer remains unchanged if arithmetic overflows or the output-byte
     /// limit is exceeded.
     fn write(&mut self, input: &[u8]) -> io::Result<usize> {
-        let next = self
-            .bytes
-            .len()
-            .checked_add(input.len())
-            .ok_or_else(|| io::Error::other("JSON output length overflow"))?;
+        let next =
+            self.bytes.len().checked_add(input.len()).ok_or_else(|| {
+                io::Error::other("JSON output length overflow")
+            })?;
         let amount = next - self.bytes.len();
         let mut accounting = self.accounting.borrow_mut();
         if let Err(error) = accounting.consume(amount) {

@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines JSON encoding limits.
+// qubit-style: allow source-test-pair
 
 use crate::JsonResource;
 use crate::JsonValueLimits;
@@ -43,9 +44,9 @@ impl<R, Q> JsonEncodeLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an unconfigured generic encoding limit set for internal use.
+    /// Creates an unconfigured generic encoding limit set.
     #[inline]
-    const fn unconfigured() -> Self {
+    pub const fn unconfigured() -> Self {
         Self {
             output: None,
             value: JsonValueLimits::unconfigured(),
@@ -54,7 +55,10 @@ where
 
     /// Configures the cumulative output-byte budget for one encode session.
     #[inline]
-    pub fn with_output_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_output_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.output = Some(limit);
         self
     }

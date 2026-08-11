@@ -15,7 +15,7 @@ use serde::Serializer;
 use serde::ser::Error as _;
 use serde::ser::SerializeSeq;
 
-use super::super::json_test_limits::JsonTestLimits;
+use super::super::json_test_limits_tests::JsonTestLimits;
 
 /// Value that masks an inner serializer failure with its own Serde error.
 struct MaskedString<'a>(&'a str);
@@ -71,8 +71,9 @@ fn test_json_encoder_preserves_value_budget_error_precedence() {
         .with_max_string_bytes(2)
         .encode_session();
 
-    let error = encode_to_vec(&MaskedString("hello"), &mut session)
-        .expect_err("the serializer must retain its original value-budget error");
+    let error = encode_to_vec(&MaskedString("hello"), &mut session).expect_err(
+        "the serializer must retain its original value-budget error",
+    );
 
     let JsonSerdeError::Budget(error) = error else {
         panic!("expected the original string budget error");
