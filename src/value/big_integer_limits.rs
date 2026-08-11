@@ -8,18 +8,26 @@
 use num_bigint::BigInt;
 
 use crate::BudgetError;
+use crate::MeasuredBudgetError;
 use crate::Observation;
 use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// Optional point limits for one arbitrary-precision integer.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BigIntegerLimits<R> {
-    max_magnitude_bits: Option<ResourceLimit<R, u64>>,
-    max_significant_decimal_digits: Option<ResourceLimit<R, u64>>,
+pub struct BigIntegerLimits<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
+    max_magnitude_bits: Option<ResourceLimit<R, Q>>,
+    max_significant_decimal_digits: Option<ResourceLimit<R, Q>>,
 }
 
-impl<R> BigIntegerLimits<R> {
+impl<R, Q> BigIntegerLimits<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates limits with no configured integer bounds.
     #[inline]
     pub const fn empty() -> Self {
@@ -31,27 +39,35 @@ impl<R> BigIntegerLimits<R> {
 
     /// Adds an inclusive magnitude bit-length limit.
     #[inline]
-    pub fn with_magnitude_bits_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_magnitude_bits_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_magnitude_bits = Some(limit);
         self
     }
 
     /// Adds an inclusive significant decimal digit limit.
     #[inline]
-    pub fn with_significant_decimal_digits_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_significant_decimal_digits_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_significant_decimal_digits = Some(limit);
         self
     }
 
     /// Returns the configured magnitude bit-length limit, if any.
     #[inline(always)]
-    pub const fn magnitude_bits_limit(&self) -> Option<&ResourceLimit<R, u64>> {
+    pub const fn magnitude_bits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_magnitude_bits.as_ref()
     }
 
     /// Returns the configured significant decimal digit limit, if any.
     #[inline(always)]
-    pub const fn significant_decimal_digits_limit(&self) -> Option<&ResourceLimit<R, u64>> {
+    pub const fn significant_decimal_digits_limit(
+        &self,
+    ) -> Option<&ResourceLimit<R, Q>> {
         self.max_significant_decimal_digits.as_ref()
     }
 
@@ -61,12 +77,15 @@ impl<R> BigIntegerLimits<R> {
     /// values report a conservative lower bound instead of allocating a
     /// decimal string proportional to the input magnitude.
     #[inline]
-    pub fn check(&self, value: &BigInt) -> Result<(), BudgetError<R, u64>>
+    pub fn check(&self, value: &BigInt) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
         if let Some(limit) = self.max_magnitude_bits.as_ref() {
-            limit.check(value.bits())?;
+            let bits = Q::try_from_u64(value.bits()).map_err(|source| {
+                MeasuredBudgetError::quantity(limit.resource().clone(), source)
+            })?;
+            limit.check(bits).map_err(MeasuredBudgetError::from)?;
         }
         if let Some(limit) = self.max_significant_decimal_digits.as_ref() {
             check_decimal_digits(limit, value)?;
@@ -75,7 +94,10 @@ impl<R> BigIntegerLimits<R> {
     }
 }
 
-impl<R> Default for BigIntegerLimits<R> {
+impl<R, Q> Default for BigIntegerLimits<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates unconfigured integer limits.
     #[inline]
     fn default() -> Self {
@@ -83,12 +105,13 @@ impl<R> Default for BigIntegerLimits<R> {
     }
 }
 
-fn check_decimal_digits<R>(
-    limit: &ResourceLimit<R, u64>,
+fn check_decimal_digits<R, Q>(
+    limit: &ResourceLimit<R, Q>,
     value: &BigInt,
-) -> Result<(), BudgetError<R, u64>>
+) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     R: Clone,
+    Q: ResourceQuantity,
 {
     let bits = value.bits();
     if bits == 0 {
@@ -96,28 +119,40 @@ where
     }
 
     let maximum = limit.maximum();
-    let low_bits = maximum.saturating_mul(3);
-    let high_bits = maximum.saturating_mul(4);
-    if bits <= low_bits || maximum == u64::MAX {
+    let bits = Q::try_from_u64(bits).map_err(|source| {
+        MeasuredBudgetError::quantity(limit.resource().clone(), source)
+    })?;
+    let low_bits = maximum
+        .checked_add(maximum)
+        .and_then(|value| value.checked_add(maximum));
+    if low_bits.is_some_and(|low_bits| bits <= low_bits) {
         return Ok(());
     }
-    if bits > high_bits {
+    let high_bits = low_bits.and_then(|value| value.checked_add(maximum));
+    if high_bits.is_some_and(|high_bits| bits > high_bits) {
+        let Some(observed) = maximum.checked_add(Q::ONE) else {
+            return Ok(());
+        };
         return Err(BudgetError::LimitExceeded {
             resource: limit.resource().clone(),
-            observed: Observation::AtLeast(maximum.saturating_add(1)),
+            observed: Observation::AtLeast(observed),
             maximum,
-        });
+        }
+        .into());
     }
 
     let text = value.to_str_radix(10);
     let digits = text.strip_prefix('-').unwrap_or(&text).len();
-    let digits = u64::try_from(digits).expect("Rust usize fits in u64");
+    let digits = Q::try_from_usize(digits).map_err(|source| {
+        MeasuredBudgetError::quantity(limit.resource().clone(), source)
+    })?;
     if digits > maximum {
         Err(BudgetError::LimitExceeded {
             resource: limit.resource().clone(),
             observed: Observation::Exact(digits),
             maximum,
-        })
+        }
+        .into())
     } else {
         Ok(())
     }

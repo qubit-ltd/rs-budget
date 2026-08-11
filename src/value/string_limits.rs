@@ -5,17 +5,24 @@
 // =============================================================================
 //! UTF-8 byte limits for one string value.
 
-use crate::BudgetError;
+use crate::MeasuredBudgetError;
 use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// Optional point limit for one UTF-8 string's byte length.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct StringLimits<R> {
-    max_utf8_bytes: Option<ResourceLimit<R, u64>>,
+pub struct StringLimits<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
+    max_utf8_bytes: Option<ResourceLimit<R, Q>>,
 }
 
-impl<R> StringLimits<R> {
+impl<R, Q> StringLimits<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates limits with no configured string bound.
     #[inline]
     pub const fn empty() -> Self {
@@ -26,35 +33,40 @@ impl<R> StringLimits<R> {
 
     /// Adds an inclusive UTF-8 byte limit.
     #[inline]
-    pub fn with_utf8_bytes_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_utf8_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_utf8_bytes = Some(limit);
         self
     }
 
     /// Returns the configured UTF-8 byte limit, if any.
     #[inline(always)]
-    pub const fn utf8_bytes_limit(&self) -> Option<&ResourceLimit<R, u64>> {
+    pub const fn utf8_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_utf8_bytes.as_ref()
     }
 
     /// Checks one string without mutating the limits.
     ///
     /// The measured quantity is the string's UTF-8 byte length. A configured
-    /// limit returns a point `BudgetError` when the length is too large.
+    /// limit returns a point budget error when the length is too large.
     #[inline]
-    pub fn check(&self, value: &str) -> Result<(), BudgetError<R, u64>>
+    pub fn check(&self, value: &str) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let bytes = u64::try_from(value.len()).expect("Rust usize fits in u64");
-        match self.max_utf8_bytes.as_ref() {
-            Some(limit) => limit.check(bytes),
-            None => Ok(()),
-        }
+        let Some(limit) = self.max_utf8_bytes.as_ref() else {
+            return Ok(());
+        };
+        let bytes = Q::try_from_usize(value.len()).map_err(|source| {
+            MeasuredBudgetError::quantity(limit.resource().clone(), source)
+        })?;
+        limit.check(bytes).map_err(MeasuredBudgetError::from)
     }
 }
 
-impl<R> Default for StringLimits<R> {
+impl<R, Q> Default for StringLimits<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates unconfigured string limits.
     #[inline]
     fn default() -> Self {
