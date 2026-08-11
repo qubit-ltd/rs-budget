@@ -50,9 +50,9 @@ impl<R, Q> JsonValueLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an unconfigured generic value limit set for internal use.
+    /// Creates an unconfigured generic value limit set.
     #[inline]
-    pub(crate) const fn unconfigured() -> Self {
+    pub const fn unconfigured() -> Self {
         Self {
             structure: StructureLimits::empty(),
             max_string_bytes: None,
@@ -63,14 +63,20 @@ where
 
     /// Configures the inclusive byte limit for one string value.
     #[inline]
-    pub fn with_string_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_string_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_string_bytes = Some(limit);
         self
     }
 
     /// Configures the inclusive byte limit for one number representation.
     #[inline]
-    pub fn with_number_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_number_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_number_bytes = Some(limit);
         self
     }
@@ -78,7 +84,10 @@ where
     /// Configures the cumulative byte budget for JSON keys, strings and
     /// numbers.
     #[inline]
-    pub fn with_payload_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_payload_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_payload_bytes = Some(limit);
         self
     }
@@ -183,7 +192,7 @@ where
 }
 
 impl JsonValueLimits<JsonResource, u64> {
-    /// Creates a limit set with every JSON value dimension unconfigured.
+    /// Creates a value limit set with every JSON value dimension unconfigured.
     #[inline]
     pub const fn empty() -> Self {
         Self::unconfigured()

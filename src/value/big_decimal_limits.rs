@@ -8,18 +8,25 @@
 use bigdecimal::BigDecimal;
 
 use super::BigIntegerLimits;
-use crate::BudgetError;
+use crate::MeasuredBudgetError;
 use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// Composes coefficient limits with an absolute scale limit.
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BigDecimalLimits<R> {
-    coefficient: BigIntegerLimits<R>,
-    max_scale_magnitude: Option<ResourceLimit<R, u64>>,
+pub struct BigDecimalLimits<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
+    coefficient: BigIntegerLimits<R, Q>,
+    max_scale_magnitude: Option<ResourceLimit<R, Q>>,
 }
 
-impl<R> BigDecimalLimits<R> {
+impl<R, Q> BigDecimalLimits<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates limits with no configured decimal bounds.
     #[inline]
     pub const fn empty() -> Self {
@@ -31,45 +38,64 @@ impl<R> BigDecimalLimits<R> {
 
     /// Replaces the coefficient limits.
     #[inline]
-    pub fn with_coefficient_limits(mut self, limits: BigIntegerLimits<R>) -> Self {
+    pub fn with_coefficient_limits(
+        mut self,
+        limits: BigIntegerLimits<R, Q>,
+    ) -> Self {
         self.coefficient = limits;
         self
     }
 
     /// Adds an inclusive absolute scale-magnitude limit.
     #[inline]
-    pub fn with_scale_magnitude_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_scale_magnitude_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_scale_magnitude = Some(limit);
         self
     }
 
     /// Returns the coefficient limits.
     #[inline(always)]
-    pub const fn coefficient_limits(&self) -> &BigIntegerLimits<R> {
+    pub const fn coefficient_limits(&self) -> &BigIntegerLimits<R, Q> {
         &self.coefficient
     }
 
     /// Returns the configured scale-magnitude limit, if any.
     #[inline(always)]
-    pub const fn scale_magnitude_limit(&self) -> Option<&ResourceLimit<R, u64>> {
+    pub const fn scale_magnitude_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_scale_magnitude.as_ref()
     }
 
     /// Checks scale before checking the borrowed coefficient.
     #[inline]
-    pub fn check(&self, value: &BigDecimal) -> Result<(), BudgetError<R, u64>>
+    pub fn check(
+        &self,
+        value: &BigDecimal,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
         let (coefficient, scale) = value.as_bigint_and_scale();
         if let Some(limit) = self.max_scale_magnitude.as_ref() {
-            limit.check(scale.unsigned_abs())?;
+            let magnitude =
+                Q::try_from_u64(scale.unsigned_abs()).map_err(|source| {
+                    MeasuredBudgetError::quantity(
+                        limit.resource().clone(),
+                        source,
+                    )
+                })?;
+            limit.check(magnitude).map_err(MeasuredBudgetError::from)?;
         }
         self.coefficient.check(coefficient.as_ref())
     }
 }
 
-impl<R> Default for BigDecimalLimits<R> {
+impl<R, Q> Default for BigDecimalLimits<R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Creates unconfigured decimal limits.
     #[inline]
     fn default() -> Self {

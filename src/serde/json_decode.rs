@@ -10,12 +10,14 @@
 use std::marker::PhantomData;
 
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::de::DeserializeSeed;
 use serde_json::Deserializer as JsonDeserializer;
 
 use super::internal::JsonLexicalPreflight;
 use crate::JsonDecodeSession;
 use crate::JsonSerdeError;
+use crate::ResourceQuantity;
 
 /// Deserializes one admitted JSON slice into `T`.
 ///
@@ -37,13 +39,14 @@ use crate::JsonSerdeError;
 /// session limits. Returns [`JsonSerdeError::Json`] when the input is not one
 /// valid JSON value or cannot deserialize as `T`. Input bytes remain consumed
 /// after every attempted decode, including later lexical or typed failures.
-pub fn decode_slice<'de, T, R>(
+pub fn decode_slice<'de, T, R, Q>(
     input: &'de [u8],
-    session: &mut JsonDecodeSession<'_, R, u64>,
-) -> Result<T, JsonSerdeError<R>>
+    session: &mut JsonDecodeSession<'_, R, Q>,
+) -> Result<T, JsonSerdeError<R, Q>>
 where
     T: Deserialize<'de>,
     R: Clone,
+    Q: ResourceQuantity,
 {
     decode_slice_seed(PhantomSeed::<T>::new(), input, session)
 }
@@ -69,18 +72,19 @@ where
 /// session limits. Returns [`JsonSerdeError::Json`] when the input is not one
 /// valid JSON value or the seed rejects it. Input bytes remain consumed after
 /// every attempted decode, including later lexical or typed failures.
-pub fn decode_slice_seed<'de, S, R>(
+pub fn decode_slice_seed<'de, S, R, Q>(
     seed: S,
     input: &'de [u8],
-    session: &mut JsonDecodeSession<'_, R, u64>,
-) -> Result<S::Value, JsonSerdeError<R>>
+    session: &mut JsonDecodeSession<'_, R, Q>,
+) -> Result<S::Value, JsonSerdeError<R, Q>>
 where
     S: DeserializeSeed<'de>,
     R: Clone,
+    Q: ResourceQuantity,
 {
     session
-        .consume_input_bytes(u64::try_from(input.len()).expect("Rust usize fits in u64"))
-        .map_err(JsonSerdeError::Budget)?;
+        .consume_input_bytes_usize(input.len())
+        .map_err(JsonSerdeError::from)?;
     JsonLexicalPreflight::new(session.value_budget_mut()).inspect(input)?;
     let mut deserializer = JsonDeserializer::from_slice(input);
     let value = seed
@@ -114,7 +118,7 @@ where
     /// Deserializes `T` through the supplied Serde deserializer.
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         T::deserialize(deserializer)
     }

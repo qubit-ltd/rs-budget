@@ -14,4 +14,4 @@ mod json_encode_tests;
 #[cfg(feature = "serde-json")]
 mod json_serde_error_tests;
 #[cfg(feature = "serde-json")]
-mod json_test_limits;
+mod json_test_limits_tests;

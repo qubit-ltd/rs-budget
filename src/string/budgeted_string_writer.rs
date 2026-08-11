@@ -11,11 +11,15 @@ use std::fmt;
 use std::io;
 
 use super::BudgetedStringError;
-use crate::BudgetError;
+use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
+use crate::ResourceQuantity;
 
-enum WriterFailure<R> {
-    Budget(BudgetError<R, u64>),
+enum WriterFailure<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    Budget(MeasuredBudgetError<R, Q>),
     LengthOverflow,
 }
 
@@ -24,17 +28,21 @@ enum WriterFailure<R> {
 /// The writer is constructed and committed by
 /// [`ResourceBudget::try_write_string`]. A failed render drops the buffered
 /// prefix and leaves the budget unchanged.
-pub struct BudgetedStringWriter<'a, R> {
-    budget: &'a ResourceBudget<R, u64>,
+pub struct BudgetedStringWriter<'a, R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
+    budget: &'a ResourceBudget<R, Q>,
     output: Vec<u8>,
-    failure: Option<WriterFailure<R>>,
+    failure: Option<WriterFailure<R, Q>>,
 }
 
-impl<'a, R> BudgetedStringWriter<'a, R>
+impl<'a, R, Q> BudgetedStringWriter<'a, R, Q>
 where
     R: Clone,
+    Q: ResourceQuantity,
 {
-    fn new(budget: &'a ResourceBudget<R, u64>) -> Self {
+    fn new(budget: &'a ResourceBudget<R, Q>) -> Self {
         Self {
             budget,
             output: Vec::new(),
@@ -42,7 +50,7 @@ where
         }
     }
 
-    fn into_parts(self) -> (Vec<u8>, Option<WriterFailure<R>>) {
+    fn into_parts(self) -> (Vec<u8>, Option<WriterFailure<R, Q>>) {
         (self.output, self.failure)
     }
 
@@ -50,22 +58,28 @@ where
         if self.failure.is_some() {
             return false;
         }
-        let Some(next_len) = checked_output_len(self.output.len(), bytes.len()) else {
+        let Some(next_len) = checked_output_len(self.output.len(), bytes.len())
+        else {
             self.failure = Some(WriterFailure::LengthOverflow);
             return false;
         };
-        let next_length = u64::try_from(next_len).expect("Rust usize fits in u64");
+        let next_length = match Q::try_from_usize(next_len) {
+            Ok(value) => value,
+            Err(source) => {
+                self.failure =
+                    Some(WriterFailure::Budget(MeasuredBudgetError::quantity(
+                        self.budget.resource().clone(),
+                        source,
+                    )));
+                return false;
+            }
+        };
         if let Err(error) = self.budget.check_available(next_length) {
-            self.failure = Some(WriterFailure::Budget(error));
+            self.failure = Some(WriterFailure::Budget(error.into()));
             return false;
         }
         if next_len > self.output.capacity() {
-            let target = self
-                .output
-                .capacity()
-                .saturating_mul(2)
-                .max(next_len)
-                .min(usize::try_from(self.budget.remaining()).unwrap_or(usize::MAX));
+            let target = self.output.capacity().saturating_mul(2).max(next_len);
             self.output
                 .reserve_exact(target.saturating_sub(self.output.len()));
         }
@@ -86,13 +100,17 @@ where
     }
 }
 
-struct FmtWriter<'writer, 'budget, R> {
-    writer: &'writer mut BudgetedStringWriter<'budget, R>,
+struct FmtWriter<'writer, 'budget, R, Q>
+where
+    Q: ResourceQuantity,
+{
+    writer: &'writer mut BudgetedStringWriter<'budget, R, Q>,
 }
 
-impl<R> fmt::Write for FmtWriter<'_, '_, R>
+impl<R, Q> fmt::Write for FmtWriter<'_, '_, R, Q>
 where
     R: Clone,
+    Q: ResourceQuantity,
 {
     fn write_str(&mut self, value: &str) -> fmt::Result {
         if self.writer.append(value.as_bytes()) {
@@ -103,13 +121,17 @@ where
     }
 }
 
-struct IoWriter<'writer, 'budget, R> {
-    writer: &'writer mut BudgetedStringWriter<'budget, R>,
+struct IoWriter<'writer, 'budget, R, Q>
+where
+    Q: ResourceQuantity,
+{
+    writer: &'writer mut BudgetedStringWriter<'budget, R, Q>,
 }
 
-impl<R> io::Write for IoWriter<'_, '_, R>
+impl<R, Q> io::Write for IoWriter<'_, '_, R, Q>
 where
     R: Clone,
+    Q: ResourceQuantity,
 {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         if self.writer.append(bytes) {
@@ -124,26 +146,39 @@ where
     }
 }
 
-const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
+const fn checked_output_len(
+    current: usize,
+    additional: usize,
+) -> Option<usize> {
     current.checked_add(additional)
 }
 
-impl<R> ResourceBudget<R, u64>
+impl<R, Q> ResourceBudget<R, Q>
 where
     R: Clone + fmt::Debug,
+    Q: ResourceQuantity,
 {
     /// Renders and transactionally commits a UTF-8 string under this budget.
-    pub fn try_write_string<E, F>(&mut self, render: F) -> Result<String, BudgetedStringError<R, E>>
+    pub fn try_write_string<E, F>(
+        &mut self,
+        render: F,
+    ) -> Result<String, BudgetedStringError<R, E, Q>>
     where
         E: fmt::Debug + fmt::Display,
-        F: FnOnce(&mut BudgetedStringWriter<'_, R>) -> Result<(), E>,
+        F: FnOnce(&mut BudgetedStringWriter<'_, R, Q>) -> Result<(), E>,
     {
         let mut writer = BudgetedStringWriter::new(self);
         let rendered = render(&mut writer);
         let (bytes, failure) = writer.into_parts();
         match failure {
-            Some(WriterFailure::Budget(error)) => {
+            Some(WriterFailure::Budget(MeasuredBudgetError::Budget(error))) => {
                 return Err(BudgetedStringError::Budget(error));
+            }
+            Some(WriterFailure::Budget(MeasuredBudgetError::Quantity {
+                resource,
+                source,
+            })) => {
+                return Err(BudgetedStringError::Quantity { resource, source });
             }
             Some(WriterFailure::LengthOverflow) => {
                 return Err(BudgetedStringError::LengthOverflow);
@@ -153,8 +188,15 @@ where
         if let Err(error) = rendered {
             return Err(BudgetedStringError::Render(error));
         }
-        let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
-        let output_length = u64::try_from(output.len()).expect("Rust usize fits in u64");
+        let output = String::from_utf8(bytes)
+            .map_err(BudgetedStringError::InvalidUtf8)?;
+        let output_length =
+            Q::try_from_usize(output.len()).map_err(|source| {
+                BudgetedStringError::Quantity {
+                    resource: self.resource().clone(),
+                    source,
+                }
+            })?;
         self.try_consume(output_length)
             .map_err(BudgetedStringError::Budget)?;
         Ok(output)

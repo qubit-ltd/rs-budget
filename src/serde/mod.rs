@@ -11,9 +11,11 @@ mod internal;
 mod json_decode;
 mod json_encode;
 mod json_serde_error;
+mod json_value_accounting;
 
 pub use json_decode::decode_slice;
 pub use json_decode::decode_slice_seed;
 pub use json_encode::encode_to_vec;
 pub use json_encode::encode_to_writer;
 pub use json_serde_error::JsonSerdeError;
+pub use json_value_accounting::account_value;

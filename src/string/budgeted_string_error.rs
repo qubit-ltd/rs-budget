@@ -14,17 +14,29 @@ use std::string::FromUtf8Error;
 use thiserror::Error;
 
 use crate::BudgetError;
+use crate::QuantityConversionError;
 
 /// Describes why a budgeted string rendering transaction failed.
 #[derive(Debug, Error)]
-pub enum BudgetedStringError<R, E>
+pub enum BudgetedStringError<R, E, Q = u64>
 where
     R: Debug,
     E: Debug + Display,
+    Q: Copy + Debug,
 {
     /// The rendered prefix exceeded the remaining resource budget.
     #[error(transparent)]
-    Budget(BudgetError<R, u64>),
+    Budget(BudgetError<R, Q>),
+    /// The rendered UTF-8 byte length cannot be represented by the budget
+    /// quantity.
+    #[error("string byte measurement cannot be represented: {source}")]
+    Quantity {
+        /// Resource whose accounting required the conversion.
+        resource: R,
+        /// Failed quantity conversion.
+        #[source]
+        source: QuantityConversionError,
+    },
     /// The renderer returned an error unrelated to the budget writer.
     #[error("string renderer failed: {0}")]
     Render(E),

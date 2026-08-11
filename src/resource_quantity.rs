@@ -12,6 +12,9 @@ use std::fmt::Display;
 use std::ops::Add;
 use std::ops::Sub;
 
+use crate::QuantityConversionError;
+use crate::QuantityMeasurement;
+
 mod private {
     /// Seals [`super::ResourceQuantity`] to the supported unsigned integers.
     pub trait Sealed {}
@@ -23,7 +26,14 @@ mod private {
 /// signed values, floating-point `NaN`/infinity, and rounding-based arithmetic
 /// from the accounting invariants.
 pub trait ResourceQuantity:
-    private::Sealed + Copy + Debug + Display + Eq + Ord + Add<Output = Self> + Sub<Output = Self>
+    private::Sealed
+    + Copy
+    + Debug
+    + Display
+    + Eq
+    + Ord
+    + Add<Output = Self>
+    + Sub<Output = Self>
 {
     /// The additive identity for this quantity type.
     const ZERO: Self;
@@ -42,6 +52,38 @@ pub trait ResourceQuantity:
     /// `Some(sum)` when the sum fits in the quantity type, or `None` on
     /// overflow.
     fn checked_add(self, other: Self) -> Option<Self>;
+
+    /// Converts one Rust-native length into this resource quantity.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Length reported by a string, collection, or Serde API.
+    ///
+    /// # Returns
+    ///
+    /// Returns the exact quantity when it fits this type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QuantityConversionError`] when `value` cannot be represented
+    /// without truncation.
+    fn try_from_usize(value: usize) -> Result<Self, QuantityConversionError>;
+
+    /// Converts one stable 64-bit measurement into this resource quantity.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Measurement reported by an API using `u64`.
+    ///
+    /// # Returns
+    ///
+    /// Returns the exact quantity when it fits this type.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`QuantityConversionError`] when `value` cannot be represented
+    /// without truncation.
+    fn try_from_u64(value: u64) -> Result<Self, QuantityConversionError>;
 }
 
 macro_rules! impl_resource_quantity {
@@ -56,6 +98,26 @@ macro_rules! impl_resource_quantity {
                 #[inline]
                 fn checked_add(self, other: Self) -> Option<Self> {
                     Self::checked_add(self, other)
+                }
+
+                #[inline]
+                fn try_from_usize(value: usize) -> Result<Self, QuantityConversionError> {
+                    <$quantity>::try_from(value).map_err(|_| {
+                        QuantityConversionError::new(
+                            QuantityMeasurement::Usize(value),
+                            stringify!($quantity),
+                        )
+                    })
+                }
+
+                #[inline]
+                fn try_from_u64(value: u64) -> Result<Self, QuantityConversionError> {
+                    <$quantity>::try_from(value).map_err(|_| {
+                        QuantityConversionError::new(
+                            QuantityMeasurement::U64(value),
+                            stringify!($quantity),
+                        )
+                    })
                 }
             }
         )+

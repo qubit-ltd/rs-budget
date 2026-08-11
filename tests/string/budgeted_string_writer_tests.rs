@@ -122,3 +122,16 @@ fn test_empty_output_is_a_successful_zero_cost_transaction() {
     assert!(output.is_empty());
     assert_eq!(budget.used(), 0);
 }
+
+#[test]
+fn test_writer_supports_usize_budget_quantities() {
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 4_usize);
+    let output = budget
+        .try_write_string(|writer| {
+            let mut output = writer.as_io();
+            output.write_all(b"rust")
+        })
+        .expect("usize quantity must accept fitting output");
+    assert_eq!(output, "rust");
+    assert_eq!(budget.used(), 4);
+}

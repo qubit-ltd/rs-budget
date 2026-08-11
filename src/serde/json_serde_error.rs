@@ -13,6 +13,8 @@ use serde_json::Error as JsonError;
 use thiserror::Error;
 
 use crate::BudgetError;
+use crate::MeasuredBudgetError;
+use crate::QuantityConversionError;
 
 /// Errors returned by budget-aware JSON/Serde adapters.
 #[must_use]
@@ -25,6 +27,17 @@ where
     #[error("JSON resource budget exceeded: {0}")]
     Budget(#[source] BudgetError<R, Q>),
 
+    /// A native measurement cannot be represented by the configured quantity.
+    #[error("JSON resource quantity conversion failed: {source}")]
+    Quantity {
+        /// Resource whose accounting required the conversion.
+        resource: R,
+
+        /// Failed quantity conversion.
+        #[source]
+        source: QuantityConversionError,
+    },
+
     /// Serde JSON rejected the document or value.
     #[error("JSON serialization error: {0}")]
     Json(#[source] JsonError),
@@ -32,4 +45,19 @@ where
     /// The destination writer rejected serialized bytes.
     #[error("JSON output writer failed: {0}")]
     Io(#[source] std::io::Error),
+}
+
+impl<R, Q> From<MeasuredBudgetError<R, Q>> for JsonSerdeError<R, Q>
+where
+    Q: Copy + fmt::Debug,
+{
+    #[inline]
+    fn from(error: MeasuredBudgetError<R, Q>) -> Self {
+        match error {
+            MeasuredBudgetError::Quantity { resource, source } => {
+                Self::Quantity { resource, source }
+            }
+            MeasuredBudgetError::Budget(error) => Self::Budget(error),
+        }
+    }
 }
