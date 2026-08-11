@@ -45,14 +45,12 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
 fn test_unconfigured_structure_limits_allow_all_checks() {
     let mut budget = StructureLimits::new().budget();
 
+    budget.check_depth(u64::MAX).expect("depth is unconfigured");
     budget
-        .check_depth(usize::MAX)
-        .expect("depth is unconfigured");
-    budget
-        .check_sequence_items(usize::MAX)
+        .check_sequence_items(u64::MAX)
         .expect("sequence size is unconfigured");
     budget
-        .check_map_entries(usize::MAX)
+        .check_map_entries(u64::MAX)
         .expect("map size is unconfigured");
     budget.charge_node().expect("node count is unconfigured");
 }

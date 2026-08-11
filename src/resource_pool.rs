@@ -132,10 +132,7 @@ where
     ///
     /// Returns [`ResourceReleaseError`] when `amount` exceeds
     /// current occupancy. The pool remains unchanged in that case.
-    pub fn release(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), ResourceReleaseError<R, Q>>
+    pub fn release(&mut self, amount: Q) -> Result<(), ResourceReleaseError<R, Q>>
     where
         R: Clone,
     {

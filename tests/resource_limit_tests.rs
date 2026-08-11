@@ -10,6 +10,7 @@
 use std::time::Duration;
 
 use qubit_budget::BudgetError;
+use qubit_budget::Observation;
 use qubit_budget::ResourceLimit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,7 +36,7 @@ fn test_resource_limit_accepts_exact_and_reports_over_limit_facts() {
         limit.check(4),
         Err(BudgetError::LimitExceeded {
             resource: TestResource::Depth,
-            actual: 4,
+            observed: Observation::Exact(4),
             maximum: 3,
         })
     ));
@@ -51,7 +52,7 @@ fn test_resource_limit_supports_duration_measurements() {
         limit.check(actual),
         Err(BudgetError::<TestResource, Duration>::LimitExceeded {
             resource: TestResource::Depth,
-            actual: reported_actual,
+            observed: Observation::Exact(reported_actual),
             maximum: reported_maximum,
         }) if reported_actual == actual && reported_maximum == maximum
     ));

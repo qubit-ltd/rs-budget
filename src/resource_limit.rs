@@ -10,6 +10,7 @@
 use std::fmt::Debug;
 
 use crate::BudgetError;
+use crate::Observation;
 
 /// An inclusive immutable maximum for one resource measurement.
 ///
@@ -86,7 +87,7 @@ where
         if actual > self.maximum {
             Err(BudgetError::LimitExceeded {
                 resource: self.resource.clone(),
-                actual,
+                observed: Observation::Exact(actual),
                 maximum: self.maximum,
             })
         } else {
