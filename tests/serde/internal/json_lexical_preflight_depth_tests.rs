@@ -3,27 +3,28 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 // =============================================================================
-//! Tests for the private JSON preflight visitor.
+//! Tests for lexical JSON preflight depth accounting.
 
 use qubit_budget::BudgetError;
 use qubit_budget::JsonLimits;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonSerdeError;
 use qubit_budget::from_slice_with_budget;
+use serde_json::Value;
 
-/// Verifies that the visitor charges the UTF-8 length of string values.
+/// Verifies that nested values use root-inclusive lexical depth.
 #[test]
-fn test_json_preflight_visitor_charges_string_bytes() {
-    let mut budget = JsonLimits::new().with_max_string_bytes(3).budget();
-    let error = from_slice_with_budget::<String, _>(br#""hello""#, &mut budget)
-        .expect_err("the string should exceed the byte budget");
+fn test_json_lexical_preflight_charges_nested_depth() {
+    let mut budget = JsonLimits::new().with_max_depth(1).budget();
+    let error = from_slice_with_budget::<Value, _>(b"[null]", &mut budget)
+        .expect_err("the nested value should exceed the depth budget");
 
     assert!(matches!(
         error,
         JsonSerdeError::Budget(BudgetError::LimitExceeded {
-            resource: JsonResource::StringBytes,
-            actual: 5,
-            maximum: 3,
+            resource: JsonResource::Depth,
+            actual: 2,
+            maximum: 1,
         })
     ));
 }

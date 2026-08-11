@@ -36,7 +36,7 @@ time = ["dep:qubit-clock"]
 [dependencies]
 qubit-clock = { version = "0.12", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip"], optional = true }
+serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip", "raw_value"], optional = true }
 thiserror = "2.0"
 
 [dev-dependencies]

@@ -12,9 +12,12 @@ use std::io::Write;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeSeed;
+use serde::de::IgnoredAny;
 use serde_json::Deserializer as JsonDeserializer;
-use serde_json::to_vec;
+use serde_json::Serializer as JsonSerializer;
 
+use super::internal::JsonBudgetSerializer;
+use super::internal::JsonOutputWriter;
 use super::internal::JsonPreflight;
 use crate::JsonBudget;
 use crate::JsonSerdeError;
@@ -95,12 +98,12 @@ where
     Ok(value)
 }
 
-/// Serializes one value to a compact JSON vector after charging its output.
+/// Serializes one value to a compact JSON vector while charging its output.
 ///
 /// # Parameters
 ///
 /// * `value` - Value serialized into compact JSON.
-/// * `budget` - Mutable JSON budget charged for output and structure.
+/// * `budget` - Mutable JSON budget charged before output growth and traversal.
 ///
 /// # Returns
 ///
@@ -123,11 +126,24 @@ where
     T: Serialize + ?Sized,
     R: Clone,
 {
-    let bytes = to_vec(value).map_err(JsonSerdeError::Json)?;
-    budget
-        .check_output_bytes(bytes.len())
-        .map_err(JsonSerdeError::Budget)?;
-    preflight_without_input_limit(&bytes, budget)?;
+    let limits = budget.limits().clone();
+    let output_budget = limits.clone().budget();
+    let mut output = JsonOutputWriter::new(&output_budget);
+    let mut violation = None;
+    let result = {
+        let mut inner = JsonSerializer::new(&mut output);
+        value.serialize(JsonBudgetSerializer::new(
+            &mut inner,
+            budget,
+            &mut violation,
+        ))
+    };
+    if let Some(error) = violation {
+        return Err(JsonSerdeError::Budget(error));
+    }
+    let bytes = output.into_result(result)?;
+    let mut verification_budget = limits.budget();
+    preflight_without_input_limit(&bytes, &mut verification_budget)?;
     Ok(bytes)
 }
 
@@ -226,16 +242,9 @@ where
     R: Clone,
 {
     let mut deserializer = JsonDeserializer::from_slice(input);
-    let (result, violation) = {
-        let mut visitor = JsonPreflight::new(budget);
-        let result = (&mut visitor).deserialize(&mut deserializer);
-        (result, visitor.take_violation())
-    };
-    if let Some(error) = violation {
-        return Err(JsonSerdeError::Budget(error));
-    }
-    if let Err(error) = result {
-        return Err(JsonSerdeError::Json(error));
-    }
-    deserializer.end().map_err(JsonSerdeError::Json)
+    IgnoredAny::deserialize(&mut deserializer).map_err(JsonSerdeError::Json)?;
+    deserializer.end().map_err(JsonSerdeError::Json)?;
+    JsonPreflight::new(budget)
+        .inspect(input, 1)
+        .map_err(JsonSerdeError::Budget)
 }

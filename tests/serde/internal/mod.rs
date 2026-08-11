@@ -3,8 +3,9 @@
 //
 //    SPDX-License-Identifier: Apache-2.0
 // =============================================================================
-//! Public behavior tests for private JSON preflight modules.
+//! Public behavior tests for JSON budgeting internals.
 
-mod json_preflight_child_seed_tests;
+mod json_budget_serializer_tests;
+mod json_lexical_preflight_depth_tests;
+mod json_lexical_preflight_resource_tests;
 mod json_preflight_tests;
-mod json_preflight_visitor_tests;
