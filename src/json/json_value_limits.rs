@@ -19,7 +19,7 @@ use crate::StructureLimits;
 /// [`JsonResource`] and [`usize`].
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct JsonValueLimits<R = JsonResource, Q = usize>
+pub struct JsonValueLimits<R = JsonResource, Q = u64>
 where
     Q: ResourceQuantity,
 {
@@ -63,20 +63,14 @@ where
 
     /// Configures the inclusive byte limit for one string value.
     #[inline]
-    pub fn with_string_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_string_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_string_bytes = Some(limit);
         self
     }
 
     /// Configures the inclusive byte limit for one number representation.
     #[inline]
-    pub fn with_number_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_number_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_number_bytes = Some(limit);
         self
     }
@@ -84,10 +78,7 @@ where
     /// Configures the cumulative byte budget for JSON keys, strings and
     /// numbers.
     #[inline]
-    pub fn with_payload_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_payload_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_payload_bytes = Some(limit);
         self
     }
@@ -191,7 +182,7 @@ where
     }
 }
 
-impl JsonValueLimits<JsonResource, usize> {
+impl JsonValueLimits<JsonResource, u64> {
     /// Creates a limit set with every JSON value dimension unconfigured.
     #[inline]
     pub const fn empty() -> Self {

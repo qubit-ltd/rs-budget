@@ -39,6 +39,8 @@ qubit-budget = "0.3"
 | --- | --- |
 | `json` | 提供方向明确的 `JsonDecodeLimits`/`JsonEncodeLimits`、共享 `JsonValueLimits` 和操作会话 |
 | `serde-json` | 提供带预算检查的 Serde JSON 序列化/反序列化 adapter，同时启用 `json` |
+| `big-integer` | 提供 `BigIntegerLimits`，限制幅值 bit 数和有效十进制位数 |
+| `big-decimal` | 提供 `BigDecimalLimits`，限制系数和 scale 幅值 |
 | `time` | 显式时长预算 `DurationBudget` 与单调时钟预算 `TimeBudget` |
 
 最低支持的 Rust 版本为 1.94。
@@ -111,7 +113,7 @@ let decode_limits = JsonDecodeLimits::empty()
         1_048_576,
     ))
     .with_value_limits(value_limits);
-let mut decode_session = JsonDecodeSession::new(decode_limits);
+let mut decode_session = JsonDecodeSession::owned(decode_limits);
 let document: Document = decode_slice(input, &mut decode_session)?;
 
 let encode_limits = JsonEncodeLimits::empty()
@@ -120,7 +122,7 @@ let encode_limits = JsonEncodeLimits::empty()
         1_048_576,
     ))
     .with_value_limits(value_limits);
-let mut encode_session = JsonEncodeSession::new(encode_limits);
+let mut encode_session = JsonEncodeSession::owned(encode_limits);
 let output = encode_to_vec(&document, &mut encode_session)?;
 assert_eq!(output, input);
 # Ok(())
@@ -192,8 +194,22 @@ payload 限制；`JsonDecodeLimits` 只增加输入字节，`JsonEncodeLimits` �
 | 定向 JSON 操作（`json`） | `JsonDecodeLimits`/`JsonDecodeSession`、`JsonEncodeLimits`/`JsonEncodeSession` |
 | 显式或基于时钟的时间限制（`time`） | `DurationBudget<R>`、`TimeBudget<R, C>` |
 
-数量使用精确的无符号类型。通用资源预算默认为 `u64`；结构化和 JSON 辅助类型默认
-使用 `usize`，因为它们通常记录长度、数量和深度。
+数量使用精确的无符号类型。通用资源预算保持泛型；字符串、大整数、大数、结构化
+JSON 和 Serde JSON 辅助 API 统一使用 `u64`，因此在 32 位和 64 位平台上含义一致。
+JSON 解码会话可以使用 `owned(...)`，也可以用 `borrowing(...)` 借用调用方持有的输入
+和 value 预算。
+
+`BudgetError::LimitExceeded` 在测量值明确时报告 `Observation::Exact`，只能得到安全
+下界时报告 `Observation::AtLeast`；下游不能把 `AtLeast` 当成精确值。
+
+非 JSON 文本也可以直接使用相同的稳定数量语义：
+
+```rust
+let limits = StringLimits::empty().with_utf8_bytes_limit(
+    ResourceLimit::new(MyResource::TextBytes, 1024_u64),
+);
+limits.check(input)?;
+```
 
 ## 边界
 

@@ -15,7 +15,7 @@ use crate::BudgetError;
 use crate::ResourceBudget;
 
 enum WriterFailure<R> {
-    Budget(BudgetError<R, usize>),
+    Budget(BudgetError<R, u64>),
     LengthOverflow,
 }
 
@@ -25,7 +25,7 @@ enum WriterFailure<R> {
 /// [`ResourceBudget::try_write_string`]. A failed render drops the buffered
 /// prefix and leaves the budget unchanged.
 pub struct BudgetedStringWriter<'a, R> {
-    budget: &'a ResourceBudget<R, usize>,
+    budget: &'a ResourceBudget<R, u64>,
     output: Vec<u8>,
     failure: Option<WriterFailure<R>>,
 }
@@ -34,7 +34,7 @@ impl<'a, R> BudgetedStringWriter<'a, R>
 where
     R: Clone,
 {
-    fn new(budget: &'a ResourceBudget<R, usize>) -> Self {
+    fn new(budget: &'a ResourceBudget<R, u64>) -> Self {
         Self {
             budget,
             output: Vec::new(),
@@ -50,12 +50,12 @@ where
         if self.failure.is_some() {
             return false;
         }
-        let Some(next_len) = checked_output_len(self.output.len(), bytes.len())
-        else {
+        let Some(next_len) = checked_output_len(self.output.len(), bytes.len()) else {
             self.failure = Some(WriterFailure::LengthOverflow);
             return false;
         };
-        if let Err(error) = self.budget.check_available(next_len) {
+        let next_length = u64::try_from(next_len).expect("Rust usize fits in u64");
+        if let Err(error) = self.budget.check_available(next_length) {
             self.failure = Some(WriterFailure::Budget(error));
             return false;
         }
@@ -65,7 +65,7 @@ where
                 .capacity()
                 .saturating_mul(2)
                 .max(next_len)
-                .min(self.budget.remaining());
+                .min(usize::try_from(self.budget.remaining()).unwrap_or(usize::MAX));
             self.output
                 .reserve_exact(target.saturating_sub(self.output.len()));
         }
@@ -124,22 +124,16 @@ where
     }
 }
 
-const fn checked_output_len(
-    current: usize,
-    additional: usize,
-) -> Option<usize> {
+const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
     current.checked_add(additional)
 }
 
-impl<R> ResourceBudget<R, usize>
+impl<R> ResourceBudget<R, u64>
 where
     R: Clone + fmt::Debug,
 {
     /// Renders and transactionally commits a UTF-8 string under this budget.
-    pub fn try_write_string<E, F>(
-        &mut self,
-        render: F,
-    ) -> Result<String, BudgetedStringError<R, E>>
+    pub fn try_write_string<E, F>(&mut self, render: F) -> Result<String, BudgetedStringError<R, E>>
     where
         E: fmt::Debug + fmt::Display,
         F: FnOnce(&mut BudgetedStringWriter<'_, R>) -> Result<(), E>,
@@ -159,9 +153,9 @@ where
         if let Err(error) = rendered {
             return Err(BudgetedStringError::Render(error));
         }
-        let output = String::from_utf8(bytes)
-            .map_err(BudgetedStringError::InvalidUtf8)?;
-        self.try_consume(output.len())
+        let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
+        let output_length = u64::try_from(output.len()).expect("Rust usize fits in u64");
+        self.try_consume(output_length)
             .map_err(BudgetedStringError::Budget)?;
         Ok(output)
     }

@@ -24,7 +24,7 @@ where
 {
     /// The rendered prefix exceeded the remaining resource budget.
     #[error(transparent)]
-    Budget(BudgetError<R, usize>),
+    Budget(BudgetError<R, u64>),
     /// The renderer returned an error unrelated to the budget writer.
     #[error("string renderer failed: {0}")]
     Render(E),

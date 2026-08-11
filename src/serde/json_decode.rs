@@ -39,7 +39,7 @@ use crate::JsonSerdeError;
 /// after every attempted decode, including later lexical or typed failures.
 pub fn decode_slice<'de, T, R>(
     input: &'de [u8],
-    session: &mut JsonDecodeSession<R, usize>,
+    session: &mut JsonDecodeSession<'_, R, u64>,
 ) -> Result<T, JsonSerdeError<R>>
 where
     T: Deserialize<'de>,
@@ -72,14 +72,14 @@ where
 pub fn decode_slice_seed<'de, S, R>(
     seed: S,
     input: &'de [u8],
-    session: &mut JsonDecodeSession<R, usize>,
+    session: &mut JsonDecodeSession<'_, R, u64>,
 ) -> Result<S::Value, JsonSerdeError<R>>
 where
     S: DeserializeSeed<'de>,
     R: Clone,
 {
     session
-        .consume_input_bytes(input.len())
+        .consume_input_bytes(u64::try_from(input.len()).expect("Rust usize fits in u64"))
         .map_err(JsonSerdeError::Budget)?;
     JsonLexicalPreflight::new(session.value_budget_mut()).inspect(input)?;
     let mut deserializer = JsonDeserializer::from_slice(input);

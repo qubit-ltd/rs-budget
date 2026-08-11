@@ -43,15 +43,14 @@ use crate::JsonSerdeError;
 /// * `R` - Resource identity reported by budget violations.
 pub fn encode_to_vec<T, R>(
     value: &T,
-    session: &mut JsonEncodeSession<R, usize>,
+    session: &mut JsonEncodeSession<R, u64>,
 ) -> Result<Vec<u8>, JsonSerdeError<R>>
 where
     T: Serialize + ?Sized,
     R: Clone,
 {
     let (output_budget, value_budget) = session.split_mut();
-    let accounting =
-        Rc::new(RefCell::new(JsonOutputAccounting::new(output_budget)));
+    let accounting = Rc::new(RefCell::new(JsonOutputAccounting::new(output_budget)));
     let mut output = JsonOutputBuffer::new(Rc::clone(&accounting));
     let result = {
         let mut inner = JsonSerializer::new(&mut output);
@@ -94,7 +93,7 @@ where
 pub fn encode_to_writer<W, T, R>(
     mut writer: W,
     value: &T,
-    session: &mut JsonEncodeSession<R, usize>,
+    session: &mut JsonEncodeSession<R, u64>,
 ) -> Result<(), JsonSerdeError<R>>
 where
     W: Write,

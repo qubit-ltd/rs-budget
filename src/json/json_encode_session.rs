@@ -21,7 +21,7 @@ use crate::ResourceQuantity;
 /// accounts for encoded JSON values.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct JsonEncodeSession<R = JsonResource, Q = usize>
+pub struct JsonEncodeSession<R = JsonResource, Q = u64>
 where
     Q: ResourceQuantity,
 {
@@ -39,7 +39,7 @@ where
 {
     /// Creates fresh mutable accounting for one JSON encoding operation.
     #[inline]
-    pub fn new(limits: JsonEncodeLimits<R, Q>) -> Self {
+    pub fn owned(limits: JsonEncodeLimits<R, Q>) -> Self {
         let output = limits
             .output_bytes_limit()
             .cloned()
@@ -52,10 +52,7 @@ where
     ///
     /// A failed request leaves the remaining output capacity unchanged.
     #[inline]
-    pub fn consume_output_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_output_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         match &mut self.output {
             Some(output) => output.try_consume(amount),
             None => Ok(()),

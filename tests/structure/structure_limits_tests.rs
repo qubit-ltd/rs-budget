@@ -8,6 +8,7 @@
 //! Tests for structural limit configuration.
 
 use qubit_budget::BudgetError;
+use qubit_budget::Observation;
 use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
@@ -59,7 +60,7 @@ fn test_with_max_methods_bind_each_limit_to_its_structure_resource() {
         budget.check_depth(2),
         Err(BudgetError::LimitExceeded {
             resource: StructureResource::Depth,
-            actual: 2,
+            observed: Observation::Exact(2),
             maximum: 1,
         })
     ));
@@ -77,7 +78,7 @@ fn test_with_max_methods_bind_each_limit_to_its_structure_resource() {
         budget.check_sequence_items(2),
         Err(BudgetError::LimitExceeded {
             resource: StructureResource::SequenceItems,
-            actual: 2,
+            observed: Observation::Exact(2),
             maximum: 1,
         })
     ));
@@ -85,7 +86,7 @@ fn test_with_max_methods_bind_each_limit_to_its_structure_resource() {
         budget.check_map_entries(2),
         Err(BudgetError::LimitExceeded {
             resource: StructureResource::MapEntries,
-            actual: 2,
+            observed: Observation::Exact(2),
             maximum: 1,
         })
     ));

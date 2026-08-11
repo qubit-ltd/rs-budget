@@ -11,6 +11,8 @@ use std::fmt::Debug;
 
 use thiserror::Error;
 
+use crate::Observation;
+
 /// Structured facts describing a resource constraint failure.
 ///
 /// Point checks use [`Self::LimitExceeded`], and cumulative budgets use
@@ -28,14 +30,12 @@ where
     Q: Copy + Debug,
 {
     /// A point measurement exceeded its configured maximum.
-    #[error(
-        "resource {resource:?} measured {actual:?}, exceeding the maximum of {maximum:?}"
-    )]
+    #[error("resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}")]
     LimitExceeded {
         /// Resource associated with the failed point check.
         resource: R,
-        /// Observed point measurement.
-        actual: Q,
+        /// Observed point measurement or safe lower bound.
+        observed: Observation<Q>,
         /// Configured inclusive point maximum.
         maximum: Q,
     },
@@ -64,8 +64,7 @@ where
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
-            Self::LimitExceeded { resource, .. }
-            | Self::Insufficient { resource, .. } => resource,
+            Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
         }
     }
 
@@ -73,8 +72,7 @@ where
     #[inline(always)]
     pub fn into_resource(self) -> R {
         match self {
-            Self::LimitExceeded { resource, .. }
-            | Self::Insufficient { resource, .. } => resource,
+            Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
         }
     }
 
@@ -90,15 +88,33 @@ where
         }
     }
 
-    /// Returns the observed measurement for a point-limit failure.
+    /// Returns the observation for a point-limit failure.
     ///
-    /// Returns `Some(actual)` for [`Self::LimitExceeded`], or `None` for a
+    /// Returns `Some(observed)` for [`Self::LimitExceeded`], or `None` for a
     /// cumulative-budget or pool failure.
     #[inline(always)]
-    pub const fn actual(&self) -> Option<Q> {
+    pub const fn observation(&self) -> Option<Observation<Q>> {
         match self {
-            Self::LimitExceeded { actual, .. } => Some(*actual),
+            Self::LimitExceeded { observed, .. } => Some(*observed),
             Self::Insufficient { .. } => None,
+        }
+    }
+
+    /// Returns the exact point measurement when the observation is exact.
+    #[inline(always)]
+    pub const fn exact_observed(&self) -> Option<Q> {
+        match self.observation() {
+            Some(Observation::Exact(value)) => Some(value),
+            Some(Observation::AtLeast(_)) | None => None,
+        }
+    }
+
+    /// Returns the safe lower bound of a point measurement.
+    #[inline(always)]
+    pub const fn observed_lower_bound(&self) -> Option<Q> {
+        match self.observation() {
+            Some(observed) => Some(observed.lower_bound()),
+            None => None,
         }
     }
 

@@ -8,6 +8,7 @@
 //! Tests for structured resource limit failures.
 
 use qubit_budget::BudgetError;
+use qubit_budget::Observation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TestResource {
@@ -18,13 +19,15 @@ enum TestResource {
 fn test_limit_exceeded_error_exposes_only_point_limit_facts() {
     let error = BudgetError::LimitExceeded {
         resource: TestResource::Depth,
-        actual: 4_usize,
+        observed: Observation::Exact(4_usize),
         maximum: 3,
     };
 
     assert_eq!(error.resource(), &TestResource::Depth);
     assert_eq!(error.limit(), None);
-    assert_eq!(error.actual(), Some(4));
+    assert_eq!(error.observation(), Some(Observation::Exact(4)));
+    assert_eq!(error.exact_observed(), Some(4));
+    assert_eq!(error.observed_lower_bound(), Some(4));
     assert_eq!(error.maximum(), Some(3));
     assert_eq!(error.remaining(), None);
     assert_eq!(error.in_use(), None);
@@ -43,7 +46,9 @@ fn test_insufficient_error_exposes_only_consumption_facts() {
 
     assert_eq!(error.resource(), &TestResource::Depth);
     assert_eq!(error.limit(), Some(3));
-    assert_eq!(error.actual(), None);
+    assert_eq!(error.observation(), None);
+    assert_eq!(error.exact_observed(), None);
+    assert_eq!(error.observed_lower_bound(), None);
     assert_eq!(error.maximum(), None);
     assert_eq!(error.remaining(), Some(1));
     assert_eq!(error.in_use(), None);
