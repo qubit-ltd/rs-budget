@@ -8,11 +8,12 @@
 //! Budget-aware JSON/Serde adapters.
 
 mod internal;
+mod json_decode;
+mod json_encode;
 mod json_serde_error;
-mod serde_json;
 
+pub use json_decode::decode_slice;
+pub use json_decode::decode_slice_seed;
+pub use json_encode::encode_to_vec;
+pub use json_encode::encode_to_writer;
 pub use json_serde_error::JsonSerdeError;
-pub use serde_json::from_slice_seed_with_budget;
-pub use serde_json::from_slice_with_budget;
-pub use serde_json::to_vec_with_budget;
-pub use serde_json::to_writer_with_budget;

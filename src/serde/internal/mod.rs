@@ -7,11 +7,12 @@
 // =============================================================================
 //! Private helpers for budget-aware JSON/Serde adapters.
 
-mod json_budget_compound;
-mod json_budget_serializer;
-mod json_output_writer;
-mod json_preflight;
+mod json_encode_compound;
+mod json_encode_serializer;
+mod json_lexical_preflight;
+mod json_output_buffer;
 
-pub(in crate::serde) use json_budget_serializer::JsonBudgetSerializer;
-pub(in crate::serde) use json_output_writer::JsonOutputWriter;
-pub(in crate::serde) use json_preflight::JsonPreflight;
+pub(in crate::serde) use json_encode_serializer::JsonEncodeSerializer;
+pub(in crate::serde) use json_lexical_preflight::JsonLexicalPreflight;
+pub(in crate::serde) use json_output_buffer::JsonOutputAccounting;
+pub(in crate::serde) use json_output_buffer::JsonOutputBuffer;

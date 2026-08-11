@@ -9,8 +9,10 @@
 
 use qubit_budget::JsonResource;
 
+/// Verifies JSON resource identities retain basic value semantics.
 #[test]
 fn test_json_resource_is_clone_copy_and_equatable() {
+    /// Checks the trait bounds expected by JSON resource identities.
     fn assert_clone_copy_and_equatable<T: Clone + Copy + PartialEq + Eq>() {}
 
     assert_clone_copy_and_equatable::<JsonResource>();
@@ -18,4 +20,5 @@ fn test_json_resource_is_clone_copy_and_equatable() {
     assert_ne!(JsonResource::Nodes, JsonResource::SequenceItems);
     assert_ne!(JsonResource::MapEntries, JsonResource::StringBytes);
     assert_ne!(JsonResource::NumberBytes, JsonResource::InputBytes);
+    assert_ne!(JsonResource::PayloadBytes, JsonResource::NumberBytes);
 }

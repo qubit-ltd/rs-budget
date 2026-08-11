@@ -1,177 +1,190 @@
 // =============================================================================
-//    Copyright (c) 2025 - 2026 Haixing Hu.
+//    Copyright (c) 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Tests for lexical JSON preflight resource accounting.
 
 use qubit_budget::BudgetError;
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonSerdeError;
-use qubit_budget::from_slice_with_budget;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
+use qubit_budget::decode_slice;
 use serde::de::IgnoredAny;
 
-/// Private token used by serde_json for arbitrary-precision numbers.
-const JSON_NUMBER_TOKEN: &str = concat!("$", "serde_json", ":", ":private::Number");
-
-/// Asserts that preflight reports one exact point-limit violation.
-fn assert_input_limit(
-    input: &str,
-    limits: JsonLimits,
-    expected: JsonResource,
-    actual: usize,
-    maximum: usize,
-) {
-    let mut budget = limits.budget();
-    let error = from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect_err("the configured resource limit must reject the input");
-    let description = format!("{error:?}");
-    assert!(
-        matches!(
-            error,
-            JsonSerdeError::Budget(BudgetError::LimitExceeded {
-                resource,
-                actual: error_actual,
-                maximum: error_maximum,
-            }) if resource == expected && error_actual == actual && error_maximum == maximum
-        ),
-        "unexpected error: {description}"
+/// Verifies object keys, strings, and numbers consume one shared payload
+/// budget.
+#[test]
+fn test_json_lexical_preflight_consumes_payload_for_keys_strings_and_numbers() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            4,
+        )),
     );
+    let mut session = JsonDecodeSession::new(limits);
+    let error =
+        decode_slice::<IgnoredAny, _>(br#"{"a":"bc","n":12}"#, &mut session)
+            .expect_err(
+                "one key, string, and number must exceed four payload bytes",
+            );
+
+    assert!(matches!(
+        error,
+        JsonSerdeError::Budget(BudgetError::Insufficient {
+            resource: JsonResource::PayloadBytes,
+            limit: 4,
+            remaining: 0,
+            requested: 2,
+        })
+    ));
 }
 
-/// Asserts that preflight exhausts the exact configured node budget.
-fn assert_input_nodes(input: &str, maximum: usize) {
-    let mut budget = JsonLimits::new().with_max_nodes(maximum).budget();
-    let error = from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect_err("the configured node budget must reject the input");
+/// Verifies decoded escapes use their decoded UTF-8 byte length for key limits.
+#[test]
+fn test_json_lexical_preflight_charges_decoded_key_bytes() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_structure_limits(
+            StructureLimits::empty().with_key_bytes_limit(ResourceLimit::new(
+                JsonResource::KeyBytes,
+                2,
+            )),
+        ),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error =
+        decode_slice::<IgnoredAny, _>(br#"{"\u4e2d":null}"#, &mut session)
+            .expect_err(
+                "the decoded three-byte key must exceed the two-byte limit",
+            );
+
+    assert!(matches!(
+        error,
+        JsonSerdeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::KeyBytes,
+            actual: 3,
+            maximum: 2,
+        })
+    ));
+}
+
+/// Verifies each JSON value consumes exactly one node from the shared session.
+#[test]
+fn test_json_lexical_preflight_charges_each_value_node() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_structure_limits(
+            StructureLimits::empty()
+                .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 1)),
+        ),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error =
+        decode_slice::<IgnoredAny, _>(br#"{"value":true}"#, &mut session)
+            .expect_err("the object child must exceed the one-node budget");
+
     assert!(matches!(
         error,
         JsonSerdeError::Budget(BudgetError::Insufficient {
             resource: JsonResource::Nodes,
-            limit,
+            limit: 1,
             remaining: 0,
             requested: 1,
-        }) if limit == maximum
+        })
     ));
 }
 
-/// Verifies that lexical preflight charges the UTF-8 length of string values.
+/// Verifies decoded string payloads enforce the per-string byte maximum.
 #[test]
-fn test_json_lexical_preflight_charges_string_bytes() {
-    let mut budget = JsonLimits::new().with_max_string_bytes(3).budget();
-    let error = from_slice_with_budget::<String, _>(br#""hello""#, &mut budget)
-        .expect_err("the string should exceed the byte budget");
+fn test_json_lexical_preflight_checks_decoded_string_bytes() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_string_bytes_limit(ResourceLimit::new(
+            JsonResource::StringBytes,
+            2,
+        )),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error = decode_slice::<IgnoredAny, _>(br#""\u4e2d""#, &mut session)
+        .expect_err("the decoded three-byte string must exceed the limit");
 
     assert!(matches!(
         error,
         JsonSerdeError::Budget(BudgetError::LimitExceeded {
             resource: JsonResource::StringBytes,
-            actual: 5,
+            actual: 3,
+            maximum: 2,
+        })
+    ));
+}
+
+/// Verifies number limits use the original lexical representation length.
+#[test]
+fn test_json_lexical_preflight_checks_number_lexical_bytes() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_number_bytes_limit(ResourceLimit::new(
+            JsonResource::NumberBytes,
+            3,
+        )),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error = decode_slice::<IgnoredAny, _>(b"1e+3", &mut session)
+        .expect_err("all four lexical number bytes must be charged");
+
+    assert!(matches!(
+        error,
+        JsonSerdeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::NumberBytes,
+            actual: 4,
             maximum: 3,
         })
     ));
 }
 
-/// Verifies a colliding private token with another field remains an object.
+/// Verifies lexical arrays enforce their observed item count.
 #[test]
-fn test_json_lexical_preflight_charges_colliding_number_token_as_object() {
-    let input = format!(r#"{{"{JSON_NUMBER_TOKEN}":"1","x":2}}"#);
-    let mut budget = JsonLimits::new().with_max_key_bytes(0).budget();
-
-    let error = from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect_err("the first ordinary object key must consume the key budget");
+fn test_json_lexical_preflight_checks_sequence_items() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_structure_limits(
+            StructureLimits::empty().with_sequence_items_limit(
+                ResourceLimit::new(JsonResource::SequenceItems, 1),
+            ),
+        ),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error = decode_slice::<IgnoredAny, _>(b"[null,null]", &mut session)
+        .expect_err("the second array item must exceed the point limit");
 
     assert!(matches!(
         error,
         JsonSerdeError::Budget(BudgetError::LimitExceeded {
-            resource: JsonResource::KeyBytes,
-            actual,
-            maximum: 0,
-        }) if actual == JSON_NUMBER_TOKEN.len()
+            resource: JsonResource::SequenceItems,
+            actual: 2,
+            maximum: 1,
+        })
     ));
 }
 
-/// Verifies a single-field ordinary object cannot impersonate a Number token.
+/// Verifies duplicate object keys still count as distinct map entries.
 #[test]
-fn test_json_lexical_preflight_charges_single_number_token_object() {
-    let input = format!(r#"{{"{JSON_NUMBER_TOKEN}":"x"}}"#);
-    let mut budget = JsonLimits::new().with_max_key_bytes(0).budget();
-
-    let error = from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect_err("a textual private-token field is still an ordinary object key");
-
-    assert!(matches!(
-        error,
-        JsonSerdeError::Budget(BudgetError::LimitExceeded {
-            resource: JsonResource::KeyBytes,
-            actual,
-            maximum: 0,
-        }) if actual == JSON_NUMBER_TOKEN.len()
-    ));
-}
-
-/// Verifies a numeric first value under the private token remains an object.
-#[test]
-fn test_json_lexical_preflight_accepts_colliding_token_with_numeric_value() {
-    let input = format!(r#"{{"{JSON_NUMBER_TOKEN}":1,"x":2}}"#);
-    let mut budget = JsonLimits::new().budget();
-
-    from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect("a numeric private-token field with a sibling is a valid object");
-}
-
-/// Verifies a nested object under the private token remains an object field.
-#[test]
-fn test_json_lexical_preflight_accepts_colliding_token_with_nested_object() {
-    let input = format!(r#"{{"{JSON_NUMBER_TOKEN}":{{"nested":true}},"x":2}}"#);
-    let mut budget = JsonLimits::new().budget();
-
-    from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect("a nested object under the private token is a valid field");
-}
-
-/// Verifies a nested array under the private token remains an object field.
-#[test]
-fn test_json_lexical_preflight_accepts_colliding_token_with_nested_array() {
-    let input = format!(r#"{{"{JSON_NUMBER_TOKEN}":[null],"x":2}}"#);
-    let mut budget = JsonLimits::new().budget();
-
-    from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect("a nested array under the private token is a valid field");
-}
-
-/// Verifies colliding-token objects retain depth, node, and string budgets.
-#[test]
-fn test_json_lexical_preflight_charges_colliding_object_value_resources() {
-    let nested = format!(r#"{{"{JSON_NUMBER_TOKEN}":{{"nested":true}},"x":2}}"#);
-    assert_input_limit(
-        &nested,
-        JsonLimits::new().with_max_depth(2),
-        JsonResource::Depth,
-        3,
-        2,
+fn test_json_lexical_preflight_counts_duplicate_map_entries() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_structure_limits(
+            StructureLimits::empty().with_map_entries_limit(
+                ResourceLimit::new(JsonResource::MapEntries, 1),
+            ),
+        ),
     );
-    assert_input_nodes(&nested, 2);
-
-    let string = format!(r#"{{"{JSON_NUMBER_TOKEN}":"long","x":2}}"#);
-    assert_input_limit(
-        &string,
-        JsonLimits::new().with_max_string_bytes(3),
-        JsonResource::StringBytes,
-        4,
-        3,
-    );
-}
-
-/// Verifies duplicate private-token fields remain two ordinary object entries.
-#[test]
-fn test_json_lexical_preflight_charges_duplicate_number_token_entries() {
-    let input = format!(r#"{{"{JSON_NUMBER_TOKEN}":"1","{JSON_NUMBER_TOKEN}":"2"}}"#);
-    let mut budget = JsonLimits::new().with_max_map_entries(1).budget();
-
-    let error = from_slice_with_budget::<IgnoredAny, _>(input.as_bytes(), &mut budget)
-        .expect_err("duplicate object fields must consume separate map entries");
+    let mut session = JsonDecodeSession::new(limits);
+    let error =
+        decode_slice::<IgnoredAny, _>(br#"{"a":1,"a":2}"#, &mut session)
+            .expect_err(
+                "the duplicate second entry must still exceed the limit",
+            );
 
     assert!(matches!(
         error,
@@ -179,6 +192,60 @@ fn test_json_lexical_preflight_charges_duplicate_number_token_entries() {
             resource: JsonResource::MapEntries,
             actual: 2,
             maximum: 1,
+        })
+    ));
+}
+
+/// Verifies private serde_json token text is an ordinary lexical object key.
+#[test]
+fn test_json_lexical_preflight_does_not_special_case_private_number_token() {
+    const PRIVATE_NUMBER_TOKEN: &str =
+        concat!("$", "serde_json", ":", ":private::Number");
+    let input = format!(r#"{{"{PRIVATE_NUMBER_TOKEN}":"x"}}"#);
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_structure_limits(
+            StructureLimits::empty().with_key_bytes_limit(ResourceLimit::new(
+                JsonResource::KeyBytes,
+                PRIVATE_NUMBER_TOKEN.len() - 1,
+            )),
+        ),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error = decode_slice::<IgnoredAny, _>(input.as_bytes(), &mut session)
+        .expect_err("private token text must consume the ordinary key limit");
+
+    assert!(matches!(
+        error,
+        JsonSerdeError::Budget(BudgetError::LimitExceeded {
+            resource: JsonResource::KeyBytes,
+            actual,
+            maximum,
+        }) if actual == PRIVATE_NUMBER_TOKEN.len()
+            && maximum == PRIVATE_NUMBER_TOKEN.len() - 1
+    ));
+}
+
+/// Verifies duplicate entries consume key and number payload every time.
+#[test]
+fn test_json_lexical_preflight_charges_duplicate_entry_payloads() {
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            3,
+        )),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error =
+        decode_slice::<IgnoredAny, _>(br#"{"a":1,"a":2}"#, &mut session)
+            .expect_err("both duplicate key-number pairs must consume payload");
+
+    assert!(matches!(
+        error,
+        JsonSerdeError::Budget(BudgetError::Insufficient {
+            resource: JsonResource::PayloadBytes,
+            limit: 3,
+            remaining: 0,
+            requested: 1,
         })
     ));
 }

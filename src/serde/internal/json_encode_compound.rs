@@ -5,7 +5,7 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Compound wrappers used by the budget-aware JSON serializer.
+//! Compound state for single-pass budget-aware JSON encoding.
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -20,8 +20,8 @@ use serde::ser::SerializeTuple;
 use serde::ser::SerializeTupleStruct;
 use serde::ser::SerializeTupleVariant;
 
-use super::JsonBudgetSerializer;
-use super::json_budget_serializer::JsonBudgetContext;
+use super::JsonEncodeSerializer;
+use super::json_encode_serializer::JsonEncodeContext;
 use crate::BudgetError;
 
 /// Special serde_json struct encoding recognized by the wrapper.
@@ -47,7 +47,7 @@ where
     value: &'a T,
 
     /// Shared mutable budget state for the serialization traversal.
-    context: Rc<RefCell<JsonBudgetContext<'budget, R>>>,
+    context: Rc<RefCell<JsonEncodeContext<'budget, R>>>,
 
     /// Root-inclusive depth assigned to the nested value.
     depth: usize,
@@ -60,7 +60,7 @@ where
     /// Creates a nested value wrapper bound to a shared budget context.
     pub(super) const fn new(
         value: &'a T,
-        context: Rc<RefCell<JsonBudgetContext<'budget, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'budget, R>>>,
         depth: usize,
     ) -> Self {
         Self {
@@ -81,7 +81,7 @@ where
     where
         S: Serializer,
     {
-        self.value.serialize(JsonBudgetSerializer::with_context(
+        self.value.serialize(JsonEncodeSerializer::with_context(
             serializer,
             Rc::clone(&self.context),
             self.depth,
@@ -91,12 +91,12 @@ where
 
 /// Wraps a Serde compound serializer and checks container operations before
 /// delegating them.
-pub(in crate::serde) struct JsonBudgetCompound<'a, C, R> {
+pub(in crate::serde) struct JsonEncodeCompound<'a, C, R> {
     /// Underlying Serde compound serializer.
     inner: C,
 
     /// Shared mutable budget state for the serialization traversal.
-    context: Rc<RefCell<JsonBudgetContext<'a, R>>>,
+    context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
 
     /// Root-inclusive depth assigned to nested values.
     child_depth: usize,
@@ -108,14 +108,14 @@ pub(in crate::serde) struct JsonBudgetCompound<'a, C, R> {
     private: PrivateStruct,
 }
 
-impl<'a, C, R> JsonBudgetCompound<'a, C, R>
+impl<'a, C, R> JsonEncodeCompound<'a, C, R>
 where
     R: Clone,
 {
     /// Creates a wrapper for a regular JSON array or object compound.
     pub(super) const fn new(
         inner: C,
-        context: Rc<RefCell<JsonBudgetContext<'a, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
         child_depth: usize,
     ) -> Self {
         Self {
@@ -130,7 +130,7 @@ where
     /// Creates a wrapper for serde_json's private number compound.
     pub(super) const fn number(
         inner: C,
-        context: Rc<RefCell<JsonBudgetContext<'a, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
         depth: usize,
     ) -> Self {
         Self {
@@ -145,7 +145,7 @@ where
     /// Creates a wrapper for serde_json's private raw-value compound.
     pub(super) const fn raw_value(
         inner: C,
-        context: Rc<RefCell<JsonBudgetContext<'a, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
         depth: usize,
     ) -> Self {
         Self {
@@ -158,7 +158,10 @@ where
     }
 
     /// Records the original budget error and maps it into the compound error.
-    fn record<E>(&mut self, result: Result<(), BudgetError<R, usize>>) -> Result<(), E>
+    fn record<E>(
+        &mut self,
+        result: Result<(), BudgetError<R, usize>>,
+    ) -> Result<(), E>
     where
         E: serde::ser::Error,
     {
@@ -192,9 +195,35 @@ where
             .check_map_entries(self.observed);
         self.record(result)
     }
+
+    /// Confirms the final observed sequence length before completion.
+    fn finish_sequence<E>(&mut self) -> Result<(), E>
+    where
+        E: serde::ser::Error,
+    {
+        let result = self
+            .context
+            .borrow()
+            .budget
+            .check_sequence_items(self.observed);
+        self.record(result)
+    }
+
+    /// Confirms the final observed map length before completion.
+    fn finish_map<E>(&mut self) -> Result<(), E>
+    where
+        E: serde::ser::Error,
+    {
+        let result = self
+            .context
+            .borrow()
+            .budget
+            .check_map_entries(self.observed);
+        self.record(result)
+    }
 }
 
-impl<C, R> SerializeSeq for JsonBudgetCompound<'_, C, R>
+impl<C, R> SerializeSeq for JsonEncodeCompound<'_, C, R>
 where
     C: SerializeSeq,
     R: Clone,
@@ -208,18 +237,23 @@ where
         T: Serialize + ?Sized,
     {
         self.next_sequence()?;
-        let value = BudgetedValue::new(value, Rc::clone(&self.context), self.child_depth);
+        let value = BudgetedValue::new(
+            value,
+            Rc::clone(&self.context),
+            self.child_depth,
+        );
         self.inner.serialize_element(&value)
     }
 
     /// Completes the underlying sequence.
     #[inline(always)]
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.finish_sequence()?;
         self.inner.end()
     }
 }
 
-impl<C, R> SerializeTuple for JsonBudgetCompound<'_, C, R>
+impl<C, R> SerializeTuple for JsonEncodeCompound<'_, C, R>
 where
     C: SerializeTuple,
     R: Clone,
@@ -233,18 +267,23 @@ where
         T: Serialize + ?Sized,
     {
         self.next_sequence()?;
-        let value = BudgetedValue::new(value, Rc::clone(&self.context), self.child_depth);
+        let value = BudgetedValue::new(
+            value,
+            Rc::clone(&self.context),
+            self.child_depth,
+        );
         self.inner.serialize_element(&value)
     }
 
     /// Completes the underlying tuple.
     #[inline(always)]
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.finish_sequence()?;
         self.inner.end()
     }
 }
 
-impl<C, R> SerializeTupleStruct for JsonBudgetCompound<'_, C, R>
+impl<C, R> SerializeTupleStruct for JsonEncodeCompound<'_, C, R>
 where
     C: SerializeTupleStruct,
     R: Clone,
@@ -258,18 +297,23 @@ where
         T: Serialize + ?Sized,
     {
         self.next_sequence()?;
-        let value = BudgetedValue::new(value, Rc::clone(&self.context), self.child_depth);
+        let value = BudgetedValue::new(
+            value,
+            Rc::clone(&self.context),
+            self.child_depth,
+        );
         self.inner.serialize_field(&value)
     }
 
     /// Completes the underlying tuple struct.
     #[inline(always)]
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.finish_sequence()?;
         self.inner.end()
     }
 }
 
-impl<C, R> SerializeTupleVariant for JsonBudgetCompound<'_, C, R>
+impl<C, R> SerializeTupleVariant for JsonEncodeCompound<'_, C, R>
 where
     C: SerializeTupleVariant,
     R: Clone,
@@ -283,18 +327,23 @@ where
         T: Serialize + ?Sized,
     {
         self.next_sequence()?;
-        let value = BudgetedValue::new(value, Rc::clone(&self.context), self.child_depth);
+        let value = BudgetedValue::new(
+            value,
+            Rc::clone(&self.context),
+            self.child_depth,
+        );
         self.inner.serialize_field(&value)
     }
 
     /// Completes the underlying tuple variant.
     #[inline(always)]
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.finish_sequence()?;
         self.inner.end()
     }
 }
 
-impl<C, R> SerializeMap for JsonBudgetCompound<'_, C, R>
+impl<C, R> SerializeMap for JsonEncodeCompound<'_, C, R>
 where
     C: SerializeMap,
     R: Clone,
@@ -308,7 +357,10 @@ where
         T: Serialize + ?Sized,
     {
         self.next_map_entry()?;
-        let key = super::json_budget_serializer::BudgetedKey::new(key, Rc::clone(&self.context));
+        let key = super::json_encode_serializer::BudgetedKey::new(
+            key,
+            Rc::clone(&self.context),
+        );
         self.inner.serialize_key(&key)
     }
 
@@ -317,12 +369,20 @@ where
     where
         T: Serialize + ?Sized,
     {
-        let value = BudgetedValue::new(value, Rc::clone(&self.context), self.child_depth);
+        let value = BudgetedValue::new(
+            value,
+            Rc::clone(&self.context),
+            self.child_depth,
+        );
         self.inner.serialize_value(&value)
     }
 
     /// Checks and serializes one complete map entry.
-    fn serialize_entry<K, V>(&mut self, key: &K, value: &V) -> Result<(), Self::Error>
+    fn serialize_entry<K, V>(
+        &mut self,
+        key: &K,
+        value: &V,
+    ) -> Result<(), Self::Error>
     where
         K: Serialize + ?Sized,
         V: Serialize + ?Sized,
@@ -333,12 +393,13 @@ where
 
     /// Completes the underlying map.
     #[inline(always)]
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.finish_map()?;
         self.inner.end()
     }
 }
 
-impl<C, R> SerializeStruct for JsonBudgetCompound<'_, C, R>
+impl<C, R> SerializeStruct for JsonEncodeCompound<'_, C, R>
 where
     C: SerializeStruct,
     R: Clone,
@@ -347,20 +408,25 @@ where
     type Error = C::Error;
 
     /// Checks one field key and serializes its decorated value.
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    fn serialize_field<T>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<(), Self::Error>
     where
         T: Serialize + ?Sized,
     {
         match self.private {
             PrivateStruct::Number => {
-                let value = super::json_budget_serializer::BudgetedPrivateValue::number(
-                    value,
-                    Rc::clone(&self.context),
-                );
+                let value =
+                    super::json_encode_serializer::BudgetedPrivateValue::number(
+                        value,
+                        Rc::clone(&self.context),
+                    );
                 return self.inner.serialize_field(key, &value);
             }
             PrivateStruct::RawValue => {
-                let value = super::json_budget_serializer::BudgetedPrivateValue::raw_value(
+                let value = super::json_encode_serializer::BudgetedPrivateValue::raw_value(
                     value,
                     Rc::clone(&self.context),
                     self.child_depth,
@@ -369,9 +435,17 @@ where
             }
             PrivateStruct::Regular => self.next_map_entry()?,
         }
-        let key_result = self.context.borrow().budget.check_key_bytes(key.len());
+        let key_result = self
+            .context
+            .borrow_mut()
+            .budget
+            .consume_key_bytes(key.len());
         self.record(key_result)?;
-        let value = BudgetedValue::new(value, Rc::clone(&self.context), self.child_depth);
+        let value = BudgetedValue::new(
+            value,
+            Rc::clone(&self.context),
+            self.child_depth,
+        );
         self.inner.serialize_field(key, &value)
     }
 
@@ -383,12 +457,15 @@ where
 
     /// Completes the underlying struct.
     #[inline(always)]
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        if matches!(self.private, PrivateStruct::Regular) {
+            self.finish_map()?;
+        }
         self.inner.end()
     }
 }
 
-impl<C, R> SerializeStructVariant for JsonBudgetCompound<'_, C, R>
+impl<C, R> SerializeStructVariant for JsonEncodeCompound<'_, C, R>
 where
     C: SerializeStructVariant,
     R: Clone,
@@ -397,14 +474,26 @@ where
     type Error = C::Error;
 
     /// Checks one field key and serializes its decorated value.
-    fn serialize_field<T>(&mut self, key: &'static str, value: &T) -> Result<(), Self::Error>
+    fn serialize_field<T>(
+        &mut self,
+        key: &'static str,
+        value: &T,
+    ) -> Result<(), Self::Error>
     where
         T: Serialize + ?Sized,
     {
         self.next_map_entry()?;
-        let key_result = self.context.borrow().budget.check_key_bytes(key.len());
+        let key_result = self
+            .context
+            .borrow_mut()
+            .budget
+            .consume_key_bytes(key.len());
         self.record(key_result)?;
-        let value = BudgetedValue::new(value, Rc::clone(&self.context), self.child_depth);
+        let value = BudgetedValue::new(
+            value,
+            Rc::clone(&self.context),
+            self.child_depth,
+        );
         self.inner.serialize_field(key, &value)
     }
 
@@ -416,7 +505,8 @@ where
 
     /// Completes the underlying struct variant.
     #[inline(always)]
-    fn end(self) -> Result<Self::Ok, Self::Error> {
+    fn end(mut self) -> Result<Self::Ok, Self::Error> {
+        self.finish_map()?;
         self.inner.end()
     }
 }

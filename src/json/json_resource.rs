@@ -36,4 +36,7 @@ pub enum JsonResource {
 
     /// The byte length of one JSON number representation.
     NumberBytes,
+
+    /// The cumulative bytes of JSON object keys, strings and numbers.
+    PayloadBytes,
 }

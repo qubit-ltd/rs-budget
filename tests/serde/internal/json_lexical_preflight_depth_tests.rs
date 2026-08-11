@@ -1,22 +1,34 @@
 // =============================================================================
-//    Copyright (c) 2025 - 2026 Haixing Hu.
+//    Copyright (c) 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Tests for lexical JSON preflight depth accounting.
 
 use qubit_budget::BudgetError;
-use qubit_budget::JsonLimits;
+use qubit_budget::JsonDecodeLimits;
+use qubit_budget::JsonDecodeSession;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonSerdeError;
-use qubit_budget::from_slice_with_budget;
+use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
+use qubit_budget::decode_slice;
 use serde_json::Value;
 
 /// Verifies that nested values use root-inclusive lexical depth.
 #[test]
 fn test_json_lexical_preflight_charges_nested_depth() {
-    let mut budget = JsonLimits::new().with_max_depth(1).budget();
-    let error = from_slice_with_budget::<Value, _>(b"[null]", &mut budget)
+    let limits = JsonDecodeLimits::empty().with_value_limits(
+        JsonValueLimits::empty().with_structure_limits(
+            StructureLimits::empty()
+                .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 1)),
+        ),
+    );
+    let mut session = JsonDecodeSession::new(limits);
+    let error = decode_slice::<Value, _>(b"[null]", &mut session)
         .expect_err("the nested value should exceed the depth budget");
 
     assert!(matches!(
