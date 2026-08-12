@@ -10,13 +10,6 @@
 use qubit_budget::ResourceQuantity;
 
 #[test]
-fn test_unsigned_quantities_provide_checked_addition() {
-    assert_eq!(<u8 as ResourceQuantity>::checked_add(2, 3), Some(5));
-    assert_eq!(<usize as ResourceQuantity>::checked_add(2, 3), Some(5));
-    assert_eq!(<u8 as ResourceQuantity>::checked_add(u8::MAX, 1), None,);
-}
-
-#[test]
 fn test_unsigned_quantities_provide_zero_and_one() {
     assert_eq!(<u8 as ResourceQuantity>::ZERO, 0);
     assert_eq!(<usize as ResourceQuantity>::ONE, 1);

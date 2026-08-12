@@ -10,8 +10,17 @@
 use qubit_budget::BudgetError;
 use qubit_budget::Observation;
 use qubit_budget::ResourceLimit;
+use qubit_budget::StructureBudget;
 use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
+
+#[test]
+fn test_default_structure_limits_match_default_structure_budget_quantity() {
+    let limits = StructureLimits::new();
+    let budget: StructureBudget = limits.budget();
+
+    assert_eq!(budget.used_nodes(), 0_usize);
+}
 
 #[test]
 fn test_structure_limits_expose_configured_values() {

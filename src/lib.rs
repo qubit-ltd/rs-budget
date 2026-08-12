@@ -11,9 +11,10 @@
 //! A budget object always represents a configured finite constraint. When a
 //! dimension is unconfigured, callers use `Option::None` and do not create a
 //! no-op or unlimited budget object. Resource quantities use an exact unsigned
-//! integer type. Generic accounting remains parameterized, while structural,
-//! string, big-number, and JSON value limits use `u64` for stable cross-target
-//! byte, count, and depth semantics.
+//! integer type. Generic accounting remains parameterized, while the default
+//! structural limits use `usize` for collection-sized measurements. String,
+//! big-number, and JSON value limits use `u64` for stable cross-target byte,
+//! count, and depth semantics.
 
 mod budget_error;
 mod observation;

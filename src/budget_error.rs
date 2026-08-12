@@ -30,7 +30,9 @@ where
     Q: Copy + Debug,
 {
     /// A point measurement exceeded its configured maximum.
-    #[error("resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}")]
+    #[error(
+        "resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}"
+    )]
     LimitExceeded {
         /// Resource associated with the failed point check.
         resource: R,
@@ -64,7 +66,8 @@ where
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
-            Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
+            Self::LimitExceeded { resource, .. }
+            | Self::Insufficient { resource, .. } => resource,
         }
     }
 
@@ -72,7 +75,8 @@ where
     #[inline(always)]
     pub fn into_resource(self) -> R {
         match self {
-            Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
+            Self::LimitExceeded { resource, .. }
+            | Self::Insufficient { resource, .. } => resource,
         }
     }
 
@@ -140,13 +144,6 @@ where
             Self::Insufficient { remaining, .. } => Some(*remaining),
             Self::LimitExceeded { .. } => None,
         }
-    }
-
-    /// Returns `None`; release failures are represented by
-    /// [`crate::ResourceReleaseError`] rather than this type.
-    #[inline(always)]
-    pub const fn in_use(&self) -> Option<Q> {
-        None
     }
 
     /// Returns the requested quantity for a cumulative budget failure.
