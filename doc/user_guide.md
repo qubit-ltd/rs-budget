@@ -2,7 +2,7 @@
 
 [中文用户指南](user_guide.zh_CN.md) | [README](../README.md) | [API documentation](https://docs.rs/qubit-budget)
 
-This guide covers `qubit-budget` 0.3 for library authors who need one parser,
+This guide covers `qubit-budget` 0.4 for library authors who need one parser,
 decoder, encoder, or traversal to stop at explicit resource boundaries while
 preserving their own resource names and public errors.
 
@@ -40,7 +40,7 @@ the complete response never exceeds its output policy.
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.3", features = ["serde-json"] }
+qubit-budget = { version = "0.4", features = ["serde-json"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
 

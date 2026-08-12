@@ -2,7 +2,7 @@
 
 [English guide](user_guide.md) | [README](../README.zh_CN.md) | [API 文档](https://docs.rs/qubit-budget)
 
-本手册适用于 `qubit-budget` 0.3，面向需要为 parser、decoder、encoder 或遍历过程
+本手册适用于 `qubit-budget` 0.4，面向需要为 parser、decoder、encoder 或遍历过程
 设置明确资源边界，同时保留自身资源名称和公开错误模型的库作者。
 
 ## 概念模型
@@ -35,7 +35,7 @@ Limits 是不可变配置，session 是一次操作的可变状态；未配置�
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.3", features = ["serde-json"] }
+qubit-budget = { version = "0.4", features = ["serde-json"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
 

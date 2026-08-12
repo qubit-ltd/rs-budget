@@ -37,7 +37,7 @@ A correct boundary therefore needs both point limits and cumulative budgets:
 
 ```toml
 [dependencies]
-qubit-budget = "0.3"
+qubit-budget = "0.4"
 ```
 
 The default feature set is empty. Enable only the extensions you need:
@@ -57,7 +57,7 @@ the types used by your application directly:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.3", features = ["serde-json"] }
+qubit-budget = { version = "0.4", features = ["serde-json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```

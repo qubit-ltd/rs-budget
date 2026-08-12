@@ -30,7 +30,7 @@
 
 ```toml
 [dependencies]
-qubit-budget = "0.3"
+qubit-budget = "0.4"
 ```
 
 默认 feature 集为空，按需启用扩展：
@@ -50,7 +50,7 @@ qubit-budget = "0.3"
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.3", features = ["serde-json"] }
+qubit-budget = { version = "0.4", features = ["serde-json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
