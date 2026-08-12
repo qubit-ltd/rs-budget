@@ -25,8 +25,10 @@ use serde::de::IgnoredAny;
 #[test]
 fn escaped_and_direct_unicode_charge_equal_decoded_payload() {
     let limits = JsonDecodeLimits::empty().with_value_limits(
-        JsonValueLimits::empty()
-            .with_payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, 3)),
+        JsonValueLimits::empty().with_payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            3,
+        )),
     );
     for input in [br#""\u4e2d""#.as_slice(), "\"中\"".as_bytes()] {
         let mut session = JsonDecodeSession::owned(limits);
@@ -43,11 +45,15 @@ fn escaped_and_direct_unicode_charge_equal_decoded_payload() {
 #[test]
 fn deeply_nested_input_fails_by_limit_without_stack_overflow() {
     let input = format!("{}0{}", "[".repeat(20_000), "]".repeat(20_000));
-    let mut session = JsonDecodeSession::owned(JsonDecodeLimits::empty().with_value_limits(
-        JsonValueLimits::empty().with_structure_limits(
-            StructureLimits::empty().with_depth_limit(ResourceLimit::new(JsonResource::Depth, 128)),
-        ),
-    ));
+    let mut session =
+        JsonDecodeSession::owned(JsonDecodeLimits::empty().with_value_limits(
+            JsonValueLimits::empty().with_structure_limits(
+                StructureLimits::empty().with_depth_limit(ResourceLimit::new(
+                    JsonResource::Depth,
+                    128,
+                )),
+            ),
+        ));
 
     assert!(matches!(
         decode_slice::<serde_json::Value, _>(input.as_bytes(), &mut session),
@@ -59,8 +65,10 @@ fn deeply_nested_input_fails_by_limit_without_stack_overflow() {
 #[test]
 fn typed_decode_failure_consumes_input_before_the_next_attempt() {
     let mut session = JsonDecodeSession::owned(
-        JsonDecodeLimits::empty()
-            .with_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 3)),
+        JsonDecodeLimits::empty().with_input_bytes_limit(ResourceLimit::new(
+            JsonResource::InputBytes,
+            3,
+        )),
     );
 
     assert!(matches!(
@@ -77,12 +85,15 @@ fn typed_decode_failure_consumes_input_before_the_next_attempt() {
 #[test]
 fn decode_slice_seed_admits_arbitrary_precision_numbers() {
     let input = b"123456789012345678901234567890";
-    let mut session = JsonDecodeSession::owned(JsonDecodeLimits::empty().with_value_limits(
-        JsonValueLimits::empty().with_number_bytes_limit(ResourceLimit::new(
-            JsonResource::NumberBytes,
-            u64::try_from(input.len()).unwrap(),
-        )),
-    ));
+    let mut session =
+        JsonDecodeSession::owned(JsonDecodeLimits::empty().with_value_limits(
+            JsonValueLimits::empty().with_number_bytes_limit(
+                ResourceLimit::new(
+                    JsonResource::NumberBytes,
+                    u64::try_from(input.len()).unwrap(),
+                ),
+            ),
+        ));
 
     decode_slice_seed(IgnoreSeed, input, &mut session)
         .expect("the exact arbitrary-precision lexical number limit must fit");
@@ -94,14 +105,19 @@ fn point_limit_fails_before_seed_and_keeps_work_charged() {
     let limits = JsonDecodeLimits::empty().with_value_limits(
         JsonValueLimits::empty()
             .with_structure_limits(
-                StructureLimits::empty()
-                    .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 1)),
+                StructureLimits::empty().with_nodes_limit(ResourceLimit::new(
+                    JsonResource::Nodes,
+                    1,
+                )),
             )
-            .with_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, 1)),
+            .with_string_bytes_limit(ResourceLimit::new(
+                JsonResource::StringBytes,
+                1,
+            )),
     );
     let mut session = JsonDecodeSession::owned(limits);
-    let error =
-        decode_slice_seed(PanicSeed, br#""ab""#, &mut session).expect_err("string limit must fail");
+    let error = decode_slice_seed(PanicSeed, br#""ab""#, &mut session)
+        .expect_err("string limit must fail");
     assert!(matches!(error, JsonSerdeError::Budget(_)));
     assert!(session.value_budget_mut().enter_node(1).is_err());
 }

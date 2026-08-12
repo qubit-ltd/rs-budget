@@ -8,8 +8,8 @@ enum TestResource {
 
 #[test]
 fn test_check_uses_utf8_bytes_and_check_name() {
-    let limits =
-        StringLimits::empty().with_utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 2));
+    let limits = StringLimits::empty()
+        .with_utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 2));
     let error = limits.check("中").expect_err("three bytes exceed two");
     assert_eq!(error.exact_observed(), Some(3));
 }

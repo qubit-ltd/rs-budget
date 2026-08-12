@@ -31,14 +31,20 @@ impl<R> BigIntegerLimits<R> {
 
     /// Adds an inclusive magnitude bit-length limit.
     #[inline]
-    pub fn with_magnitude_bits_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_magnitude_bits_limit(
+        mut self,
+        limit: ResourceLimit<R, u64>,
+    ) -> Self {
         self.max_magnitude_bits = Some(limit);
         self
     }
 
     /// Adds an inclusive significant decimal digit limit.
     #[inline]
-    pub fn with_significant_decimal_digits_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_significant_decimal_digits_limit(
+        mut self,
+        limit: ResourceLimit<R, u64>,
+    ) -> Self {
         self.max_significant_decimal_digits = Some(limit);
         self
     }
@@ -51,7 +57,9 @@ impl<R> BigIntegerLimits<R> {
 
     /// Returns the configured significant decimal digit limit, if any.
     #[inline(always)]
-    pub const fn significant_decimal_digits_limit(&self) -> Option<&ResourceLimit<R, u64>> {
+    pub const fn significant_decimal_digits_limit(
+        &self,
+    ) -> Option<&ResourceLimit<R, u64>> {
         self.max_significant_decimal_digits.as_ref()
     }
 

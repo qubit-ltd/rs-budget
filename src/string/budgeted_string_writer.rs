@@ -50,22 +50,23 @@ where
         if self.failure.is_some() {
             return false;
         }
-        let Some(next_len) = checked_output_len(self.output.len(), bytes.len()) else {
+        let Some(next_len) = checked_output_len(self.output.len(), bytes.len())
+        else {
             self.failure = Some(WriterFailure::LengthOverflow);
             return false;
         };
-        let next_length = u64::try_from(next_len).expect("Rust usize fits in u64");
+        let next_length =
+            u64::try_from(next_len).expect("Rust usize fits in u64");
         if let Err(error) = self.budget.check_available(next_length) {
             self.failure = Some(WriterFailure::Budget(error));
             return false;
         }
         if next_len > self.output.capacity() {
-            let target = self
-                .output
-                .capacity()
-                .saturating_mul(2)
-                .max(next_len)
-                .min(usize::try_from(self.budget.remaining()).unwrap_or(usize::MAX));
+            let target =
+                self.output.capacity().saturating_mul(2).max(next_len).min(
+                    usize::try_from(self.budget.remaining())
+                        .unwrap_or(usize::MAX),
+                );
             self.output
                 .reserve_exact(target.saturating_sub(self.output.len()));
         }
@@ -124,7 +125,10 @@ where
     }
 }
 
-const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
+const fn checked_output_len(
+    current: usize,
+    additional: usize,
+) -> Option<usize> {
     current.checked_add(additional)
 }
 
@@ -133,7 +137,10 @@ where
     R: Clone + fmt::Debug,
 {
     /// Renders and transactionally commits a UTF-8 string under this budget.
-    pub fn try_write_string<E, F>(&mut self, render: F) -> Result<String, BudgetedStringError<R, E>>
+    pub fn try_write_string<E, F>(
+        &mut self,
+        render: F,
+    ) -> Result<String, BudgetedStringError<R, E>>
     where
         E: fmt::Debug + fmt::Display,
         F: FnOnce(&mut BudgetedStringWriter<'_, R>) -> Result<(), E>,
@@ -153,8 +160,10 @@ where
         if let Err(error) = rendered {
             return Err(BudgetedStringError::Render(error));
         }
-        let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
-        let output_length = u64::try_from(output.len()).expect("Rust usize fits in u64");
+        let output = String::from_utf8(bytes)
+            .map_err(BudgetedStringError::InvalidUtf8)?;
+        let output_length =
+            u64::try_from(output.len()).expect("Rust usize fits in u64");
         self.try_consume(output_length)
             .map_err(BudgetedStringError::Budget)?;
         Ok(output)

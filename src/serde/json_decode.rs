@@ -79,7 +79,9 @@ where
     R: Clone,
 {
     session
-        .consume_input_bytes(u64::try_from(input.len()).expect("Rust usize fits in u64"))
+        .consume_input_bytes(
+            u64::try_from(input.len()).expect("Rust usize fits in u64"),
+        )
         .map_err(JsonSerdeError::Budget)?;
     JsonLexicalPreflight::new(session.value_budget_mut()).inspect(input)?;
     let mut deserializer = JsonDeserializer::from_slice(input);

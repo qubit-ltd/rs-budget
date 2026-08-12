@@ -26,7 +26,10 @@ impl<R> StringLimits<R> {
 
     /// Adds an inclusive UTF-8 byte limit.
     #[inline]
-    pub fn with_utf8_bytes_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_utf8_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, u64>,
+    ) -> Self {
         self.max_utf8_bytes = Some(limit);
         self
     }

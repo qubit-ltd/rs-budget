@@ -36,7 +36,9 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     ///
     /// Fresh accounting with no recorded violation.
     #[inline]
-    pub(in crate::serde) const fn new(output: Option<&'a mut ResourceBudget<R, u64>>) -> Self {
+    pub(in crate::serde) const fn new(
+        output: Option<&'a mut ResourceBudget<R, u64>>,
+    ) -> Self {
         Self {
             output,
             violation: None,
@@ -58,12 +60,17 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// Returns the output budget error without consuming any capacity when the
     /// amount exceeds the live remaining capacity.
     #[inline]
-    pub(super) fn check_available(&self, amount: usize) -> Result<(), BudgetError<R, u64>>
+    pub(super) fn check_available(
+        &self,
+        amount: usize,
+    ) -> Result<(), BudgetError<R, u64>>
     where
         R: Clone,
     {
         self.output.as_deref().map_or(Ok(()), |output| {
-            output.check_available(u64::try_from(amount).expect("Rust usize fits in u64"))
+            output.check_available(
+                u64::try_from(amount).expect("Rust usize fits in u64"),
+            )
         })
     }
 
@@ -87,7 +94,9 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
         R: Clone,
     {
         self.output.as_deref_mut().map_or(Ok(()), |output| {
-            output.try_consume(u64::try_from(amount).expect("Rust usize fits in u64"))
+            output.try_consume(
+                u64::try_from(amount).expect("Rust usize fits in u64"),
+            )
         })
     }
 
@@ -177,11 +186,10 @@ where
     /// The buffer remains unchanged if arithmetic overflows or the output-byte
     /// limit is exceeded.
     fn write(&mut self, input: &[u8]) -> io::Result<usize> {
-        let next = self
-            .bytes
-            .len()
-            .checked_add(input.len())
-            .ok_or_else(|| io::Error::other("JSON output length overflow"))?;
+        let next =
+            self.bytes.len().checked_add(input.len()).ok_or_else(|| {
+                io::Error::other("JSON output length overflow")
+            })?;
         let amount = next - self.bytes.len();
         let mut accounting = self.accounting.borrow_mut();
         if let Err(error) = accounting.consume(amount) {

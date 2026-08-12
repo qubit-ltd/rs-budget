@@ -50,7 +50,8 @@ where
     R: Clone,
 {
     let (output_budget, value_budget) = session.split_mut();
-    let accounting = Rc::new(RefCell::new(JsonOutputAccounting::new(output_budget)));
+    let accounting =
+        Rc::new(RefCell::new(JsonOutputAccounting::new(output_budget)));
     let mut output = JsonOutputBuffer::new(Rc::clone(&accounting));
     let result = {
         let mut inner = JsonSerializer::new(&mut output);

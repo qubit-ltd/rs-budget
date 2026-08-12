@@ -54,7 +54,10 @@ where
 
     /// Consumes input bytes atomically for this decoding operation.
     #[inline]
-    pub fn consume_input_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_input_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         match &mut self.storage {
             DecodeStorage::Owned { input, .. } => match input {
                 Some(input) => input.try_consume(amount),
@@ -72,12 +75,17 @@ where
     #[inline]
     pub fn max_input_bytes(&self) -> Option<Q> {
         match &self.storage {
-            DecodeStorage::Owned { input, .. } => input.as_ref().map(|budget| budget.limit()),
-            DecodeStorage::Borrowed { input, .. } => input.as_ref().map(|budget| budget.limit()),
+            DecodeStorage::Owned { input, .. } => {
+                input.as_ref().map(|budget| budget.limit())
+            }
+            DecodeStorage::Borrowed { input, .. } => {
+                input.as_ref().map(|budget| budget.limit())
+            }
         }
     }
 
-    /// Returns the owned input budget, or `None` for an unconfigured/borrowed budget.
+    /// Returns the owned input budget, or `None` for an unconfigured/borrowed
+    /// budget.
     #[inline]
     pub const fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {

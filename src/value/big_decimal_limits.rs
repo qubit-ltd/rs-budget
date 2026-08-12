@@ -31,14 +31,20 @@ impl<R> BigDecimalLimits<R> {
 
     /// Replaces the coefficient limits.
     #[inline]
-    pub fn with_coefficient_limits(mut self, limits: BigIntegerLimits<R>) -> Self {
+    pub fn with_coefficient_limits(
+        mut self,
+        limits: BigIntegerLimits<R>,
+    ) -> Self {
         self.coefficient = limits;
         self
     }
 
     /// Adds an inclusive absolute scale-magnitude limit.
     #[inline]
-    pub fn with_scale_magnitude_limit(mut self, limit: ResourceLimit<R, u64>) -> Self {
+    pub fn with_scale_magnitude_limit(
+        mut self,
+        limit: ResourceLimit<R, u64>,
+    ) -> Self {
         self.max_scale_magnitude = Some(limit);
         self
     }
@@ -51,7 +57,9 @@ impl<R> BigDecimalLimits<R> {
 
     /// Returns the configured scale-magnitude limit, if any.
     #[inline(always)]
-    pub const fn scale_magnitude_limit(&self) -> Option<&ResourceLimit<R, u64>> {
+    pub const fn scale_magnitude_limit(
+        &self,
+    ) -> Option<&ResourceLimit<R, u64>> {
         self.max_scale_magnitude.as_ref()
     }
 

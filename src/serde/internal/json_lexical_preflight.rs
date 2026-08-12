@@ -31,7 +31,9 @@ where
     R: Clone,
 {
     /// Creates a lexical preflight bound to one mutable value budget.
-    pub(in crate::serde) const fn new(budget: &'a mut JsonValueBudget<R, u64>) -> Self {
+    pub(in crate::serde) const fn new(
+        budget: &'a mut JsonValueBudget<R, u64>,
+    ) -> Self {
         Self {
             budget,
             root_depth: 1,
@@ -52,7 +54,10 @@ where
     ///
     /// Returns [`JsonSerdeError::Budget`] for the first resource violation, or
     /// [`JsonSerdeError::Json`] when `input` is not one complete JSON value.
-    pub(in crate::serde) fn inspect(&mut self, input: &[u8]) -> Result<(), JsonSerdeError<R>> {
+    pub(in crate::serde) fn inspect(
+        &mut self,
+        input: &[u8],
+    ) -> Result<(), JsonSerdeError<R>> {
         let mut cursor = JsonCursor::new(input, self.budget);
         let mut stack = Vec::new();
         cursor.skip_whitespace();
@@ -125,7 +130,10 @@ where
     R: Clone,
 {
     /// Creates a cursor positioned at the beginning of `input`.
-    const fn new(input: &'a [u8], budget: &'budget mut JsonValueBudget<R, u64>) -> Self {
+    const fn new(
+        input: &'a [u8],
+        budget: &'budget mut JsonValueBudget<R, u64>,
+    ) -> Self {
         Self {
             input,
             position: 0,
@@ -195,7 +203,11 @@ where
     }
 
     /// Charges and consumes one scalar literal.
-    fn literal(&mut self, depth: usize, literal: &[u8]) -> Result<(), JsonSerdeError<R>> {
+    fn literal(
+        &mut self,
+        depth: usize,
+        literal: &[u8],
+    ) -> Result<(), JsonSerdeError<R>> {
         if !self.input[self.position..].starts_with(literal) {
             return Err(invalid_json());
         }
@@ -260,7 +272,8 @@ where
                 if self.peek() != Some(b'"') {
                     return Err(invalid_json());
                 }
-                let entries = entries.checked_add(1).ok_or_else(invalid_json)?;
+                let entries =
+                    entries.checked_add(1).ok_or_else(invalid_json)?;
                 self.budget
                     .check_map_entries(as_u64(entries))
                     .map_err(JsonSerdeError::Budget)?;
@@ -281,7 +294,8 @@ where
                 match self.peek() {
                     Some(b',') => {
                         self.position += 1;
-                        stack.push(ContainerFrame::ObjectKey { depth, entries });
+                        stack
+                            .push(ContainerFrame::ObjectKey { depth, entries });
                         Ok(())
                     }
                     Some(b'}') => {
@@ -308,22 +322,30 @@ where
                 Some(b'\\') => {
                     self.position += 1;
                     let bytes = match self.peek() {
-                        Some(b'"' | b'\\' | b'/' | b'b' | b'f' | b'n' | b'r' | b't') => {
+                        Some(
+                            b'"' | b'\\' | b'/' | b'b' | b'f' | b'n' | b'r'
+                            | b't',
+                        ) => {
                             self.position += 1;
                             1
                         }
                         Some(b'u') => self.unicode_escape_bytes()?,
                         _ => return Err(invalid_json()),
                     };
-                    decoded = decoded.checked_add(bytes).ok_or_else(invalid_json)?;
+                    decoded =
+                        decoded.checked_add(bytes).ok_or_else(invalid_json)?;
                 }
                 Some(0x20..=0x7F) => {
                     self.position += 1;
-                    decoded = decoded.checked_add(1).ok_or_else(invalid_json)?;
+                    decoded =
+                        decoded.checked_add(1).ok_or_else(invalid_json)?;
                 }
                 Some(byte) if byte >= 0x80 => {
                     let width = utf8_width(byte).ok_or_else(invalid_json)?;
-                    let end = self.position.checked_add(width).ok_or_else(invalid_json)?;
+                    let end = self
+                        .position
+                        .checked_add(width)
+                        .ok_or_else(invalid_json)?;
                     let text = self
                         .input
                         .get(self.position..end)
@@ -361,7 +383,9 @@ where
             if !(0xDC00..=0xDFFF).contains(&second) {
                 return Err(invalid_json());
             }
-            0x1_0000 + ((u32::from(first) - 0xD800) << 10) + (u32::from(second) - 0xDC00)
+            0x1_0000
+                + ((u32::from(first) - 0xD800) << 10)
+                + (u32::from(second) - 0xDC00)
         } else {
             if (0xDC00..=0xDFFF).contains(&first) {
                 return Err(invalid_json());

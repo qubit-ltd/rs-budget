@@ -52,7 +52,10 @@ where
     ///
     /// A failed request leaves the remaining output capacity unchanged.
     #[inline]
-    pub fn consume_output_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_output_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         match &mut self.output {
             Some(output) => output.try_consume(amount),
             None => Ok(()),
