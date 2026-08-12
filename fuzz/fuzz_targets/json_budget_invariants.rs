@@ -21,10 +21,10 @@ use qubit_budget::decode_slice;
 use serde_json::Value;
 
 const MAX_INPUT_LEN: usize = 4 * 1024;
-const MAX_LIMIT: u64 = 4 * 1024;
+const MAX_LIMIT: usize = 4 * 1024;
 
-fn limit(data: u8) -> u64 {
-    1 + u64::from(data) % MAX_LIMIT
+fn limit(data: u8) -> usize {
+    1 + usize::from(data) % MAX_LIMIT
 }
 
 fuzz_target!(|data: &[u8]| {

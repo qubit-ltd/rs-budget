@@ -57,6 +57,7 @@ path = "tests/mod.rs"
 [[bench]]
 name = "serde_json"
 harness = false
+required-features = ["serde-json"]
 
 [package.metadata.docs.rs]
 all-features = true

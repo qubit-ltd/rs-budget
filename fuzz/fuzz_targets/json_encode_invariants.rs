@@ -20,10 +20,10 @@ use qubit_budget::encode_to_vec;
 use serde_json::Value;
 
 const MAX_INPUT_LEN: usize = 4 * 1024;
-const MAX_LIMIT: u64 = 4 * 1024;
+const MAX_LIMIT: usize = 4 * 1024;
 
-fn limit(data: u8) -> u64 {
-    1 + u64::from(data) % MAX_LIMIT
+fn limit(data: u8) -> usize {
+    1 + usize::from(data) % MAX_LIMIT
 }
 
 fuzz_target!(|data: &[u8]| {
@@ -35,7 +35,7 @@ fuzz_target!(|data: &[u8]| {
     let output_bytes = data.first().copied().map(limit).unwrap_or(1);
     let nodes = data.get(1).copied().map(limit).unwrap_or(1);
     let payload_bytes = data.get(2).copied().map(limit).unwrap_or(1);
-    let structure = StructureLimits::<JsonResource, u64>::empty()
+    let structure = StructureLimits::empty()
         .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, nodes));
     let value_limits = JsonValueLimits::empty()
         .with_structure_limits(structure)
