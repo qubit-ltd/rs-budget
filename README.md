@@ -145,6 +145,11 @@ touching the destination. Create a new session for each independently bounded
 operation. Reusing a session intentionally shares cumulative input/output,
 node, and payload consumption across calls.
 
+When a larger operation already owns directional budgets, construct
+`JsonEncodeSession::borrowing` with those output and value budgets. The encoder
+then charges them in place without a second pre-traversal or a detached budget
+copy.
+
 The same state rules make failure handling predictable. For example, a node
 budget of one accepts its first charge and rejects the second without changing
 the accepted count:

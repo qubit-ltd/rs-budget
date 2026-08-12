@@ -10,7 +10,9 @@
 use qubit_budget::JsonEncodeLimits;
 use qubit_budget::JsonEncodeSession;
 use qubit_budget::JsonResource;
+use qubit_budget::JsonValueBudget;
 use qubit_budget::JsonValueLimits;
+use qubit_budget::ResourceBudget;
 use qubit_budget::ResourceLimit;
 use qubit_budget::StructureLimits;
 
@@ -18,10 +20,8 @@ use qubit_budget::StructureLimits;
 #[test]
 fn test_encode_session_exposes_only_output_resource() {
     let encode = JsonEncodeSession::owned(
-        JsonEncodeLimits::empty().with_output_bytes_limit(ResourceLimit::new(
-            JsonResource::OutputBytes,
-            8,
-        )),
+        JsonEncodeLimits::empty()
+            .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 8)),
     );
 
     assert_eq!(encode.max_output_bytes(), Some(8));
@@ -32,10 +32,8 @@ fn test_encode_session_exposes_only_output_resource() {
 #[test]
 fn test_encode_session_consumes_output_bytes_atomically() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::empty().with_output_bytes_limit(ResourceLimit::new(
-            JsonResource::OutputBytes,
-            3,
-        )),
+        JsonEncodeLimits::empty()
+            .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 3)),
     );
 
     session.consume_output_bytes(3).expect("exact output fits");
@@ -49,21 +47,13 @@ fn test_encode_session_consumes_output_bytes_atomically() {
 #[test]
 fn test_encode_session_preserves_embedded_value_limits() {
     let value_limits = JsonValueLimits::empty()
-        .with_string_bytes_limit(ResourceLimit::new(
-            JsonResource::StringBytes,
-            2,
-        ))
-        .with_payload_bytes_limit(ResourceLimit::new(
-            JsonResource::PayloadBytes,
-            3,
-        ))
+        .with_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, 2))
+        .with_payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, 3))
         .with_structure_limits(
-            StructureLimits::empty()
-                .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 1)),
+            StructureLimits::empty().with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 1)),
         );
-    let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::empty().with_value_limits(value_limits),
-    );
+    let mut session =
+        JsonEncodeSession::owned(JsonEncodeLimits::empty().with_value_limits(value_limits));
 
     session
         .value_budget_mut()
@@ -101,4 +91,20 @@ fn test_encode_session_preserves_embedded_value_limits() {
             .resource(),
         JsonResource::Nodes,
     );
+}
+
+#[test]
+fn test_encode_session_borrows_output_and_value_budgets() {
+    let mut output = ResourceBudget::new(JsonResource::OutputBytes, 32);
+    let mut value = JsonValueBudget::new(JsonValueLimits::empty().with_structure_limits(
+        StructureLimits::empty().with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 16)),
+    ));
+    let mut session = JsonEncodeSession::borrowing(Some(&mut output), &mut value);
+
+    let encoded = qubit_budget::encode_to_vec(&serde_json::json!({"name": "qubit"}), &mut session)
+        .expect("borrowed budgets should support online encoding");
+
+    assert_eq!(encoded, br#"{"name":"qubit"}"#);
+    assert_eq!(output.used(), encoded.len() as u64);
+    assert!(value.structure_budget().used_nodes() > 0);
 }

@@ -15,6 +15,21 @@ use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
+#[derive(Debug, PartialEq, Eq)]
+enum JsonEncodeStorage<'a, R, Q>
+where
+    Q: ResourceQuantity,
+{
+    Owned {
+        output: Option<ResourceBudget<R, Q>>,
+        value: JsonValueBudget<R, Q>,
+    },
+    Borrowed {
+        output: Option<&'a mut ResourceBudget<R, Q>>,
+        value: &'a mut JsonValueBudget<R, Q>,
+    },
+}
+
 /// Mutable state for one JSON encoding operation.
 ///
 /// Output bytes and JSON value resources are intentionally separate: only
@@ -22,18 +37,14 @@ use crate::ResourceQuantity;
 /// accounts for encoded JSON values.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct JsonEncodeSession<R = JsonResource, Q = u64>
+pub struct JsonEncodeSession<'a, R = JsonResource, Q = u64>
 where
     Q: ResourceQuantity,
 {
-    /// Optional cumulative output-byte accounting.
-    output: Option<ResourceBudget<R, Q>>,
-
-    /// Direction-independent JSON value accounting.
-    value: JsonValueBudget<R, Q>,
+    storage: JsonEncodeStorage<'a, R, Q>,
 }
 
-impl<R, Q> JsonEncodeSession<R, Q>
+impl<R, Q> JsonEncodeSession<'static, R, Q>
 where
     R: Clone,
     Q: ResourceQuantity,
@@ -46,20 +57,42 @@ where
             .cloned()
             .map(ResourceBudget::from_limit);
         let value = JsonValueBudget::new(limits.value_limits());
-        Self { output, value }
+        Self {
+            storage: JsonEncodeStorage::Owned { output, value },
+        }
+    }
+}
+
+impl<'a, R, Q> JsonEncodeSession<'a, R, Q>
+where
+    R: Clone,
+    Q: ResourceQuantity,
+{
+    /// Creates mutable accounting over caller-owned output and value budgets.
+    #[inline]
+    pub fn borrowing(
+        output: Option<&'a mut ResourceBudget<R, Q>>,
+        value: &'a mut JsonValueBudget<R, Q>,
+    ) -> Self {
+        Self {
+            storage: JsonEncodeStorage::Borrowed { output, value },
+        }
     }
 
     /// Consumes output bytes atomically for this encoding operation.
     ///
     /// A failed request leaves the remaining output capacity unchanged.
     #[inline]
-    pub fn consume_output_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
-        match &mut self.output {
-            Some(output) => output.try_consume(amount),
-            None => Ok(()),
+    pub fn consume_output_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+        match &mut self.storage {
+            JsonEncodeStorage::Owned { output, .. } => match output {
+                Some(output) => output.try_consume(amount),
+                None => Ok(()),
+            },
+            JsonEncodeStorage::Borrowed { output, .. } => match output {
+                Some(output) => output.try_consume(amount),
+                None => Ok(()),
+            },
         }
     }
 
@@ -69,12 +102,15 @@ where
         &mut self,
         amount: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let Some(output) = &mut self.output else {
+        let output = match &mut self.storage {
+            JsonEncodeStorage::Owned { output, .. } => output.as_mut(),
+            JsonEncodeStorage::Borrowed { output, .. } => output.as_deref_mut(),
+        };
+        let Some(output) = output else {
             return Ok(());
         };
-        let amount = Q::try_from_usize(amount).map_err(|source| {
-            MeasuredBudgetError::quantity(output.resource().clone(), source)
-        })?;
+        let amount = Q::try_from_usize(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(output.resource().clone(), source))?;
         output
             .try_consume(amount)
             .map_err(MeasuredBudgetError::from)
@@ -84,9 +120,15 @@ where
     #[must_use]
     #[inline(always)]
     pub const fn max_output_bytes(&self) -> Option<Q> {
-        match self.output.as_ref() {
-            Some(output) => Some(output.limit()),
-            None => None,
+        match &self.storage {
+            JsonEncodeStorage::Owned { output, .. } => match output {
+                Some(output) => Some(output.limit()),
+                None => None,
+            },
+            JsonEncodeStorage::Borrowed { output, .. } => match output {
+                Some(output) => Some(output.limit()),
+                None => None,
+            },
         }
     }
 
@@ -94,20 +136,35 @@ where
     #[must_use = "the output budget tracks bytes emitted by this encode operation"]
     #[inline(always)]
     pub const fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
-        self.output.as_ref()
+        match &self.storage {
+            JsonEncodeStorage::Owned { output, .. } => match output {
+                Some(output) => Some(output),
+                None => None,
+            },
+            JsonEncodeStorage::Borrowed { output, .. } => match output {
+                Some(output) => Some(&**output),
+                None => None,
+            },
+        }
     }
 
     /// Returns the JSON value budget for read-only inspection.
     #[must_use = "the value budget tracks encoded JSON nodes, structure and payload"]
     #[inline(always)]
     pub const fn value_budget(&self) -> &JsonValueBudget<R, Q> {
-        &self.value
+        match &self.storage {
+            JsonEncodeStorage::Owned { value, .. } => value,
+            JsonEncodeStorage::Borrowed { value, .. } => value,
+        }
     }
 
     /// Returns the JSON value budget for mutable JSON traversal accounting.
     #[inline(always)]
     pub fn value_budget_mut(&mut self) -> &mut JsonValueBudget<R, Q> {
-        &mut self.value
+        match &mut self.storage {
+            JsonEncodeStorage::Owned { value, .. } => value,
+            JsonEncodeStorage::Borrowed { value, .. } => value,
+        }
     }
 
     /// Splits mutable output and value accounting for one online traversal.
@@ -123,6 +180,9 @@ where
         Option<&mut ResourceBudget<R, Q>>,
         &mut JsonValueBudget<R, Q>,
     ) {
-        (self.output.as_mut(), &mut self.value)
+        match &mut self.storage {
+            JsonEncodeStorage::Owned { output, value } => (output.as_mut(), value),
+            JsonEncodeStorage::Borrowed { output, value } => (output.as_deref_mut(), value),
+        }
     }
 }
