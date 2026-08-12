@@ -2,6 +2,8 @@
 //    Copyright (c) 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Incremental budgeted deserialization into a JSON value tree.
 
@@ -95,7 +97,7 @@ where
     {
         self.enter_node()?;
         self.budget
-            .consume_number_bytes_usize(number.to_string().len())
+            .consume_number_bytes_usize(number.as_str().len())
             .map_err(E::custom)?;
         Ok(Value::Number(number))
     }

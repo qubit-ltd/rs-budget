@@ -17,7 +17,10 @@ pub enum JsonSyntaxErrorReason {
     /// The document ended before a complete token or container was found.
     UnexpectedEnd,
     /// A byte is not valid at the current JSON position.
-    UnexpectedByte { byte: u8 },
+    UnexpectedByte {
+        /// The unexpected byte.
+        byte: u8,
+    },
     /// An object key was not followed by a colon.
     ExpectedColon,
     /// An array value was not followed by a comma or closing bracket.
