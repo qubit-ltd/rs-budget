@@ -26,3 +26,10 @@ path = "fuzz_targets/json_budget_invariants.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "json_encode_invariants"
+path = "fuzz_targets/json_encode_invariants.rs"
+test = false
+doc = false
+bench = false

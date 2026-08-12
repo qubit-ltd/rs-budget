@@ -75,7 +75,7 @@ fuzz_target!(|data: &[u8]| {
             Some(&mut input_budget),
             &mut value_budget,
         );
-        let _ = decode_slice::<Value, _>(input, &mut session);
+        let _ = decode_slice::<Value, _, _>(input, &mut session);
         assert_eq!(session.max_input_bytes(), Some(bytes));
         assert!(
             session.value_budget().structure_budget().used_nodes() <= nodes
