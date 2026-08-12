@@ -11,3 +11,4 @@ mod json_budget_serializer_tests;
 mod json_lexical_preflight_depth_tests;
 mod json_lexical_preflight_resource_tests;
 mod json_output_writer_tests;
+mod json_private_tests;

@@ -11,6 +11,7 @@ mod json_encode_compound;
 mod json_encode_serializer;
 mod json_lexical_preflight;
 mod json_output_buffer;
+mod json_private;
 
 pub(in crate::serde) use json_encode_serializer::JsonEncodeSerializer;
 pub(in crate::serde) use json_lexical_preflight::JsonLexicalPreflight;
