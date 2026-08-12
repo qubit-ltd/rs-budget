@@ -82,7 +82,7 @@ where
     pub fn check(&self, actual: Q) -> Result<(), BudgetError<R, Q>>
     where
         R: Clone,
-        Q: PartialOrd,
+        Q: Ord,
     {
         if actual > self.maximum {
             Err(BudgetError::LimitExceeded {
@@ -119,7 +119,7 @@ pub(crate) fn check_limit<R, Q>(
 ) -> Result<(), BudgetError<R, Q>>
 where
     R: Clone,
-    Q: Copy + Debug + PartialOrd,
+    Q: Copy + Debug + Ord,
 {
     match limit {
         Some(limit) => limit.check(actual),

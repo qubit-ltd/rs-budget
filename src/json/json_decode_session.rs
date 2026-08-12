@@ -106,13 +106,15 @@ where
         }
     }
 
-    /// Returns the owned input budget, or `None` for an unconfigured/borrowed
-    /// budget.
+    /// Returns the input budget when input accounting is configured.
     #[inline]
     pub const fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             DecodeStorage::Owned { input, .. } => input.as_ref(),
-            DecodeStorage::Borrowed { .. } => None,
+            DecodeStorage::Borrowed { input, .. } => match input {
+                Some(input) => Some(&**input),
+                None => None,
+            },
         }
     }
 

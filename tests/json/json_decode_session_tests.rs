@@ -73,6 +73,10 @@ fn test_decode_session_borrowing_reuses_caller_owned_budgets() {
         decode_slice::<IgnoredAny, _, _>(br#"{"a":1}"#, &mut session)
             .expect("borrowed session should admit the document");
         assert_eq!(session.max_input_bytes(), Some(16_u64));
+        assert_eq!(
+            session.input_budget().map(|budget| budget.limit()),
+            Some(16_u64)
+        );
     }
     assert_eq!(input.remaining(), 9_u64);
     assert_eq!(value.payload_budget().unwrap().remaining(), 1_u64);

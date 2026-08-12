@@ -16,7 +16,7 @@ use crate::StructureLimits;
 ///
 /// `R` identifies resources reported in [`crate::BudgetError`], while `Q`
 /// defines the unsigned quantity used for every measurement. The default uses
-/// [`JsonResource`] and [`usize`].
+/// [`JsonResource`] and [`u64`].
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonValueLimits<R = JsonResource, Q = u64>
