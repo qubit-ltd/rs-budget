@@ -1,0 +1,26 @@
+// =============================================================================
+//    Copyright (c) 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+// =============================================================================
+//! Tests for bounded JSON output buffering.
+
+use qubit_budget::JsonEncodeLimits;
+use qubit_budget::JsonEncodeSession;
+use qubit_budget::JsonResource;
+use qubit_budget::JsonSerdeError;
+use qubit_budget::ResourceLimit;
+use qubit_budget::encode_to_vec;
+
+/// Verifies the output buffer rejects bytes beyond its configured budget.
+#[test]
+fn test_json_output_buffer_rejects_excess_output() {
+    let limits = JsonEncodeLimits::empty().with_output_bytes_limit(
+        ResourceLimit::new(JsonResource::OutputBytes, 3),
+    );
+    let mut session = JsonEncodeSession::owned(limits);
+    let error = encode_to_vec(&"long", &mut session)
+        .expect_err("output should exceed the configured budget");
+
+    assert!(matches!(error, JsonSerdeError::Budget(_)));
+}
