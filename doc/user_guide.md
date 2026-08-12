@@ -25,6 +25,11 @@ JSON accounting has three layers:
 Limits are immutable configuration. A session is mutable state for one
 operation. `Option::None` represents an unconfigured dimension.
 
+The default `StructureLimits` and `StructureBudget` use `usize`, matching Rust
+collection lengths and counts. JSON value, string, and big-number helpers use
+`u64` where stable cross-target wire measurements are more important than the
+native collection type.
+
 ## Scenario: admit a request and bound its response
 
 Assume an endpoint accepts a small JSON request and returns compact JSON. The
@@ -96,13 +101,13 @@ let input = br#"{"name":"Ada"}"#;
 let decode_limits = JsonDecodeLimits::empty().with_input_bytes_limit(
     ResourceLimit::new(JsonResource::InputBytes, 64),
 );
-let mut decode_session = JsonDecodeSession::new(decode_limits);
+let mut decode_session = JsonDecodeSession::owned(decode_limits);
 let request: Request = decode_slice(input, &mut decode_session)?;
 
 let encode_limits = JsonEncodeLimits::empty().with_output_bytes_limit(
     ResourceLimit::new(JsonResource::OutputBytes, 64),
 );
-let mut encode_session = JsonEncodeSession::new(encode_limits);
+let mut encode_session = JsonEncodeSession::owned(encode_limits);
 let output = encode_to_vec(&request, &mut encode_session)?;
 assert_eq!(output, input);
 # Ok(())
@@ -119,8 +124,8 @@ still leave partial output because `Write` has no rollback operation.
 With only the `json` feature, drive `JsonValueBudget` and the directional
 sessions from another parser. Use `StructureLimits` for non-JSON nested data,
 or `ResourceLimit`, `ResourceBudget`, and `ResourcePool` for one-dimensional
-resources. The `time` feature provides explicit-duration and monotonic-clock
-budgets.
+resources. `DurationBudget` is always available; the `time` feature adds the
+monotonic-clock `TimeBudget` and its error type.
 
 ## Errors and diagnostics
 
@@ -146,6 +151,12 @@ policies and does not define an application's public error type. Configure
 limits at the owning boundary. Reuse immutable limits freely, create fresh
 sessions for independently bounded operations, and reuse a session only when
 cumulative accounting across calls is intentional.
+
+The `serde-json` adapter retains a small compatibility layer for the private
+serializer shapes used by `serde_json`'s arbitrary-precision number and raw-value
+support. Its nonrecursive lexical preflight runs before typed decoding. The
+repository includes `cargo fuzz` targets for differential decode checks and
+budget invariants; fuzz execution requires a nightly toolchain.
 
 ## Further reading
 

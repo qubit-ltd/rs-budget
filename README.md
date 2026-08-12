@@ -48,7 +48,7 @@ The default feature set is empty. Enable only the extensions you need:
 | `serde-json` | Budget-aware Serde JSON deserialization and serialization adapters; also enables `json` |
 | `big-integer` | `BigIntegerLimits` for magnitude bits and significant decimal digits |
 | `big-decimal` | `BigDecimalLimits` for coefficient and scale magnitude limits |
-| `time` | Explicit-duration `DurationBudget` and monotonic-clock `TimeBudget` |
+| `time` | Monotonic-clock `TimeBudget` and `TimeBudgetError` (`DurationBudget` is always available) |
 
 The minimum supported Rust version is 1.94.
 
@@ -192,7 +192,10 @@ itself is atomic and leaves that dimension unchanged.
 | --- | --- | --- |
 | `rs-value` | Uses separate `JsonDecodeLimits` and `JsonEncodeLimits`, runs one directional session through each wire operation, and maps `BudgetError` to its wire errors. | Read and write policies cannot accidentally charge the wrong byte direction. |
 | `rs-redact` | Shares operation-scoped input, output, and mask budgets across nested diagnostic renderers. | A child component cannot silently reset the allowance for the enclosing operation. |
-| `rs-http`, `rs-io`, `rs-fs` | Charges response bodies, streams, and file reads as data arrives, including unknown-length inputs. | The same cumulative invariant works independently of chunk boundaries and transport errors. |
+| `rs-config` | Applies bounded JSON wire and interpolation budgets at configuration boundaries. | Configuration parsing and expansion share the same directional and cumulative accounting. |
+| `rs-datatype` | Shares borrowed JSON value budgets with typed values and enforces string/number limits. | Nested typed values cannot reset the enclosing operation's value allowance. |
+| `rs-http`, `rs-fs`, `rs-local-files` | Charges response bodies, streams, and file reads as data arrives, including unknown-length inputs. | The same cumulative invariant works independently of chunk boundaries and transport errors. |
+| `rs-metadata` | Bounds metadata JSON wire operations with directional sessions. | Metadata boundaries use the same admission and output guarantees as application payloads. |
 | `rs-retry` | Combines an attempt-count `ResourceBudget`, an explicit `DurationBudget`, and a continuous elapsed-time deadline. | Different resources can use different accounting semantics in one domain policy. |
 
 ## What It Provides
@@ -207,11 +210,13 @@ itself is atomic and leaves that dimension unchanged.
 | Generic nested-data limits | `StructureLimits<R, Q>` and `StructureBudget<R, Q>` |
 | JSON value traversal limits (`json`) | `JsonValueLimits<R, Q>` and `JsonValueBudget<R, Q>` |
 | Directional JSON operations (`json`) | `JsonDecodeLimits`/`JsonDecodeSession` and `JsonEncodeLimits`/`JsonEncodeSession` |
-| Explicit or clock-backed time limits (`time`) | `DurationBudget<R>` and `TimeBudget<R, C>` |
+| Explicit duration limits | `DurationBudget<R>` |
+| Monotonic-clock time limits (`time`) | `TimeBudget<R, C>` and `TimeBudgetError` |
 
 Quantities are exact unsigned values. Generic resource budgets remain generic,
-while string, big-number, structural JSON, and Serde JSON helpers use `u64` so
-limits have the same meaning on 32-bit and 64-bit targets. JSON decode sessions
+while the default structural limits use `usize`, matching Rust collection sizes.
+String, big-number, JSON value, and Serde JSON helpers use `u64` so limits have
+the same meaning on 32-bit and 64-bit targets. JSON decode sessions
 can be `owned(...)` or can borrow caller-owned input and value budgets with
 `borrowing(...)`.
 
@@ -227,6 +232,13 @@ let limits = StringLimits::empty().with_utf8_bytes_limit(
 );
 limits.check(input)?;
 ```
+
+The `serde-json` adapter keeps a small compatibility layer for the private
+serializer shapes used by `serde_json`'s arbitrary-precision number and raw-value
+support. It is intentionally nonrecursive and performs lexical admission before
+typed decoding. The repository's `fuzz/` targets differentially compare decode
+acceptance with `serde_json` and check session accounting invariants; run them
+with `cargo fuzz` on a nightly toolchain.
 
 ## Boundaries
 

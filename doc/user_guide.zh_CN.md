@@ -23,6 +23,9 @@ JSON 记账分为三层：
 Limits 是不可变配置，session 是一次操作的可变状态；未配置的维度使用
 `Option::None` 表示。
 
+默认的 `StructureLimits` 与 `StructureBudget` 使用 `usize`，与 Rust 集合长度和数量
+一致。JSON value、字符串和大数辅助 API 使用 `u64`，以便跨平台稳定表达 wire 测量值。
+
 ## 贯穿场景：接纳请求并限制响应
 
 假设一个 endpoint 接收小型 JSON 请求并返回紧凑 JSON。成功标准是：在类型化解码
@@ -91,13 +94,13 @@ let input = br#"{"name":"Ada"}"#;
 let decode_limits = JsonDecodeLimits::empty().with_input_bytes_limit(
     ResourceLimit::new(JsonResource::InputBytes, 64),
 );
-let mut decode_session = JsonDecodeSession::new(decode_limits);
+let mut decode_session = JsonDecodeSession::owned(decode_limits);
 let request: Request = decode_slice(input, &mut decode_session)?;
 
 let encode_limits = JsonEncodeLimits::empty().with_output_bytes_limit(
     ResourceLimit::new(JsonResource::OutputBytes, 64),
 );
-let mut encode_session = JsonEncodeSession::new(encode_limits);
+let mut encode_session = JsonEncodeSession::owned(encode_limits);
 let output = encode_to_vec(&request, &mut encode_session)?;
 assert_eq!(output, input);
 # Ok(())
@@ -112,7 +115,8 @@ assert_eq!(output, input);
 
 只启用 `json` feature 时，可以由其他 parser 驱动 `JsonValueBudget` 和定向 session。
 非 JSON 嵌套数据使用 `StructureLimits`；单维资源使用 `ResourceLimit`、
-`ResourceBudget` 或 `ResourcePool`。`time` feature 另外提供显式时长和单调时钟预算。
+`ResourceBudget` 或 `ResourcePool`。`DurationBudget` 始终可用；`time` feature 另外
+提供单调时钟 `TimeBudget` 及其错误类型。
 
 ## 错误与诊断
 
@@ -133,6 +137,10 @@ assert_eq!(output, input);
 本 crate 不决定默认字节、节点、深度、重试或脱敏策略，也不定义应用的公开错误类型。
 请在拥有策略的边界配置 limits。不可变 limits 可以复用；独立操作应创建新 session；
 只有确实需要跨调用累计时才复用 session。
+
+`serde-json` adapter 对 `serde_json` 任意精度数字和 raw value 所使用的私有 serializer
+形状保留了一个小型兼容层，并在类型化解码前执行非递归词法预检。仓库提供了用于差分
+解码和记账不变量的 `cargo fuzz` target；运行 fuzz 需要 nightly toolchain。
 
 ## 延伸阅读
 
