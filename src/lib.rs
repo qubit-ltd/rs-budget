@@ -66,6 +66,10 @@ pub use serde::BudgetedJsonValueSeed;
 #[cfg(feature = "serde-json")]
 pub use serde::JsonSerdeError;
 #[cfg(feature = "serde-json")]
+pub use serde::JsonSyntaxError;
+#[cfg(feature = "serde-json")]
+pub use serde::JsonSyntaxErrorReason;
+#[cfg(feature = "serde-json")]
 pub use serde::account_value;
 #[cfg(feature = "serde-json")]
 pub use serde::decode_slice;

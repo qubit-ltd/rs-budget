@@ -13,13 +13,15 @@ use serde_json::Error as JsonError;
 use thiserror::Error;
 
 use crate::BudgetError;
+use crate::JsonSyntaxError;
 use crate::MeasuredBudgetError;
 use crate::QuantityConversionError;
 
 /// Errors returned by budget-aware JSON/Serde adapters.
 #[must_use]
+#[non_exhaustive]
 #[derive(Debug, Error)]
-pub enum JsonSerdeError<R, Q = u64>
+pub enum JsonSerdeError<R, Q = usize>
 where
     Q: Copy + fmt::Debug,
 {
@@ -38,8 +40,12 @@ where
         source: QuantityConversionError,
     },
 
+    /// The document failed non-recursive JSON lexical admission.
+    #[error(transparent)]
+    Syntax(#[from] JsonSyntaxError),
+
     /// Serde JSON rejected the document or value.
-    #[error("JSON serialization error: {0}")]
+    #[error("JSON/Serde processing error: {0}")]
     Json(#[source] JsonError),
 
     /// The destination writer rejected serialized bytes.

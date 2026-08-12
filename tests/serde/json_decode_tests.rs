@@ -12,6 +12,7 @@ use qubit_budget::JsonDecodeLimits;
 use qubit_budget::JsonDecodeSession;
 use qubit_budget::JsonResource;
 use qubit_budget::JsonSerdeError;
+use qubit_budget::JsonSyntaxErrorReason;
 use qubit_budget::JsonValueBudget;
 use qubit_budget::JsonValueLimits;
 use qubit_budget::ResourceLimit;
@@ -64,6 +65,88 @@ fn deeply_nested_input_fails_by_limit_without_stack_overflow() {
     ));
 }
 
+#[test]
+fn json_decode_reports_structured_syntax_locations() {
+    let cases = [
+        (
+            b"".as_slice(),
+            0,
+            1,
+            1,
+            JsonSyntaxErrorReason::UnexpectedEnd,
+        ),
+        (
+            br#"{"a" 1}"#.as_slice(),
+            5,
+            1,
+            6,
+            JsonSyntaxErrorReason::ExpectedColon,
+        ),
+        (
+            br#"[1 2]"#.as_slice(),
+            3,
+            1,
+            4,
+            JsonSyntaxErrorReason::ExpectedCommaOrArrayEnd,
+        ),
+        (
+            br#"{"a":1 "b":2}"#.as_slice(),
+            7,
+            1,
+            8,
+            JsonSyntaxErrorReason::ExpectedCommaOrObjectEnd,
+        ),
+        (
+            br#""\x""#.as_slice(),
+            2,
+            1,
+            3,
+            JsonSyntaxErrorReason::InvalidEscape,
+        ),
+        (
+            br#"01"#.as_slice(),
+            1,
+            1,
+            2,
+            JsonSyntaxErrorReason::InvalidNumber,
+        ),
+        (
+            br#"true false"#.as_slice(),
+            5,
+            1,
+            6,
+            JsonSyntaxErrorReason::TrailingCharacters,
+        ),
+    ];
+    for (input, offset, line, column, reason) in cases {
+        let mut session = JsonDecodeSession::owned(JsonDecodeLimits::empty());
+        let error =
+            decode_slice::<serde_json::Value, _, _>(input, &mut session)
+                .expect_err("input should be rejected");
+        let JsonSerdeError::Syntax(error) = error else {
+            panic!("expected structured syntax error");
+        };
+        assert_eq!(error.offset(), offset);
+        assert_eq!(error.line(), line);
+        assert_eq!(error.column(), column);
+        assert_eq!(error.reason(), reason);
+    }
+}
+
+#[test]
+fn json_decode_counts_unicode_columns_and_crlf_lines() {
+    let input = "{\r\n  \"中\" 1}".as_bytes();
+    let mut session = JsonDecodeSession::owned(JsonDecodeLimits::empty());
+    let error = decode_slice::<serde_json::Value, _, _>(input, &mut session)
+        .expect_err("missing colon should be rejected");
+    let JsonSerdeError::Syntax(error) = error else {
+        panic!("expected structured syntax error");
+    };
+    assert_eq!(error.line(), 2);
+    assert_eq!(error.column(), 7);
+    assert_eq!(error.reason(), JsonSyntaxErrorReason::ExpectedColon);
+}
+
 /// Verifies typed decode failures still consume the attempted input bytes.
 #[test]
 fn typed_decode_failure_consumes_input_before_the_next_attempt() {
@@ -91,10 +174,7 @@ fn decode_slice_seed_admits_arbitrary_precision_numbers() {
     let mut session =
         JsonDecodeSession::owned(JsonDecodeLimits::empty().with_value_limits(
             JsonValueLimits::empty().with_number_bytes_limit(
-                ResourceLimit::new(
-                    JsonResource::NumberBytes,
-                    u64::try_from(input.len()).unwrap(),
-                ),
+                ResourceLimit::new(JsonResource::NumberBytes, input.len()),
             ),
         ));
 

@@ -8,9 +8,9 @@
 //! Non-recursive lexical admission for one JSON input document.
 // qubit-style: allow source-test-pair
 
-use serde::de::Error as _;
-
 use crate::JsonSerdeError;
+use crate::JsonSyntaxError;
+use crate::JsonSyntaxErrorReason;
 use crate::JsonValueBudget;
 use crate::ResourceQuantity;
 
@@ -70,7 +70,7 @@ where
         if cursor.position == input.len() {
             Ok(())
         } else {
-            Err(invalid_json())
+            Err(cursor.syntax(JsonSyntaxErrorReason::TrailingCharacters))
         }
     }
 }
@@ -158,6 +158,12 @@ where
         self.input.get(self.position).copied()
     }
 
+    /// Builds a structured syntax error at the current cursor position.
+    fn syntax(&self, reason: JsonSyntaxErrorReason) -> JsonSerdeError<R, Q> {
+        let (line, column) = line_column(self.input, self.position);
+        JsonSyntaxError::new(self.position, line, column, reason).into()
+    }
+
     /// Admits one JSON value and schedules any container continuation.
     fn value(
         &mut self,
@@ -203,7 +209,10 @@ where
             Some(b't') => self.literal(depth, b"true"),
             Some(b'f') => self.literal(depth, b"false"),
             Some(b'n') => self.literal(depth, b"null"),
-            _ => Err(invalid_json()),
+            None => Err(self.syntax(JsonSyntaxErrorReason::UnexpectedEnd)),
+            Some(byte) => {
+                Err(self.syntax(JsonSyntaxErrorReason::UnexpectedByte { byte }))
+            }
         }
     }
 
@@ -214,11 +223,18 @@ where
         literal: &[u8],
     ) -> Result<(), JsonSerdeError<R, Q>> {
         if !self.input[self.position..].starts_with(literal) {
-            return Err(invalid_json());
+            return Err(match self.peek() {
+                None => self.syntax(JsonSyntaxErrorReason::UnexpectedEnd),
+                Some(byte) => {
+                    self.syntax(JsonSyntaxErrorReason::UnexpectedByte { byte })
+                }
+            });
         }
         let end = self.position.saturating_add(literal.len());
         if !is_value_delimiter(self.input.get(end).copied()) {
-            return Err(invalid_json());
+            return Err(self.syntax(JsonSyntaxErrorReason::UnexpectedByte {
+                byte: self.peek().unwrap_or_default(),
+            }));
         }
         self.budget
             .enter_node_usize(depth)
@@ -241,15 +257,23 @@ where
                         self.position += 1;
                         return Ok(());
                     }
-                    return Err(invalid_json());
+                    return Err(self.syntax(
+                        JsonSyntaxErrorReason::UnexpectedByte {
+                            byte: self.peek().unwrap_or_default(),
+                        },
+                    ));
                 }
-                let items = items.checked_add(1).ok_or_else(invalid_json)?;
+                let items = items.checked_add(1).ok_or_else(|| {
+                    self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                })?;
                 self.budget
                     .check_sequence_items_usize(items)
                     .map_err(JsonSerdeError::from)?;
                 stack.push(ContainerFrame::ArrayDelimiter { depth, items });
                 self.value(
-                    depth.checked_add(1).ok_or_else(invalid_json)?,
+                    depth.checked_add(1).ok_or_else(|| {
+                        self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                    })?,
                     stack,
                 )
             }
@@ -265,7 +289,12 @@ where
                         self.position += 1;
                         Ok(())
                     }
-                    _ => Err(invalid_json()),
+                    None => {
+                        Err(self.syntax(JsonSyntaxErrorReason::UnexpectedEnd))
+                    }
+                    Some(_) => Err(self.syntax(
+                        JsonSyntaxErrorReason::ExpectedCommaOrArrayEnd,
+                    )),
                 }
             }
             ContainerFrame::ObjectKey { depth, entries } => {
@@ -275,13 +304,20 @@ where
                         self.position += 1;
                         return Ok(());
                     }
-                    return Err(invalid_json());
+                    return Err(self.syntax(
+                        JsonSyntaxErrorReason::UnexpectedByte {
+                            byte: self.peek().unwrap_or_default(),
+                        },
+                    ));
                 }
                 if self.peek() != Some(b'"') {
-                    return Err(invalid_json());
+                    return Err(
+                        self.syntax(JsonSyntaxErrorReason::ExpectedObjectKey)
+                    );
                 }
-                let entries =
-                    entries.checked_add(1).ok_or_else(invalid_json)?;
+                let entries = entries.checked_add(1).ok_or_else(|| {
+                    self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                })?;
                 self.budget
                     .check_map_entries_usize(entries)
                     .map_err(JsonSerdeError::from)?;
@@ -291,12 +327,21 @@ where
                     .map_err(JsonSerdeError::from)?;
                 self.skip_whitespace();
                 if self.peek() != Some(b':') {
-                    return Err(invalid_json());
+                    return Err(match self.peek() {
+                        None => {
+                            self.syntax(JsonSyntaxErrorReason::UnexpectedEnd)
+                        }
+                        Some(_) => {
+                            self.syntax(JsonSyntaxErrorReason::ExpectedColon)
+                        }
+                    });
                 }
                 self.position += 1;
                 stack.push(ContainerFrame::ObjectDelimiter { depth, entries });
                 self.value(
-                    depth.checked_add(1).ok_or_else(invalid_json)?,
+                    depth.checked_add(1).ok_or_else(|| {
+                        self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                    })?,
                     stack,
                 )
             }
@@ -313,7 +358,12 @@ where
                         self.position += 1;
                         Ok(())
                     }
-                    _ => Err(invalid_json()),
+                    None => {
+                        Err(self.syntax(JsonSyntaxErrorReason::UnexpectedEnd))
+                    }
+                    Some(_) => Err(self.syntax(
+                        JsonSyntaxErrorReason::ExpectedCommaOrObjectEnd,
+                    )),
                 }
             }
         }
@@ -341,37 +391,60 @@ where
                             1
                         }
                         Some(b'u') => self.unicode_escape_bytes()?,
-                        _ => return Err(invalid_json()),
+                        None => {
+                            return Err(self
+                                .syntax(JsonSyntaxErrorReason::UnexpectedEnd));
+                        }
+                        Some(_) => {
+                            return Err(self
+                                .syntax(JsonSyntaxErrorReason::InvalidEscape));
+                        }
                     };
-                    decoded =
-                        decoded.checked_add(bytes).ok_or_else(invalid_json)?;
+                    decoded = decoded.checked_add(bytes).ok_or_else(|| {
+                        self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                    })?;
                 }
                 Some(0x20..=0x7F) => {
                     self.position += 1;
-                    decoded =
-                        decoded.checked_add(1).ok_or_else(invalid_json)?;
+                    decoded = decoded.checked_add(1).ok_or_else(|| {
+                        self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                    })?;
                 }
                 Some(byte) if byte >= 0x80 => {
-                    let width = utf8_width(byte).ok_or_else(invalid_json)?;
-                    let end = self
-                        .position
-                        .checked_add(width)
-                        .ok_or_else(invalid_json)?;
-                    let text = self
-                        .input
-                        .get(self.position..end)
-                        .ok_or_else(invalid_json)?;
+                    let width = utf8_width(byte).ok_or_else(|| {
+                        self.syntax(JsonSyntaxErrorReason::InvalidUtf8)
+                    })?;
+                    let end =
+                        self.position.checked_add(width).ok_or_else(|| {
+                            self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                        })?;
+                    let text = self.input.get(self.position..end).ok_or_else(
+                        || self.syntax(JsonSyntaxErrorReason::UnexpectedEnd),
+                    )?;
                     let character = std::str::from_utf8(text)
                         .ok()
                         .and_then(|text| text.chars().next())
                         .filter(|character| character.len_utf8() == width)
-                        .ok_or_else(invalid_json)?;
+                        .ok_or_else(|| {
+                            self.syntax(JsonSyntaxErrorReason::InvalidUtf8)
+                        })?;
                     self.position = end;
                     decoded = decoded
                         .checked_add(character.len_utf8())
-                        .ok_or_else(invalid_json)?;
+                        .ok_or_else(|| {
+                            self.syntax(JsonSyntaxErrorReason::NestingOverflow)
+                        })?;
                 }
-                Some(_) | None => return Err(invalid_json()),
+                None => {
+                    return Err(
+                        self.syntax(JsonSyntaxErrorReason::UnexpectedEnd)
+                    );
+                }
+                Some(byte) => {
+                    return Err(self.syntax(
+                        JsonSyntaxErrorReason::UnexpectedByte { byte },
+                    ));
+                }
             }
         }
     }
@@ -387,25 +460,34 @@ where
                 .get(self.position..self.position.saturating_add(2))
                 != Some(b"\\u")
             {
-                return Err(invalid_json());
+                return Err(match self.peek() {
+                    None => self.syntax(JsonSyntaxErrorReason::UnexpectedEnd),
+                    Some(_) => {
+                        self.syntax(JsonSyntaxErrorReason::UnpairedSurrogate)
+                    }
+                });
             }
             self.position += 2;
             let second = self.hex_quad()?;
             if !(0xDC00..=0xDFFF).contains(&second) {
-                return Err(invalid_json());
+                return Err(
+                    self.syntax(JsonSyntaxErrorReason::UnpairedSurrogate)
+                );
             }
             0x1_0000
                 + ((u32::from(first) - 0xD800) << 10)
                 + (u32::from(second) - 0xDC00)
         } else {
             if (0xDC00..=0xDFFF).contains(&first) {
-                return Err(invalid_json());
+                return Err(
+                    self.syntax(JsonSyntaxErrorReason::UnpairedSurrogate)
+                );
             }
             u32::from(first)
         };
-        char::from_u32(scalar)
-            .map(char::len_utf8)
-            .ok_or_else(invalid_json)
+        char::from_u32(scalar).map(char::len_utf8).ok_or_else(|| {
+            self.syntax(JsonSyntaxErrorReason::UnpairedSurrogate)
+        })
     }
 
     /// Consumes four hexadecimal digits from a Unicode escape.
@@ -416,7 +498,15 @@ where
                 Some(byte @ b'0'..=b'9') => u16::from(byte - b'0'),
                 Some(byte @ b'a'..=b'f') => u16::from(byte - b'a' + 10),
                 Some(byte @ b'A'..=b'F') => u16::from(byte - b'A' + 10),
-                _ => return Err(invalid_json()),
+                None => {
+                    return Err(
+                        self.syntax(JsonSyntaxErrorReason::UnexpectedEnd)
+                    );
+                }
+                Some(_) => {
+                    return Err(self
+                        .syntax(JsonSyntaxErrorReason::InvalidUnicodeEscape));
+                }
             };
             value = (value << 4) | digit;
             self.position += 1;
@@ -438,7 +528,12 @@ where
                     self.position += 1;
                 }
             }
-            _ => return Err(invalid_json()),
+            None => {
+                return Err(self.syntax(JsonSyntaxErrorReason::UnexpectedEnd));
+            }
+            Some(_) => {
+                return Err(self.syntax(JsonSyntaxErrorReason::InvalidNumber));
+            }
         }
         if self.peek() == Some(b'.') {
             self.position += 1;
@@ -452,7 +547,7 @@ where
             self.consume_digits()?;
         }
         if !is_value_delimiter(self.peek()) {
-            return Err(invalid_json());
+            return Err(self.syntax(JsonSyntaxErrorReason::InvalidNumber));
         }
         Ok(self.position - start)
     }
@@ -460,7 +555,7 @@ where
     /// Consumes the required digits following a decimal point or exponent.
     fn consume_digits(&mut self) -> Result<(), JsonSerdeError<R, Q>> {
         if !matches!(self.peek(), Some(b'0'..=b'9')) {
-            return Err(invalid_json());
+            return Err(self.syntax(JsonSyntaxErrorReason::InvalidNumber));
         }
         while matches!(self.peek(), Some(b'0'..=b'9')) {
             self.position += 1;
@@ -487,10 +582,39 @@ const fn utf8_width(byte: u8) -> Option<usize> {
     }
 }
 
-/// Constructs the JSON error used for lexical syntax rejections.
-fn invalid_json<R, Q>() -> JsonSerdeError<R, Q>
-where
-    Q: Copy + std::fmt::Debug,
-{
-    JsonSerdeError::Json(serde_json::Error::custom("invalid JSON input"))
+/// Computes one-based line and UTF-8 character column for a byte offset.
+fn line_column(input: &[u8], offset: usize) -> (usize, usize) {
+    let end = offset.min(input.len());
+    let mut line = 1;
+    let mut column = 1;
+    let mut index = 0;
+    while index < end {
+        match input[index] {
+            b'\r' => {
+                if index + 1 < end && input[index + 1] == b'\n' {
+                    index += 1;
+                }
+                line += 1;
+                column = 1;
+                index += 1;
+            }
+            b'\n' => {
+                line += 1;
+                column = 1;
+                index += 1;
+            }
+            _ => {
+                let character = std::str::from_utf8(&input[index..end])
+                    .ok()
+                    .and_then(|text| text.chars().next());
+                if let Some(character) = character {
+                    index += character.len_utf8();
+                } else {
+                    index += 1;
+                }
+                column += 1;
+            }
+        }
+    }
+    (line, column)
 }
