@@ -139,21 +139,14 @@ where
 
     /// Returns the remaining capacity for a cumulative-budget failure.
     ///
-    /// Returns `Some(remaining)` for [`Self::Insufficient`], or `None` for a
-    /// point-limit or pool failure.
+    /// Returns `Some(remaining)` for [`Self::Insufficient`], including failed
+    /// pool acquisitions, or `None` for a point-limit failure.
     #[inline(always)]
     pub const fn remaining(&self) -> Option<Q> {
         match self {
             Self::Insufficient { remaining, .. } => Some(*remaining),
             Self::LimitExceeded { .. } => None,
         }
-    }
-
-    /// Returns `None`; release failures are represented by
-    /// [`crate::ResourceReleaseError`] rather than this type.
-    #[inline(always)]
-    pub const fn in_use(&self) -> Option<Q> {
-        None
     }
 
     /// Returns the requested quantity for a cumulative budget failure.

@@ -30,7 +30,6 @@ fn test_limit_exceeded_error_exposes_only_point_limit_facts() {
     assert_eq!(error.observed_lower_bound(), Some(4));
     assert_eq!(error.maximum(), Some(3));
     assert_eq!(error.remaining(), None);
-    assert_eq!(error.in_use(), None);
     assert_eq!(error.requested(), None);
     assert_eq!(error.into_resource(), TestResource::Depth);
 }
@@ -51,7 +50,6 @@ fn test_insufficient_error_exposes_only_consumption_facts() {
     assert_eq!(error.observed_lower_bound(), None);
     assert_eq!(error.maximum(), None);
     assert_eq!(error.remaining(), Some(1));
-    assert_eq!(error.in_use(), None);
     assert_eq!(error.requested(), Some(2));
     assert_eq!(error.into_resource(), TestResource::Depth);
 }
