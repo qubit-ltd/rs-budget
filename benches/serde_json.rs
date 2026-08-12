@@ -42,6 +42,17 @@ fn decode(c: &mut Criterion) {
     });
 }
 
+fn decode_baseline(c: &mut Criterion) {
+    c.bench_function("json decode with serde_json", |b| {
+        b.iter(|| {
+            black_box(
+                serde_json::from_slice::<Fixture>(DOCUMENT)
+                    .expect("benchmark document should decode"),
+            )
+        });
+    });
+}
+
 fn encode(c: &mut Criterion) {
     let fixture = Fixture {
         name: String::from("qubit"),
@@ -57,5 +68,21 @@ fn encode(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, decode, encode);
+fn encode_baseline(c: &mut Criterion) {
+    let fixture = Fixture {
+        name: String::from("qubit"),
+        items: vec![1, 2, 3, 4],
+        enabled: true,
+    };
+    c.bench_function("json encode with serde_json", |b| {
+        b.iter(|| {
+            black_box(
+                serde_json::to_vec(&fixture)
+                    .expect("benchmark fixture should encode"),
+            )
+        });
+    });
+}
+
+criterion_group!(benches, decode, decode_baseline, encode, encode_baseline);
 criterion_main!(benches);
