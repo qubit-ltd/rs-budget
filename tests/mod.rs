@@ -18,10 +18,4 @@ mod value;
 
 mod structure;
 
-#[cfg(feature = "json")]
-mod json;
-
-#[cfg(feature = "serde-json")]
-mod serde;
-
 mod time;

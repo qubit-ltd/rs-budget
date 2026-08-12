@@ -30,28 +30,8 @@ mod value;
 
 pub mod structure;
 
-#[cfg(feature = "json")]
-pub mod json;
-
-#[cfg(feature = "serde-json")]
-pub mod serde;
-
 pub use budget_error::BudgetError;
 pub use budget_group_error::BudgetGroupError;
-#[cfg(feature = "json")]
-pub use json::JsonDecodeLimits;
-#[cfg(feature = "json")]
-pub use json::JsonDecodeSession;
-#[cfg(feature = "json")]
-pub use json::JsonEncodeLimits;
-#[cfg(feature = "json")]
-pub use json::JsonEncodeSession;
-#[cfg(feature = "json")]
-pub use json::JsonResource;
-#[cfg(feature = "json")]
-pub use json::JsonValueBudget;
-#[cfg(feature = "json")]
-pub use json::JsonValueLimits;
 pub use measured_budget_error::MeasuredBudgetError;
 pub use observation::Observation;
 pub use quantity_conversion_error::QuantityConversionError;
@@ -61,24 +41,6 @@ pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
 pub use resource_quantity::ResourceQuantity;
 pub use resource_release_error::ResourceReleaseError;
-#[cfg(feature = "serde-json")]
-pub use serde::BudgetedJsonValueSeed;
-#[cfg(feature = "serde-json")]
-pub use serde::JsonSerdeError;
-#[cfg(feature = "serde-json")]
-pub use serde::JsonSyntaxError;
-#[cfg(feature = "serde-json")]
-pub use serde::JsonSyntaxErrorReason;
-#[cfg(feature = "serde-json")]
-pub use serde::account_value;
-#[cfg(feature = "serde-json")]
-pub use serde::decode_slice;
-#[cfg(feature = "serde-json")]
-pub use serde::decode_slice_seed;
-#[cfg(feature = "serde-json")]
-pub use serde::encode_to_vec;
-#[cfg(feature = "serde-json")]
-pub use serde::encode_to_writer;
 pub use string::BudgetedStringError;
 pub use string::BudgetedStringWriter;
 pub use structure::StructureBudget;

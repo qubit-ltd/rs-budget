@@ -26,7 +26,7 @@ use crate::ResourceQuantity;
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `Q` - Exact unsigned quantity used for the limit and accounting.
 #[must_use]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceBudget<R, Q = u64>
 where
     Q: ResourceQuantity,
@@ -86,20 +86,6 @@ where
             remaining: limit.maximum(),
             limit,
         }
-    }
-
-    /// Creates a budget snapshot with a caller-provided remaining capacity.
-    ///
-    /// This crate-private constructor is used for transactional adapters that
-    /// need to preserve the original limit and error facts while staging new
-    /// consumption in an operation-local budget.
-    #[inline]
-    pub fn from_limit_with_remaining(
-        limit: ResourceLimit<R, Q>,
-        remaining: Q,
-    ) -> Self {
-        debug_assert!(remaining <= limit.maximum());
-        Self { limit, remaining }
     }
 
     /// Checks whether a complete consumption would fit.

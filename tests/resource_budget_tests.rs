@@ -87,6 +87,24 @@ fn test_from_limit_preserves_the_resource_limit() {
     assert_eq!(budget.resource_limit(), &limit);
 }
 
+#[test]
+fn test_clone_preserves_independent_budget_state() {
+    let mut original = ResourceBudget::new(TestResource::Bytes, 5_u64);
+    original
+        .try_consume(2)
+        .expect("the initial consumption should fit");
+
+    let mut cloned = original.clone();
+    cloned
+        .try_consume(1)
+        .expect("the cloned budget should remain independently usable");
+
+    assert_eq!(original.remaining(), 3);
+    assert_eq!(cloned.remaining(), 2);
+    assert_eq!(original.used(), 2);
+    assert_eq!(cloned.used(), 3);
+}
+
 proptest! {
     #[test]
     fn test_operations_preserve_remaining_and_used_invariants(

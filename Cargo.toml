@@ -21,7 +21,6 @@ include = [
     "/src/**",
     "/doc/**",
     "/tests/**",
-    "/benches/**",
 ]
 
 [package.metadata.rs-ci]
@@ -31,16 +30,12 @@ miri = true
 default = []
 big-integer = ["dep:num-bigint"]
 big-decimal = ["big-integer", "dep:bigdecimal"]
-json = []
-serde-json = ["json", "dep:serde", "dep:serde_json"]
 time = ["dep:qubit-clock"]
 
 [dependencies]
 bigdecimal = { version = "0.4", optional = true }
-qubit-clock = { version = "0.12", optional = true }
+qubit-clock = { version = "0.12", path = "../rs-clock", optional = true }
 num-bigint = { version = "0.4", optional = true }
-serde = { version = "1.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0", features = ["arbitrary_precision", "float_roundtrip", "raw_value"], optional = true }
 thiserror = "2.0"
 
 [dev-dependencies]
@@ -53,11 +48,6 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
 [[test]]
 name = "tests"
 path = "tests/mod.rs"
-
-[[bench]]
-name = "serde_json"
-harness = false
-required-features = ["serde-json"]
 
 [package.metadata.docs.rs]
 all-features = true
