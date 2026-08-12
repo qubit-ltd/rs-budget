@@ -209,8 +209,8 @@ fn assert_online_rejection<T>(
     T: Serialize + ?Sized,
 {
     let mut session = limits.encode_session();
-    let error = encode_to_vec(value, &mut session)
-        .expect_err("the first value must be rejected online");
+    let error =
+        encode_to_vec(value, &mut session).expect_err("the first value must be rejected online");
     let JsonSerdeError::Budget(error) = error else {
         panic!("expected a budget error, got {error:?}");
     };
@@ -221,9 +221,8 @@ fn assert_online_rejection<T>(
 /// Verifies a budget failure leaves the destination writer unchanged.
 #[test]
 fn test_encode_to_writer_failure_does_not_touch_external_writer() {
-    let limits = JsonEncodeLimits::empty().with_output_bytes_limit(
-        ResourceLimit::new(JsonResource::OutputBytes, 3),
-    );
+    let limits = JsonEncodeLimits::empty()
+        .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 3));
     let mut session = JsonEncodeSession::owned(limits);
     let mut output = Vec::new();
 
@@ -241,8 +240,7 @@ fn test_encode_to_vec_counts_raw_value_once() {
         .expect("the fixture must be valid raw JSON");
     let mut session = JsonEncodeSession::owned(JsonEncodeLimits::empty());
 
-    let output = encode_to_vec(raw.as_ref(), &mut session)
-        .expect("the raw JSON value must encode");
+    let output = encode_to_vec(raw.as_ref(), &mut session).expect("the raw JSON value must encode");
 
     assert_eq!(output, br#"{"k":"v"}"#);
 }
@@ -260,6 +258,47 @@ fn test_encode_to_writer_serde_failure_does_not_touch_external_writer() {
     assert!(output.is_empty());
 }
 
+/// Verifies a failed encode does not consume borrowed output budget capacity.
+#[test]
+fn test_encode_to_vec_serde_failure_does_not_consume_output_budget() {
+    let limits = JsonEncodeLimits::empty()
+        .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 16));
+    let mut session = JsonEncodeSession::owned(limits);
+    encode_to_vec(&true, &mut session).expect("the initial value should fit");
+    let used_before = session
+        .output_budget()
+        .expect("output accounting should be configured")
+        .used();
+
+    let error = encode_to_vec(&FailsAfterPrefix, &mut session)
+        .expect_err("the custom serializer must fail");
+
+    assert!(matches!(error, JsonSerdeError::Json(_)));
+    let output = session
+        .output_budget()
+        .expect("output accounting should remain configured");
+    assert_eq!(output.used(), used_before);
+    assert_eq!(output.remaining(), 16 - used_before);
+}
+
+/// Verifies a known map length is checked before its entries are traversed.
+#[test]
+fn test_encode_to_vec_known_map_limit_stops_before_source_tail() {
+    let serialized_tail = Cell::new(0);
+    let value = MapThenTail {
+        key: &"first",
+        value: &1_u8,
+        serialized_tail: &serialized_tail,
+    };
+
+    assert_online_rejection(
+        &value,
+        JsonTestLimits::new().with_max_map_entries(1),
+        JsonResource::MapEntries,
+        &serialized_tail,
+    );
+}
+
 /// Verifies output rejection stops traversal before a long source tail.
 #[test]
 fn test_encode_to_vec_output_limit_stops_before_source_tail() {
@@ -268,9 +307,8 @@ fn test_encode_to_vec_output_limit_stops_before_source_tail() {
         serialized: &serialized,
         len: 1_000,
     };
-    let limits = JsonEncodeLimits::empty().with_output_bytes_limit(
-        ResourceLimit::new(JsonResource::OutputBytes, 8),
-    );
+    let limits = JsonEncodeLimits::empty()
+        .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 8));
     let mut session = JsonEncodeSession::owned(limits);
 
     let error = encode_to_vec(&value, &mut session)
@@ -346,8 +384,7 @@ fn test_encode_to_vec_number_limit_stops_before_source_tail() {
 
     assert_online_rejection(
         &value,
-        JsonTestLimits::new()
-            .with_max_number_bytes(LARGE_NUMBER_TEXT.len() - 1),
+        JsonTestLimits::new().with_max_number_bytes(LARGE_NUMBER_TEXT.len() - 1),
         JsonResource::NumberBytes,
         &serialized_tail,
     );

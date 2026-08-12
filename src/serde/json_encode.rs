@@ -19,6 +19,8 @@ use super::internal::JsonOutputAccounting;
 use super::internal::JsonOutputBuffer;
 use crate::JsonEncodeSession;
 use crate::JsonSerdeError;
+use crate::MeasuredBudgetError;
+use crate::ResourceBudget;
 
 /// Serializes one value to a compact JSON vector while charging its output.
 ///
@@ -31,6 +33,8 @@ use crate::JsonSerdeError;
 /// # Returns
 ///
 /// Compact JSON bytes when serialization and every budget check succeed.
+/// Output bytes are committed to the caller's session only after the complete
+/// document succeeds.
 ///
 /// # Errors
 ///
@@ -50,18 +54,38 @@ where
     R: Clone,
 {
     let (output_budget, value_budget) = session.split_mut();
-    let accounting =
-        Rc::new(RefCell::new(JsonOutputAccounting::new(output_budget)));
-    let mut output = JsonOutputBuffer::new(Rc::clone(&accounting));
-    let result = {
-        let mut inner = JsonSerializer::new(&mut output);
-        value.serialize(JsonEncodeSerializer::new(
-            &mut inner,
-            value_budget,
-            accounting,
-        ))
+    let initial_remaining = output_budget.as_deref().map(ResourceBudget::remaining);
+    let mut transaction = output_budget.as_deref().map(|budget| {
+        ResourceBudget::from_limit_with_remaining(
+            budget.resource_limit().clone(),
+            budget.remaining(),
+        )
+    });
+    let bytes = {
+        let accounting = Rc::new(RefCell::new(JsonOutputAccounting::new(
+            transaction.as_mut(),
+        )));
+        let mut output = JsonOutputBuffer::new(Rc::clone(&accounting));
+        let result = {
+            let mut inner = JsonSerializer::new(&mut output);
+            value.serialize(JsonEncodeSerializer::new(
+                &mut inner,
+                value_budget,
+                accounting,
+            ))
+        };
+        output.into_result(result)?
     };
-    output.into_result(result)
+    if let (Some(output_budget), Some(transaction), Some(initial_remaining)) =
+        (output_budget, transaction, initial_remaining)
+    {
+        let consumed = initial_remaining - transaction.remaining();
+        output_budget
+            .try_consume(consumed)
+            .map_err(MeasuredBudgetError::from)
+            .map_err(JsonSerdeError::from)?;
+    }
+    Ok(bytes)
 }
 
 /// Serializes one value and writes it only after budget checks pass.

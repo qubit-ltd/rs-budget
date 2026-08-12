@@ -19,9 +19,9 @@ use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
-/// Shared output accounting used by the serializer and byte buffer.
+/// Shared transactional output accounting used by the serializer and buffer.
 pub(in crate::serde) struct JsonOutputAccounting<'a, R> {
-    /// Optional cumulative output budget charged as bytes are appended.
+    /// Optional operation-local output budget charged as bytes are appended.
     output: Option<&'a mut ResourceBudget<R, u64>>,
 
     /// First budget violation hidden behind a Serde or I/O error.
@@ -39,9 +39,7 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     ///
     /// Fresh accounting with no recorded violation.
     #[inline]
-    pub(in crate::serde) const fn new(
-        output: Option<&'a mut ResourceBudget<R, u64>>,
-    ) -> Self {
+    pub(in crate::serde) const fn new(output: Option<&'a mut ResourceBudget<R, u64>>) -> Self {
         Self {
             output,
             violation: None,
@@ -63,10 +61,7 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// Returns the output budget error without consuming any capacity when the
     /// amount exceeds the live remaining capacity.
     #[inline]
-    pub(super) fn check_available(
-        &self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, u64>>
+    pub(super) fn check_available(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, u64>>
     where
         R: Clone,
     {
@@ -95,10 +90,7 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// Returns the output budget error while leaving capacity unchanged when
     /// the amount exceeds the live remaining capacity.
     #[inline]
-    fn consume(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, u64>>
+    fn consume(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, u64>>
     where
         R: Clone,
     {
@@ -117,10 +109,7 @@ impl<'a, R> JsonOutputAccounting<'a, R> {
     /// # Parameters
     ///
     /// * `error` - Typed budget error hidden by Serde or I/O.
-    pub(super) fn record_violation(
-        &mut self,
-        error: MeasuredBudgetError<R, u64>,
-    ) {
+    pub(super) fn record_violation(&mut self, error: MeasuredBudgetError<R, u64>) {
         if self.violation.is_none() {
             self.violation = Some(error);
         }
@@ -201,10 +190,11 @@ where
     /// The buffer remains unchanged if arithmetic overflows or the output-byte
     /// limit is exceeded.
     fn write(&mut self, input: &[u8]) -> io::Result<usize> {
-        let next =
-            self.bytes.len().checked_add(input.len()).ok_or_else(|| {
-                io::Error::other("JSON output length overflow")
-            })?;
+        let next = self
+            .bytes
+            .len()
+            .checked_add(input.len())
+            .ok_or_else(|| io::Error::other("JSON output length overflow"))?;
         let amount = next - self.bytes.len();
         let mut accounting = self.accounting.borrow_mut();
         if let Err(error) = accounting.consume(amount) {
