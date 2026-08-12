@@ -93,9 +93,8 @@ where
     /// This crate-private constructor is used for transactional adapters that
     /// need to preserve the original limit and error facts while staging new
     /// consumption in an operation-local budget.
-    #[cfg(feature = "serde-json")]
     #[inline]
-    pub(crate) fn from_limit_with_remaining(
+    pub fn from_limit_with_remaining(
         limit: ResourceLimit<R, Q>,
         remaining: Q,
     ) -> Self {

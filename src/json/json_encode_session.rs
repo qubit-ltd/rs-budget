@@ -176,9 +176,8 @@ where
     /// This crate-private operation lets the Serde adapter enforce value
     /// limits before delegation while the output writer independently charges
     /// bytes as they are emitted.
-    #[cfg(feature = "serde-json")]
     #[inline(always)]
-    pub(crate) fn split_mut(
+    pub fn split_mut(
         &mut self,
     ) -> (
         Option<&mut ResourceBudget<R, Q>>,
