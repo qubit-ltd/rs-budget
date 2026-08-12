@@ -41,7 +41,7 @@ where
         match value {
             Value::Null | Value::Bool(_) => {}
             Value::Number(number) => budget
-                .consume_number_bytes_usize(number.to_string().len())
+                .consume_number_bytes_usize(number.as_str().len())
                 .map_err(JsonSerdeError::from)?,
             Value::String(text) => budget
                 .consume_string_bytes_usize(text.len())
