@@ -87,6 +87,17 @@ where
         }
     }
 
+    /// Creates a budget snapshot with a caller-provided remaining capacity.
+    ///
+    /// This crate-private constructor is used for transactional adapters that
+    /// need to preserve the original limit and error facts while staging new
+    /// consumption in an operation-local budget.
+    #[inline]
+    pub(crate) fn from_limit_with_remaining(limit: ResourceLimit<R, Q>, remaining: Q) -> Self {
+        debug_assert!(remaining <= limit.maximum());
+        Self { limit, remaining }
+    }
+
     /// Checks whether a complete consumption would fit.
     ///
     /// # Parameters
