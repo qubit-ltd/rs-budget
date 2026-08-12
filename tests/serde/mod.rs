@@ -6,6 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 #[cfg(feature = "serde-json")]
+mod budgeted_json_value_seed_tests;
+#[cfg(feature = "serde-json")]
 mod internal;
 #[cfg(feature = "serde-json")]
 mod json_decode_tests;

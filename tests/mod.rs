@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 mod budget_error_tests;
+mod budget_group_error_tests;
 mod observation_tests;
 mod resource_budget_tests;
 mod resource_limit_tests;

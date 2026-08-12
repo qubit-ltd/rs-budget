@@ -16,6 +16,7 @@
 //! and reported as resource-accounting errors.
 
 mod budget_error;
+mod budget_group_error;
 mod measured_budget_error;
 mod observation;
 mod quantity_conversion_error;
@@ -36,6 +37,7 @@ pub mod json;
 pub mod serde;
 
 pub use budget_error::BudgetError;
+pub use budget_group_error::BudgetGroupError;
 #[cfg(feature = "json")]
 pub use json::JsonDecodeLimits;
 #[cfg(feature = "json")]
@@ -59,6 +61,8 @@ pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;
 pub use resource_quantity::ResourceQuantity;
 pub use resource_release_error::ResourceReleaseError;
+#[cfg(feature = "serde-json")]
+pub use serde::BudgetedJsonValueSeed;
 #[cfg(feature = "serde-json")]
 pub use serde::JsonSerdeError;
 #[cfg(feature = "serde-json")]

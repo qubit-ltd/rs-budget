@@ -180,7 +180,7 @@ payload 限制；`JsonDecodeLimits` 只增加输入字节，`JsonEncodeLimits` �
 | --- | --- | --- |
 | `rs-value` | 分别使用 `JsonDecodeLimits` 和 `JsonEncodeLimits`，让一个方向会话贯穿一次 wire 操作，再把 `BudgetError` 映射为自身 wire 错误。 | 读取与写出策略不会意外消耗错误方向的字节额度。 |
 | `rs-redact` | 在嵌套诊断渲染器之间共享一次操作的输入、输出和掩码预算。 | 子组件不能静默重置外层操作的额度。 |
-| `rs-config` | 在配置边界应用受限 JSON wire 和插值预算。 | 配置解析与展开共用相同的方向性和累计记账。 |
+| `rs-config` | 在配置边界应用 JSON wire、source session、composite 聚合和插值预算。 | source 局部与聚合 charge 原子提交，普通 Config 反序列化也会限制已解码值。 |
 | `rs-datatype` | 与类型化 value 共享借用的 JSON value 预算，并限制字符串/数字。 | 嵌套类型不能重置外层操作的 value 额度。 |
 | `rs-http`、`rs-fs`、`rs-local-files` | 数据到达时为 response body、stream 和文件读取记账，包括长度未知的输入。 | 不同分块方式和 transport 错误不会破坏累计上限。 |
 | `rs-metadata` | 使用方向明确的 session 限制 metadata JSON wire 操作。 | metadata 边界与应用 payload 具有相同的接纳和输出保证。 |
@@ -192,12 +192,14 @@ payload 限制；`JsonDecodeLimits` 只增加输入字节，`JsonEncodeLimits` �
 | --- | --- |
 | 单次、包含边界的点检查 | `ResourceLimit<R, Q>` |
 | 不可归还的累计消耗 | `ResourceBudget<R, Q>` |
+| 多个累计预算的原子消耗 | `ResourceBudget::try_consume_group`、`BudgetGroupError<R, Q>` |
 | 可获取和释放的容量 | `ResourcePool<R, Q>` |
 | 点限制/累计预算失败事实 | `BudgetError<R, Q>`：`LimitExceeded`、`Insufficient` |
 | 非法 pool 释放事实 | `ResourceReleaseError<R, Q>` |
 | 通用嵌套数据限制 | `StructureLimits<R, Q>`、`StructureBudget<R, Q>` |
 | JSON value 遍历限制（`json`） | `JsonValueLimits<R, Q>`、`JsonValueBudget<R, Q>` |
 | 定向 JSON 操作（`json`） | `JsonDecodeLimits`/`JsonDecodeSession`、`JsonEncodeLimits`/`JsonEncodeSession` |
+| Serde 已解码值的增量准入（`serde-json`） | `BudgetedJsonValueSeed<'_, R, Q>` |
 | 显式时长限制 | `DurationBudget<R>` |
 | 基于单调时钟的时间限制（`time`） | `TimeBudget<R, C>`、`TimeBudgetError` |
 

@@ -8,6 +8,7 @@
 //! Defines monotonic finite resource budgets.
 
 use crate::BudgetError;
+use crate::BudgetGroupError;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
@@ -141,6 +142,45 @@ where
     {
         self.check_available(amount)?;
         self.remaining = self.remaining - amount;
+        Ok(())
+    }
+
+    /// Atomically consumes the same amount from every budget in a group.
+    ///
+    /// Every member is checked before any member is changed. This is useful
+    /// when one operation must count against both a local and a shared budget.
+    ///
+    /// # Parameters
+    ///
+    /// * `budgets` - Ordered group of budgets that must all accept the charge.
+    /// * `amount` - Quantity to consume from each budget.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after every budget is charged, or a [`BudgetGroupError`]
+    /// identifying the first rejecting member. Failure leaves every budget
+    /// unchanged.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetGroupError`] when any member has insufficient remaining
+    /// capacity.
+    pub fn try_consume_group(
+        budgets: &mut [&mut Self],
+        amount: Q,
+    ) -> Result<(), BudgetGroupError<R, Q>>
+    where
+        R: Clone,
+    {
+        for (index, budget) in budgets.iter().enumerate() {
+            budget
+                .check_available(amount)
+                .map_err(|source| BudgetGroupError::new(index, source))?;
+        }
+        for budget in budgets {
+            let consumed = budget.consume_available(amount);
+            debug_assert_eq!(consumed, amount);
+        }
         Ok(())
     }
 

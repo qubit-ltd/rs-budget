@@ -197,7 +197,7 @@ itself is atomic and leaves that dimension unchanged.
 | --- | --- | --- |
 | `rs-value` | Uses separate `JsonDecodeLimits` and `JsonEncodeLimits`, runs one directional session through each wire operation, and maps `BudgetError` to its wire errors. | Read and write policies cannot accidentally charge the wrong byte direction. |
 | `rs-redact` | Shares operation-scoped input, output, and mask budgets across nested diagnostic renderers. | A child component cannot silently reset the allowance for the enclosing operation. |
-| `rs-config` | Applies bounded JSON wire and interpolation budgets at configuration boundaries. | Configuration parsing and expansion share the same directional and cumulative accounting. |
+| `rs-config` | Applies bounded JSON wire, source-session, composite aggregate, and interpolation budgets. | Local and aggregate source charges commit atomically, while ordinary Config deserialization budgets decoded values. |
 | `rs-datatype` | Shares borrowed JSON value budgets with typed values and enforces string/number limits. | Nested typed values cannot reset the enclosing operation's value allowance. |
 | `rs-http`, `rs-fs`, `rs-local-files` | Charges response bodies, streams, and file reads as data arrives, including unknown-length inputs. | The same cumulative invariant works independently of chunk boundaries and transport errors. |
 | `rs-metadata` | Bounds metadata JSON wire operations with directional sessions. | Metadata boundaries use the same admission and output guarantees as application payloads. |
@@ -209,12 +209,14 @@ itself is atomic and leaves that dimension unchanged.
 | --- | --- |
 | One inclusive point check | `ResourceLimit<R, Q>` |
 | Non-releasable cumulative consumption | `ResourceBudget<R, Q>` |
+| Atomic consumption across several cumulative budgets | `ResourceBudget::try_consume_group` and `BudgetGroupError<R, Q>` |
 | Releasable capacity | `ResourcePool<R, Q>` |
 | Point/cumulative failure facts | `BudgetError<R, Q>`: `LimitExceeded`, `Insufficient` |
 | Invalid pool release facts | `ResourceReleaseError<R, Q>` |
 | Generic nested-data limits | `StructureLimits<R, Q>` and `StructureBudget<R, Q>` |
 | JSON value traversal limits (`json`) | `JsonValueLimits<R, Q>` and `JsonValueBudget<R, Q>` |
 | Directional JSON operations (`json`) | `JsonDecodeLimits`/`JsonDecodeSession` and `JsonEncodeLimits`/`JsonEncodeSession` |
+| Incremental decoded Serde value admission (`serde-json`) | `BudgetedJsonValueSeed<'_, R, Q>` |
 | Explicit duration limits | `DurationBudget<R>` |
 | Monotonic-clock time limits (`time`) | `TimeBudget<R, C>` and `TimeBudgetError` |
 

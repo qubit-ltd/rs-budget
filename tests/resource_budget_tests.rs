@@ -10,6 +10,7 @@ use proptest::prelude::prop_assert;
 use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
 use qubit_budget::BudgetError;
+use qubit_budget::BudgetGroupError;
 use qubit_budget::ResourceBudget;
 use qubit_budget::ResourceLimit;
 use qubit_budget::ResourceQuantity;
@@ -114,4 +115,54 @@ fn test_budget_accepts_usize_quantities_without_conversion() {
         ResourceBudget::new(TestResource::Bytes, 5_usize);
     budget.try_consume(2_usize).expect("two bytes should fit");
     assert_eq!(budget.remaining(), 3_usize);
+}
+
+#[test]
+fn test_group_consume_charges_every_budget_after_all_checks_pass() {
+    let mut local = ResourceBudget::new(TestResource::Bytes, 5_u64);
+    let mut aggregate = ResourceBudget::new(TestResource::Bytes, 8_u64);
+
+    ResourceBudget::try_consume_group(&mut [&mut local, &mut aggregate], 3)
+        .expect("both budgets should accept three bytes");
+
+    assert_eq!(local.remaining(), 2);
+    assert_eq!(aggregate.remaining(), 5);
+}
+
+#[test]
+fn test_group_consume_does_not_charge_any_budget_when_later_check_fails() {
+    let mut local = ResourceBudget::new(TestResource::Bytes, 5_u64);
+    let mut aggregate = ResourceBudget::new(TestResource::Bytes, 2_u64);
+
+    let error =
+        ResourceBudget::try_consume_group(&mut [&mut local, &mut aggregate], 3)
+            .expect_err("the aggregate budget should reject three bytes");
+
+    assert_eq!(error.index(), 1);
+    assert!(matches!(
+        error.source_error(),
+        BudgetError::Insufficient {
+            resource: TestResource::Bytes,
+            limit: 2,
+            remaining: 2,
+            requested: 3,
+        }
+    ));
+    assert_eq!(local.remaining(), 5);
+    assert_eq!(aggregate.remaining(), 2);
+}
+
+#[test]
+fn test_group_error_exposes_the_failing_index_and_budget_error() {
+    let mut first = ResourceBudget::new(TestResource::Bytes, 1_u64);
+    let mut second = ResourceBudget::new(TestResource::Bytes, 1_u64);
+
+    let error: BudgetGroupError<TestResource> =
+        ResourceBudget::try_consume_group(&mut [&mut first, &mut second], 2)
+            .expect_err("the first budget should reject two bytes");
+
+    assert_eq!(error.index(), 0);
+    assert_eq!(error.into_source_error().requested(), Some(2));
+    assert_eq!(first.remaining(), 1);
+    assert_eq!(second.remaining(), 1);
 }
