@@ -158,6 +158,7 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns the associated resource.
+    #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
@@ -170,18 +171,21 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns the finite duration limit.
+    #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Duration {
         self.limit.maximum()
     }
 
     /// Returns remaining duration.
+    #[must_use]
     #[inline(always)]
     pub const fn remaining(&self) -> Duration {
         self.remaining
     }
 
     /// Returns explicitly consumed duration.
+    #[must_use]
     #[inline(always)]
     pub const fn used(&self) -> Duration {
         self.limit.maximum().saturating_sub(self.remaining)

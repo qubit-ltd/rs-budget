@@ -63,6 +63,7 @@ where
     Q: Copy + Debug,
 {
     /// Returns the resource associated with this failure.
+    #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
@@ -84,6 +85,7 @@ where
     ///
     /// Returns `Some(limit)` for [`Self::Insufficient`], or `None` for a
     /// point-limit failure.
+    #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Option<Q> {
         match self {
@@ -96,6 +98,7 @@ where
     ///
     /// Returns `Some(observed)` for [`Self::LimitExceeded`], or `None` for a
     /// cumulative-budget or pool failure.
+    #[must_use]
     #[inline(always)]
     pub const fn observation(&self) -> Option<Observation<Q>> {
         match self {

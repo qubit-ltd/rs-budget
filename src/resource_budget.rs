@@ -94,7 +94,10 @@ where
     /// need to preserve the original limit and error facts while staging new
     /// consumption in an operation-local budget.
     #[inline]
-    pub(crate) fn from_limit_with_remaining(limit: ResourceLimit<R, Q>, remaining: Q) -> Self {
+    pub(crate) fn from_limit_with_remaining(
+        limit: ResourceLimit<R, Q>,
+        remaining: Q,
+    ) -> Self {
         debug_assert!(remaining <= limit.maximum());
         Self { limit, remaining }
     }
@@ -214,6 +217,7 @@ where
     }
 
     /// Returns the associated resource.
+    #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
@@ -226,18 +230,21 @@ where
     }
 
     /// Returns the finite limit.
+    #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Q {
         self.limit.maximum()
     }
 
     /// Returns remaining capacity.
+    #[must_use]
     #[inline(always)]
     pub const fn remaining(&self) -> Q {
         self.remaining
     }
 
     /// Returns the quantity consumed so far.
+    #[must_use]
     #[inline(always)]
     pub fn used(&self) -> Q {
         self.limit.maximum() - self.remaining

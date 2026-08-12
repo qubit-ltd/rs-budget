@@ -203,9 +203,9 @@ payload 限制；`JsonDecodeLimits` 只增加输入字节，`JsonEncodeLimits` �
 | 显式时长限制 | `DurationBudget<R>` |
 | 基于单调时钟的时间限制（`time`） | `TimeBudget<R, C>`、`TimeBudgetError` |
 
-数量使用精确的无符号类型。通用资源预算保持泛型；字符串、大整数、大数、结构化
-默认结构限制使用 `usize`，与 Rust 集合大小一致；字符串、大整数、大数、JSON value
-和 Serde JSON 辅助 API 使用 `u64`，因此在 32 位和 64 位平台上含义一致。
+数量使用精确的无符号类型。通用资源预算保持泛型；结构化默认结构限制以及 JSON
+value、Serde JSON 辅助 API 默认使用 `usize`，与 Rust 集合和字节长度一致。下游若需要
+固定宽度语义，应显式指定 `Q`（例如 `JsonValueLimits<MyResource, u64>`）。
 JSON 解码会话可以使用 `owned(...)`，也可以用 `borrowing(...)` 借用调用方持有的输入
 和 value 预算。
 

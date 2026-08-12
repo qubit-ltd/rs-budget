@@ -222,8 +222,9 @@ itself is atomic and leaves that dimension unchanged.
 
 Quantities are exact unsigned values. Generic resource budgets remain generic,
 while the default structural limits use `usize`, matching Rust collection sizes.
-String, big-number, JSON value, and Serde JSON helpers use `u64` so limits have
-the same meaning on 32-bit and 64-bit targets. JSON decode sessions
+JSON value and Serde JSON helpers default to `usize`, matching native byte and
+collection measurements; callers that need stable-width quantities should
+explicitly select `Q` (for example, `JsonValueLimits<MyResource, u64>`). JSON decode sessions
 can be `owned(...)` or can borrow caller-owned input and value budgets with
 `borrowing(...)`.
 
