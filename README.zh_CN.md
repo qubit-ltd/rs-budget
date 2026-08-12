@@ -41,7 +41,7 @@ qubit-budget = "0.3"
 | `serde-json` | 提供带预算检查的 Serde JSON 序列化/反序列化 adapter，同时启用 `json` |
 | `big-integer` | 提供 `BigIntegerLimits`，限制幅值 bit 数和有效十进制位数 |
 | `big-decimal` | 提供 `BigDecimalLimits`，限制系数和 scale 幅值 |
-| `time` | 显式时长预算 `DurationBudget` 与单调时钟预算 `TimeBudget` |
+| `time` | 单调时钟预算 `TimeBudget` 与 `TimeBudgetError`（`DurationBudget` 始终可用） |
 
 最低支持的 Rust 版本为 1.94。
 
@@ -177,7 +177,10 @@ payload 限制；`JsonDecodeLimits` 只增加输入字节，`JsonEncodeLimits` �
 | --- | --- | --- |
 | `rs-value` | 分别使用 `JsonDecodeLimits` 和 `JsonEncodeLimits`，让一个方向会话贯穿一次 wire 操作，再把 `BudgetError` 映射为自身 wire 错误。 | 读取与写出策略不会意外消耗错误方向的字节额度。 |
 | `rs-redact` | 在嵌套诊断渲染器之间共享一次操作的输入、输出和掩码预算。 | 子组件不能静默重置外层操作的额度。 |
-| `rs-http`、`rs-io`、`rs-fs` | 数据到达时为 response body、stream 和文件读取记账，包括长度未知的输入。 | 不同分块方式和 transport 错误不会破坏累计上限。 |
+| `rs-config` | 在配置边界应用受限 JSON wire 和插值预算。 | 配置解析与展开共用相同的方向性和累计记账。 |
+| `rs-datatype` | 与类型化 value 共享借用的 JSON value 预算，并限制字符串/数字。 | 嵌套类型不能重置外层操作的 value 额度。 |
+| `rs-http`、`rs-fs`、`rs-local-files` | 数据到达时为 response body、stream 和文件读取记账，包括长度未知的输入。 | 不同分块方式和 transport 错误不会破坏累计上限。 |
+| `rs-metadata` | 使用方向明确的 session 限制 metadata JSON wire 操作。 | metadata 边界与应用 payload 具有相同的接纳和输出保证。 |
 | `rs-retry` | 组合尝试次数 `ResourceBudget`、显式时长 `DurationBudget` 和连续 elapsed deadline。 | 同一个领域策略可以组合不同资源语义。 |
 
 ## 核心能力
@@ -192,10 +195,12 @@ payload 限制；`JsonDecodeLimits` 只增加输入字节，`JsonEncodeLimits` �
 | 通用嵌套数据限制 | `StructureLimits<R, Q>`、`StructureBudget<R, Q>` |
 | JSON value 遍历限制（`json`） | `JsonValueLimits<R, Q>`、`JsonValueBudget<R, Q>` |
 | 定向 JSON 操作（`json`） | `JsonDecodeLimits`/`JsonDecodeSession`、`JsonEncodeLimits`/`JsonEncodeSession` |
-| 显式或基于时钟的时间限制（`time`） | `DurationBudget<R>`、`TimeBudget<R, C>` |
+| 显式时长限制 | `DurationBudget<R>` |
+| 基于单调时钟的时间限制（`time`） | `TimeBudget<R, C>`、`TimeBudgetError` |
 
 数量使用精确的无符号类型。通用资源预算保持泛型；字符串、大整数、大数、结构化
-JSON 和 Serde JSON 辅助 API 统一使用 `u64`，因此在 32 位和 64 位平台上含义一致。
+默认结构限制使用 `usize`，与 Rust 集合大小一致；字符串、大整数、大数、JSON value
+和 Serde JSON 辅助 API 使用 `u64`，因此在 32 位和 64 位平台上含义一致。
 JSON 解码会话可以使用 `owned(...)`，也可以用 `borrowing(...)` 借用调用方持有的输入
 和 value 预算。
 
@@ -210,6 +215,11 @@ let limits = StringLimits::empty().with_utf8_bytes_limit(
 );
 limits.check(input)?;
 ```
+
+`serde-json` adapter 对 `serde_json` 任意精度数字和 raw value 所使用的私有 serializer
+形状保留了一个小型兼容层。它保持非递归，并在类型化解码前完成词法准入。仓库中的
+`fuzz/` target 会把解码接纳结果与 `serde_json` 做差分比较，并检查 session 记账不变量；
+请在 nightly toolchain 上使用 `cargo fuzz` 运行。
 
 ## 边界
 
