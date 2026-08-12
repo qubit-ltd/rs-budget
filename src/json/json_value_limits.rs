@@ -16,10 +16,10 @@ use crate::StructureLimits;
 ///
 /// `R` identifies resources reported in [`crate::BudgetError`], while `Q`
 /// defines the unsigned quantity used for every measurement. The default uses
-/// [`JsonResource`] and [`u64`].
+/// [`JsonResource`] and [`usize`].
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct JsonValueLimits<R = JsonResource, Q = u64>
+pub struct JsonValueLimits<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
@@ -191,7 +191,7 @@ where
     }
 }
 
-impl JsonValueLimits<JsonResource, u64> {
+impl JsonValueLimits<JsonResource, usize> {
     /// Creates a value limit set with every JSON value dimension unconfigured.
     #[inline]
     pub const fn empty() -> Self {

@@ -727,7 +727,7 @@ fn test_raw_value_charges_single_number_token_object_as_object() {
             resource: JsonResource::KeyBytes,
             observed: Observation::Exact(actual),
             maximum: 0,
-        }) if actual == u64::try_from(JSON_NUMBER_TOKEN.len()).unwrap()
+        }) if actual == JSON_NUMBER_TOKEN.len()
     ));
 }
 

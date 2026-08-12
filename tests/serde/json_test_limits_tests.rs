@@ -42,26 +42,20 @@ impl JsonTestLimits {
 
     /// Sets the root-inclusive depth maximum shared by both directions.
     pub(super) fn with_max_depth(mut self, maximum: usize) -> Self {
-        let structure =
-            self.value
-                .structure_limits()
-                .with_depth_limit(ResourceLimit::new(
-                    JsonResource::Depth,
-                    maximum as u64,
-                ));
+        let structure = self
+            .value
+            .structure_limits()
+            .with_depth_limit(ResourceLimit::new(JsonResource::Depth, maximum));
         self.value = self.value.with_structure_limits(structure);
         self
     }
 
     /// Sets the cumulative node maximum shared by both directions.
     pub(super) fn with_max_nodes(mut self, maximum: usize) -> Self {
-        let structure =
-            self.value
-                .structure_limits()
-                .with_nodes_limit(ResourceLimit::new(
-                    JsonResource::Nodes,
-                    maximum as u64,
-                ));
+        let structure = self
+            .value
+            .structure_limits()
+            .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, maximum));
         self.value = self.value.with_structure_limits(structure);
         self
     }
@@ -70,7 +64,7 @@ impl JsonTestLimits {
     pub(super) fn with_max_sequence_items(mut self, maximum: usize) -> Self {
         let structure =
             self.value.structure_limits().with_sequence_items_limit(
-                ResourceLimit::new(JsonResource::SequenceItems, maximum as u64),
+                ResourceLimit::new(JsonResource::SequenceItems, maximum),
             );
         self.value = self.value.with_structure_limits(structure);
         self
@@ -79,7 +73,7 @@ impl JsonTestLimits {
     /// Sets the per-object entry maximum shared by both directions.
     pub(super) fn with_max_map_entries(mut self, maximum: usize) -> Self {
         let structure = self.value.structure_limits().with_map_entries_limit(
-            ResourceLimit::new(JsonResource::MapEntries, maximum as u64),
+            ResourceLimit::new(JsonResource::MapEntries, maximum),
         );
         self.value = self.value.with_structure_limits(structure);
         self
@@ -88,7 +82,7 @@ impl JsonTestLimits {
     /// Sets the per-key UTF-8 byte maximum shared by both directions.
     pub(super) fn with_max_key_bytes(mut self, maximum: usize) -> Self {
         let structure = self.value.structure_limits().with_key_bytes_limit(
-            ResourceLimit::new(JsonResource::KeyBytes, maximum as u64),
+            ResourceLimit::new(JsonResource::KeyBytes, maximum),
         );
         self.value = self.value.with_structure_limits(structure);
         self
@@ -98,7 +92,7 @@ impl JsonTestLimits {
     pub(super) fn with_max_string_bytes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_string_bytes_limit(ResourceLimit::new(
             JsonResource::StringBytes,
-            maximum as u64,
+            maximum,
         ));
         self
     }
@@ -107,7 +101,7 @@ impl JsonTestLimits {
     pub(super) fn with_max_number_bytes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_number_bytes_limit(ResourceLimit::new(
             JsonResource::NumberBytes,
-            maximum as u64,
+            maximum,
         ));
         self
     }
@@ -116,7 +110,7 @@ impl JsonTestLimits {
     pub(super) fn with_max_payload_bytes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_payload_bytes_limit(ResourceLimit::new(
             JsonResource::PayloadBytes,
-            maximum as u64,
+            maximum,
         ));
         self
     }
@@ -128,7 +122,7 @@ impl JsonTestLimits {
         if let Some(maximum) = self.output_bytes {
             limits = limits.with_output_bytes_limit(ResourceLimit::new(
                 JsonResource::OutputBytes,
-                maximum as u64,
+                maximum,
             ));
         }
         JsonEncodeSession::owned(limits)

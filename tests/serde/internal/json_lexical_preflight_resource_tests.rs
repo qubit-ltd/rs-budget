@@ -52,9 +52,11 @@ fn test_json_lexical_preflight_consumes_payload_for_keys_strings_and_numbers() {
 fn test_json_lexical_preflight_charges_decoded_key_bytes() {
     let limits = JsonDecodeLimits::empty().with_value_limits(
         JsonValueLimits::empty().with_structure_limits(
-            StructureLimits::<JsonResource, u64>::empty().with_key_bytes_limit(
-                ResourceLimit::new(JsonResource::KeyBytes, 2),
-            ),
+            StructureLimits::<JsonResource, usize>::empty()
+                .with_key_bytes_limit(ResourceLimit::new(
+                    JsonResource::KeyBytes,
+                    2,
+                )),
         ),
     );
     let mut session = JsonDecodeSession::owned(limits);
@@ -204,12 +206,11 @@ fn test_json_lexical_preflight_does_not_special_case_private_number_token() {
     let input = format!(r#"{{"{PRIVATE_NUMBER_TOKEN}":"x"}}"#);
     let limits = JsonDecodeLimits::empty().with_value_limits(
         JsonValueLimits::empty().with_structure_limits(
-            StructureLimits::<JsonResource, u64>::empty().with_key_bytes_limit(
-                ResourceLimit::new(
+            StructureLimits::<JsonResource, usize>::empty()
+                .with_key_bytes_limit(ResourceLimit::new(
                     JsonResource::KeyBytes,
-                    u64::try_from(PRIVATE_NUMBER_TOKEN.len() - 1).unwrap(),
-                ),
-            ),
+                    PRIVATE_NUMBER_TOKEN.len() - 1,
+                )),
         ),
     );
     let mut session = JsonDecodeSession::owned(limits);
@@ -225,8 +226,8 @@ fn test_json_lexical_preflight_does_not_special_case_private_number_token() {
             resource: JsonResource::KeyBytes,
             observed: Observation::Exact(actual),
             maximum,
-        }) if actual == u64::try_from(PRIVATE_NUMBER_TOKEN.len()).unwrap()
-            && maximum == u64::try_from(PRIVATE_NUMBER_TOKEN.len() - 1).unwrap()
+        }) if actual == PRIVATE_NUMBER_TOKEN.len()
+            && maximum == PRIVATE_NUMBER_TOKEN.len() - 1
     ));
 }
 

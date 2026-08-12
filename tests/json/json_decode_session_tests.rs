@@ -60,11 +60,11 @@ fn test_decode_session_consumes_input_bytes_atomically() {
 /// Verifies borrowing a session mutates caller-owned directional budgets.
 #[test]
 fn test_decode_session_borrowing_reuses_caller_owned_budgets() {
-    let mut input = ResourceBudget::new(JsonResource::InputBytes, 16_u64);
+    let mut input = ResourceBudget::new(JsonResource::InputBytes, 16_usize);
     let mut value = JsonValueBudget::new(
         JsonValueLimits::empty().with_payload_bytes_limit(ResourceLimit::new(
             JsonResource::PayloadBytes,
-            3_u64,
+            3_usize,
         )),
     );
     {
@@ -72,14 +72,14 @@ fn test_decode_session_borrowing_reuses_caller_owned_budgets() {
             JsonDecodeSession::borrowing(Some(&mut input), &mut value);
         decode_slice::<IgnoredAny, _, _>(br#"{"a":1}"#, &mut session)
             .expect("borrowed session should admit the document");
-        assert_eq!(session.max_input_bytes(), Some(16_u64));
+        assert_eq!(session.max_input_bytes(), Some(16_usize));
         assert_eq!(
             session.input_budget().map(|budget| budget.limit()),
-            Some(16_u64)
+            Some(16_usize)
         );
     }
-    assert_eq!(input.remaining(), 9_u64);
-    assert_eq!(value.payload_budget().unwrap().remaining(), 1_u64);
+    assert_eq!(input.remaining(), 9_usize);
+    assert_eq!(value.payload_budget().unwrap().remaining(), 1_usize);
 }
 
 /// Verifies decode sessions preserve every embedded JSON value limit.

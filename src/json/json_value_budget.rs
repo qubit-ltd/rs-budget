@@ -22,7 +22,7 @@ use crate::resource_limit::check_limit;
 /// Object-key, string and number payloads share one optional cumulative budget.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct JsonValueBudget<R = JsonResource, Q = u64>
+pub struct JsonValueBudget<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {

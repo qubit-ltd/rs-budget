@@ -2,6 +2,8 @@
 //    Copyright (c) 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Tracks mutable accounting for one JSON decoding operation.
 
@@ -30,7 +32,7 @@ where
 /// Mutable state for one JSON decoding operation.
 #[must_use]
 #[derive(Debug)]
-pub struct JsonDecodeSession<'a, R = JsonResource, Q = u64>
+pub struct JsonDecodeSession<'a, R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {

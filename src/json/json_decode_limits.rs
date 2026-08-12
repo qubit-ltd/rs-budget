@@ -19,7 +19,7 @@ use crate::ResourceQuantity;
 /// through [`JsonValueLimits`].
 #[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct JsonDecodeLimits<R = JsonResource, Q = u64>
+pub struct JsonDecodeLimits<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
@@ -98,7 +98,7 @@ where
     }
 }
 
-impl JsonDecodeLimits<JsonResource, u64> {
+impl JsonDecodeLimits<JsonResource, usize> {
     /// Creates a decoding limit set with every dimension unconfigured.
     #[inline]
     pub const fn empty() -> Self {

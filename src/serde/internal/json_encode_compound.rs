@@ -27,6 +27,7 @@ use serde::ser::SerializeTupleVariant;
 use super::JsonEncodeSerializer;
 use super::json_encode_serializer::JsonEncodeContext;
 use crate::MeasuredBudgetError;
+use crate::ResourceQuantity;
 
 /// Special serde_json struct encoding recognized by the wrapper.
 #[derive(Clone, Copy)]
@@ -43,28 +44,30 @@ enum PrivateStruct {
 
 /// Wraps one nested value so the underlying compound serializer re-enters the
 /// budget-aware serializer before traversing it.
-pub(super) struct BudgetedValue<'a, 'budget, T, R>
+pub(super) struct BudgetedValue<'a, 'budget, T, R, Q>
 where
     T: ?Sized,
+    Q: ResourceQuantity,
 {
     /// Original nested value.
     value: &'a T,
 
     /// Shared mutable budget state for the serialization traversal.
-    context: Rc<RefCell<JsonEncodeContext<'budget, R>>>,
+    context: Rc<RefCell<JsonEncodeContext<'budget, R, Q>>>,
 
     /// Root-inclusive depth assigned to the nested value.
     depth: usize,
 }
 
-impl<'a, 'budget, T, R> BudgetedValue<'a, 'budget, T, R>
+impl<'a, 'budget, T, R, Q> BudgetedValue<'a, 'budget, T, R, Q>
 where
     T: ?Sized,
+    Q: ResourceQuantity,
 {
     /// Creates a nested value wrapper bound to a shared budget context.
     pub(super) const fn new(
         value: &'a T,
-        context: Rc<RefCell<JsonEncodeContext<'budget, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'budget, R, Q>>>,
         depth: usize,
     ) -> Self {
         Self {
@@ -75,10 +78,11 @@ where
     }
 }
 
-impl<T, R> Serialize for BudgetedValue<'_, '_, T, R>
+impl<T, R, Q> Serialize for BudgetedValue<'_, '_, T, R, Q>
 where
     T: Serialize + ?Sized,
     R: Clone,
+    Q: ResourceQuantity,
 {
     /// Serializes the wrapped value through a child budget decorator.
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -95,12 +99,15 @@ where
 
 /// Wraps a Serde compound serializer and checks container operations before
 /// delegating them.
-pub(in crate::serde) struct JsonEncodeCompound<'a, C, R> {
+pub(in crate::serde) struct JsonEncodeCompound<'a, C, R, Q>
+where
+    Q: ResourceQuantity,
+{
     /// Underlying Serde compound serializer.
     inner: C,
 
     /// Shared mutable budget state for the serialization traversal.
-    context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
+    context: Rc<RefCell<JsonEncodeContext<'a, R, Q>>>,
 
     /// Root-inclusive depth assigned to nested values.
     child_depth: usize,
@@ -112,14 +119,15 @@ pub(in crate::serde) struct JsonEncodeCompound<'a, C, R> {
     private: PrivateStruct,
 }
 
-impl<'a, C, R> JsonEncodeCompound<'a, C, R>
+impl<'a, C, R, Q> JsonEncodeCompound<'a, C, R, Q>
 where
     R: Clone,
+    Q: ResourceQuantity,
 {
     /// Creates a wrapper for a regular JSON array or object compound.
     pub(super) const fn new(
         inner: C,
-        context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'a, R, Q>>>,
         child_depth: usize,
     ) -> Self {
         Self {
@@ -134,7 +142,7 @@ where
     /// Creates a wrapper for serde_json's private number compound.
     pub(super) const fn number(
         inner: C,
-        context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'a, R, Q>>>,
         depth: usize,
     ) -> Self {
         Self {
@@ -149,7 +157,7 @@ where
     /// Creates a wrapper for serde_json's private raw-value compound.
     pub(super) const fn raw_value(
         inner: C,
-        context: Rc<RefCell<JsonEncodeContext<'a, R>>>,
+        context: Rc<RefCell<JsonEncodeContext<'a, R, Q>>>,
         depth: usize,
     ) -> Self {
         Self {
@@ -164,7 +172,7 @@ where
     /// Records the original budget error and maps it into the compound error.
     fn record<E>(
         &mut self,
-        result: Result<(), MeasuredBudgetError<R, u64>>,
+        result: Result<(), MeasuredBudgetError<R, Q>>,
     ) -> Result<(), E>
     where
         E: Error,
@@ -227,10 +235,11 @@ where
     }
 }
 
-impl<C, R> SerializeSeq for JsonEncodeCompound<'_, C, R>
+impl<C, R, Q> SerializeSeq for JsonEncodeCompound<'_, C, R, Q>
 where
     C: SerializeSeq,
     R: Clone,
+    Q: ResourceQuantity,
 {
     type Ok = C::Ok;
     type Error = C::Error;
@@ -257,10 +266,11 @@ where
     }
 }
 
-impl<C, R> SerializeTuple for JsonEncodeCompound<'_, C, R>
+impl<C, R, Q> SerializeTuple for JsonEncodeCompound<'_, C, R, Q>
 where
     C: SerializeTuple,
     R: Clone,
+    Q: ResourceQuantity,
 {
     type Ok = C::Ok;
     type Error = C::Error;
@@ -287,10 +297,11 @@ where
     }
 }
 
-impl<C, R> SerializeTupleStruct for JsonEncodeCompound<'_, C, R>
+impl<C, R, Q> SerializeTupleStruct for JsonEncodeCompound<'_, C, R, Q>
 where
     C: SerializeTupleStruct,
     R: Clone,
+    Q: ResourceQuantity,
 {
     type Ok = C::Ok;
     type Error = C::Error;
@@ -317,10 +328,11 @@ where
     }
 }
 
-impl<C, R> SerializeTupleVariant for JsonEncodeCompound<'_, C, R>
+impl<C, R, Q> SerializeTupleVariant for JsonEncodeCompound<'_, C, R, Q>
 where
     C: SerializeTupleVariant,
     R: Clone,
+    Q: ResourceQuantity,
 {
     type Ok = C::Ok;
     type Error = C::Error;
@@ -347,10 +359,11 @@ where
     }
 }
 
-impl<C, R> SerializeMap for JsonEncodeCompound<'_, C, R>
+impl<C, R, Q> SerializeMap for JsonEncodeCompound<'_, C, R, Q>
 where
     C: SerializeMap,
     R: Clone,
+    Q: ResourceQuantity,
 {
     type Ok = C::Ok;
     type Error = C::Error;
@@ -403,10 +416,11 @@ where
     }
 }
 
-impl<C, R> SerializeStruct for JsonEncodeCompound<'_, C, R>
+impl<C, R, Q> SerializeStruct for JsonEncodeCompound<'_, C, R, Q>
 where
     C: SerializeStruct,
     R: Clone,
+    Q: ResourceQuantity,
 {
     type Ok = C::Ok;
     type Error = C::Error;
@@ -469,10 +483,11 @@ where
     }
 }
 
-impl<C, R> SerializeStructVariant for JsonEncodeCompound<'_, C, R>
+impl<C, R, Q> SerializeStructVariant for JsonEncodeCompound<'_, C, R, Q>
 where
     C: SerializeStructVariant,
     R: Clone,
+    Q: ResourceQuantity,
 {
     type Ok = C::Ok;
     type Error = C::Error;

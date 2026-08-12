@@ -21,6 +21,7 @@ use crate::JsonEncodeSession;
 use crate::JsonSerdeError;
 use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
+use crate::ResourceQuantity;
 
 /// Serializes one value to a compact JSON vector while charging its output.
 ///
@@ -45,16 +46,18 @@ use crate::ResourceBudget;
 ///
 /// * `T` - Value type serialized to JSON.
 /// * `R` - Resource identity reported by budget violations.
-pub fn encode_to_vec<T, R>(
+pub fn encode_to_vec<T, R, Q>(
     value: &T,
-    session: &mut JsonEncodeSession<R, u64>,
-) -> Result<Vec<u8>, JsonSerdeError<R>>
+    session: &mut JsonEncodeSession<R, Q>,
+) -> Result<Vec<u8>, JsonSerdeError<R, Q>>
 where
     T: Serialize + ?Sized,
     R: Clone,
+    Q: ResourceQuantity,
 {
     let (output_budget, value_budget) = session.split_mut();
-    let initial_remaining = output_budget.as_deref().map(ResourceBudget::remaining);
+    let initial_remaining =
+        output_budget.as_deref().map(ResourceBudget::remaining);
     let mut transaction = output_budget.as_deref().map(|budget| {
         ResourceBudget::from_limit_with_remaining(
             budget.resource_limit().clone(),
@@ -115,15 +118,16 @@ where
 /// * `W` - Writer that accepts the serialized JSON bytes.
 /// * `T` - Value type serialized to JSON.
 /// * `R` - Resource identity reported by budget violations.
-pub fn encode_to_writer<W, T, R>(
+pub fn encode_to_writer<W, T, R, Q>(
     mut writer: W,
     value: &T,
-    session: &mut JsonEncodeSession<R, u64>,
-) -> Result<(), JsonSerdeError<R>>
+    session: &mut JsonEncodeSession<R, Q>,
+) -> Result<(), JsonSerdeError<R, Q>>
 where
     W: Write,
     T: Serialize + ?Sized,
     R: Clone,
+    Q: ResourceQuantity,
 {
     let bytes = encode_to_vec(value, session)?;
     writer.write_all(&bytes).map_err(JsonSerdeError::Io)

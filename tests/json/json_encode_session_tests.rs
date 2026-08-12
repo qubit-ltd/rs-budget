@@ -124,6 +124,6 @@ fn test_encode_session_borrows_output_and_value_budgets() {
             .expect("borrowed budgets should support online encoding");
 
     assert_eq!(encoded, br#"{"name":"qubit"}"#);
-    assert_eq!(output.used(), encoded.len() as u64);
+    assert_eq!(output.used(), encoded.len());
     assert!(value.structure_budget().used_nodes() > 0);
 }

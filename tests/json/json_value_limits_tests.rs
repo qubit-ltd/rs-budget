@@ -15,7 +15,7 @@ use qubit_budget::StructureLimits;
 /// Verifies value limits expose every configured point and structural maximum.
 #[test]
 fn test_json_value_limits_expose_all_configured_values() {
-    let structure = StructureLimits::<JsonResource, u64>::empty()
+    let structure = StructureLimits::<JsonResource, usize>::empty()
         .with_depth_limit(ResourceLimit::new(JsonResource::Depth, 1))
         .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 2))
         .with_sequence_items_limit(ResourceLimit::new(

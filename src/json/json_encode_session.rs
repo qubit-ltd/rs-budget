@@ -37,7 +37,7 @@ where
 /// accounts for encoded JSON values.
 #[must_use]
 #[derive(Debug, PartialEq, Eq)]
-pub struct JsonEncodeSession<'a, R = JsonResource, Q = u64>
+pub struct JsonEncodeSession<'a, R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
