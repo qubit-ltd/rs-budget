@@ -144,7 +144,7 @@ impl<'de> DeserializeSeed<'de> for IgnoreSeed {
     /// Ignores the admitted JSON value produced by the supplied deserializer.
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         IgnoredAny::deserialize(deserializer).map(|_| ())
     }

@@ -7,6 +7,8 @@
 // =============================================================================
 //! Bounded output buffer for budget-aware JSON encoding.
 
+// qubit-style: allow multiple-public-types
+
 use std::cell::RefCell;
 use std::io;
 use std::io::Write;

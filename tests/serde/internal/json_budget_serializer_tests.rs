@@ -25,6 +25,7 @@ use serde::ser::SerializeStructVariant;
 use serde::ser::SerializeTupleStruct;
 use serde::ser::SerializeTupleVariant;
 use serde_json::Number;
+use serde_json::to_vec;
 use serde_json::value::RawValue;
 
 use super::super::json_test_limits_tests::JsonTestLimits;
@@ -270,7 +271,7 @@ fn assert_same_json<T>(value: &T)
 where
     T: Serialize + ?Sized,
 {
-    let expected = serde_json::to_vec(value).expect("reference JSON");
+    let expected = to_vec(value).expect("reference JSON");
     let mut budget = JsonTestLimits::new().encode_session();
     let actual = encode_to_vec(value, &mut budget)
         .expect("budget-aware JSON should serialize");

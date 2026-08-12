@@ -7,6 +7,8 @@
 // =============================================================================
 //! Single-pass Serde JSON encoder with online budget checks.
 
+// qubit-style: allow multiple-public-types
+
 use std::cell::RefCell;
 use std::fmt;
 use std::fmt::Display;
@@ -16,6 +18,7 @@ use std::rc::Rc;
 use serde::Serialize;
 use serde::Serializer;
 use serde::ser::Error as SerializeError;
+use serde_json::to_string;
 
 use super::JsonLexicalPreflight;
 use super::json_encode_compound::BudgetedValue;
@@ -47,7 +50,7 @@ impl<R> JsonEncodeContext<'_, R> {
         result: Result<(), BudgetError<R, u64>>,
     ) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         result.map_err(|error| {
             self.output.borrow_mut().record_violation(error);
@@ -62,7 +65,7 @@ impl<R> JsonEncodeContext<'_, R> {
     /// position in the final document.
     fn preflight_raw<E>(&mut self, value: &str, depth: usize) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
         R: Clone,
     {
         let output = self.output.borrow().check_available(value.len());
@@ -172,7 +175,7 @@ fn collect_display<'a, E, T, R>(
     kind: DisplayBudgetKind,
 ) -> Result<String, E>
 where
-    E: serde::ser::Error,
+    E: SerializeError,
     T: Display + ?Sized,
     R: Clone,
 {
@@ -260,7 +263,7 @@ where
         result: Result<(), BudgetError<R, u64>>,
     ) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         self.context.borrow_mut().record(result)
     }
@@ -268,7 +271,7 @@ where
     /// Charges one scalar or container node at the current depth.
     fn node<E>(&self) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         let result = self
             .context
@@ -281,7 +284,7 @@ where
     /// Charges one string node and its UTF-8 payload length.
     fn string<E>(&self, bytes: usize) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         self.node()?;
         let result = self
@@ -295,7 +298,7 @@ where
     /// Charges one number node and its emitted textual length.
     fn number<E>(&self, bytes: usize) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         self.node()?;
         let result = self
@@ -309,7 +312,7 @@ where
     /// Charges one known-length array before its serializer is created.
     fn array<E>(&self, depth: usize, items: usize) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         let result = self
             .context
@@ -322,7 +325,7 @@ where
     /// Charges one known-length object before its serializer is created.
     fn object<E>(&self, depth: usize, entries: usize) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         let result = self
             .context
@@ -335,7 +338,7 @@ where
     /// Checks and consumes one object key's UTF-8 payload length.
     fn key<E>(&self, key: &str) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         let result = self
             .context
@@ -393,9 +396,7 @@ where
     /// Charges and delegates one floating-point number or JSON null.
     fn serialize_f32(self, value: f32) -> Result<Self::Ok, Self::Error> {
         if value.is_finite() {
-            let bytes = serde_json::to_string(&value)
-                .map_err(S::Error::custom)?
-                .len();
+            let bytes = to_string(&value).map_err(S::Error::custom)?.len();
             self.number(bytes)?;
         } else {
             self.node()?;
@@ -406,9 +407,7 @@ where
     /// Charges and delegates one floating-point number or JSON null.
     fn serialize_f64(self, value: f64) -> Result<Self::Ok, Self::Error> {
         if value.is_finite() {
-            let bytes = serde_json::to_string(&value)
-                .map_err(S::Error::custom)?
-                .len();
+            let bytes = to_string(&value).map_err(S::Error::custom)?.len();
             self.number(bytes)?;
         } else {
             self.node()?;
@@ -794,9 +793,7 @@ where
 
     fn serialize_f32(self, value: f32) -> Result<Self::Ok, Self::Error> {
         if value.is_finite() {
-            let bytes = serde_json::to_string(&value)
-                .map_err(S::Error::custom)?
-                .len();
+            let bytes = to_string(&value).map_err(S::Error::custom)?.len();
             self.check(bytes)?;
         }
         self.inner.serialize_f32(value)
@@ -804,9 +801,7 @@ where
 
     fn serialize_f64(self, value: f64) -> Result<Self::Ok, Self::Error> {
         if value.is_finite() {
-            let bytes = serde_json::to_string(&value)
-                .map_err(S::Error::custom)?
-                .len();
+            let bytes = to_string(&value).map_err(S::Error::custom)?.len();
             self.check(bytes)?;
         }
         self.inner.serialize_f64(value)

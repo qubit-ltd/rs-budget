@@ -10,6 +10,7 @@
 use std::marker::PhantomData;
 
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::de::DeserializeSeed;
 use serde_json::Deserializer as JsonDeserializer;
 
@@ -116,7 +117,7 @@ where
     /// Deserializes `T` through the supplied Serde deserializer.
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         T::deserialize(deserializer)
     }

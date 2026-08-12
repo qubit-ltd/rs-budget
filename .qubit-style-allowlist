@@ -1,0 +1,7 @@
+# Project style exceptions (rs-budget).
+#
+# These internal types are intentionally co-located because they share the
+# same budget traversal state and are implemented as one private protocol.
+multiple-public-types | src/serde/internal/json_encode_compound.rs | BudgetedValue and JsonEncodeCompound share the compound serializer protocol and traversal context.
+multiple-public-types | src/serde/internal/json_encode_serializer.rs | The encoder, traversal context, and private value decorators share one serializer protocol and budget state.
+multiple-public-types | src/serde/internal/json_output_buffer.rs | Output accounting and its bounded buffer share one output-budget state machine.

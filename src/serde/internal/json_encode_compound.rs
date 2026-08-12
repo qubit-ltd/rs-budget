@@ -7,11 +7,14 @@
 // =============================================================================
 //! Compound state for single-pass budget-aware JSON encoding.
 
+// qubit-style: allow multiple-public-types
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use serde::Serialize;
 use serde::Serializer;
+use serde::ser::Error as SerializeError;
 use serde::ser::SerializeMap;
 use serde::ser::SerializeSeq;
 use serde::ser::SerializeStruct;
@@ -164,7 +167,7 @@ where
         result: Result<(), BudgetError<R, u64>>,
     ) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         self.context.borrow_mut().record(result)
     }
@@ -172,7 +175,7 @@ where
     /// Checks the next observed sequence element.
     fn next_sequence<E>(&mut self) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         self.observed = self.observed.saturating_add(1);
         let result = self
@@ -186,7 +189,7 @@ where
     /// Checks the next observed map or struct entry.
     fn next_map_entry<E>(&mut self) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         self.observed = self.observed.saturating_add(1);
         let result = self
@@ -200,7 +203,7 @@ where
     /// Confirms the final observed sequence length before completion.
     fn finish_sequence<E>(&mut self) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         let result = self
             .context
@@ -213,7 +216,7 @@ where
     /// Confirms the final observed map length before completion.
     fn finish_map<E>(&mut self) -> Result<(), E>
     where
-        E: serde::ser::Error,
+        E: SerializeError,
     {
         let result = self
             .context
