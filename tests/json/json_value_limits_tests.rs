@@ -5,6 +5,7 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
+use qubit_budget::StructureLimits;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
@@ -51,4 +52,13 @@ fn test_standard_builder_creates_budget() {
 
     budget.enter_node_usize(0).expect("one node fits");
     assert_eq!(budget.structure_budget().used_nodes(), 1);
+}
+
+/// Verifies that structural limits may be borrowed or explicitly consumed.
+#[test]
+fn test_structure_limits_expresses_borrowing_and_ownership() {
+    let limits = JsonValueLimits::empty().with_max_depth(4);
+    let _: &StructureLimits<JsonResource, usize> = limits.structure_limits();
+    assert_eq!(limits.structure_limits().max_depth(), Some(4));
+    assert_eq!(limits.into_structure_limits().max_depth(), Some(4));
 }

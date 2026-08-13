@@ -81,12 +81,13 @@ where
         self.structure = limits.into();
         self
     }
-    /// Returns the structural limits used by this value configuration.
-    pub fn structure_limits(&self) -> StructureLimits<R, Q>
-    where
-        R: Clone,
-    {
-        self.structure.clone()
+    /// Borrows the structural limits used by this value configuration.
+    pub const fn structure_limits(&self) -> &StructureLimits<R, Q> {
+        &self.structure
+    }
+    /// Consumes these value limits and returns their structural limits.
+    pub fn into_structure_limits(self) -> StructureLimits<R, Q> {
+        self.structure
     }
     /// Returns the configured root-inclusive nesting-depth maximum.
     pub const fn max_depth(&self) -> Option<Q> {

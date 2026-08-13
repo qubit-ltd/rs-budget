@@ -35,7 +35,7 @@ where
 {
     /// Creates a fresh JSON value budget from immutable limits.
     pub fn new(limits: JsonValueLimits<R, Q>) -> Self {
-        let structure = limits.structure_limits().budget();
+        let structure = limits.structure_limits().clone().budget();
         let payload = limits
             .payload_bytes_limit()
             .cloned()

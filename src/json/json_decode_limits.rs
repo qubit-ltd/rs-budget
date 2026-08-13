@@ -74,12 +74,13 @@ where
     ) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
     }
-    /// Returns the JSON value limits used for decoding.
-    pub fn value_limits(&self) -> JsonValueLimits<R, Q>
-    where
-        R: Clone,
-    {
-        self.value.clone()
+    /// Borrows the JSON value limits used for decoding.
+    pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
+        &self.value
+    }
+    /// Consumes these decoding limits and returns their JSON value limits.
+    pub fn into_value_limits(self) -> JsonValueLimits<R, Q> {
+        self.value
     }
     /// Returns the configured raw input-byte maximum.
     pub const fn max_input_bytes(&self) -> Option<Q> {

@@ -58,12 +58,13 @@ where
     pub const fn output_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.output.as_ref()
     }
-    /// Returns the JSON value limits used for encoding.
-    pub fn value_limits(&self) -> JsonValueLimits<R, Q>
-    where
-        R: Clone,
-    {
-        self.value.clone()
+    /// Borrows the JSON value limits used for encoding.
+    pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
+        &self.value
+    }
+    /// Consumes these encoding limits and returns their JSON value limits.
+    pub fn into_value_limits(self) -> JsonValueLimits<R, Q> {
+        self.value
     }
     /// Returns the configured output-byte maximum.
     pub const fn max_output_bytes(&self) -> Option<Q> {

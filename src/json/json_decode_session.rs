@@ -206,7 +206,7 @@ where
             .normalized_input_bytes_limit()
             .cloned()
             .map(ResourceBudget::from_limit);
-        let value = JsonValueBudget::new(limits.value_limits());
+        let value = JsonValueBudget::new(limits.into_value_limits());
         Self {
             storage: DecodeStorage::Owned {
                 input,

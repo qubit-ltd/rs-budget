@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonValueLimits;
 
 /// Verifies that JSON decode limits use machine-sized quantities by default.
 #[test]
@@ -38,4 +39,13 @@ fn test_standard_builder_configures_decode_dimensions() {
     assert_eq!(limits.value_limits().max_string_bytes(), Some(8));
     assert_eq!(limits.value_limits().max_number_bytes(), Some(9));
     assert_eq!(limits.value_limits().max_payload_bytes(), Some(10));
+}
+
+/// Verifies that nested value limits may be borrowed or explicitly consumed.
+#[test]
+fn test_value_limits_expresses_borrowing_and_ownership() {
+    let limits = JsonDecodeLimits::empty().with_max_depth(3);
+    let _: &JsonValueLimits = limits.value_limits();
+    assert_eq!(limits.value_limits().max_depth(), Some(3));
+    assert_eq!(limits.into_value_limits().max_depth(), Some(3));
 }
