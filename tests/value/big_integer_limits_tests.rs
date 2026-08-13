@@ -7,6 +7,9 @@
 // =============================================================================
 
 use num_bigint::BigInt;
+use proptest::prelude::any;
+use proptest::prelude::prop_assert;
+use proptest::prelude::proptest;
 use qubit_budget::BigIntegerLimits;
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
@@ -85,4 +88,39 @@ fn test_big_integer_limits_support_usize_quantities() {
             maximum: 8,
         })
     ));
+}
+
+proptest! {
+    #[test]
+    fn test_significant_decimal_digit_limit_matches_exact_measurement(
+        sign in any::<bool>(),
+        shift in 0_u32..=1024,
+        maximum in 0_u64..=400,
+    ) {
+        let mut value = BigInt::from(1_u8) << shift;
+        if sign {
+            value = -value;
+        }
+        let text = value.to_str_radix(10);
+        let digits = text.strip_prefix('-').unwrap_or(&text).len() as u64;
+        let limits = BigIntegerLimits::empty()
+            .with_significant_decimal_digits_limit(ResourceLimit::new(
+                TestResource::Digits,
+                maximum,
+            ));
+
+        let result = limits.check(&value);
+        if digits <= maximum {
+            prop_assert!(result.is_ok());
+        } else {
+            let error = result.expect_err("values over the digit limit must fail");
+            prop_assert!(error.budget_error().is_some());
+            prop_assert!(
+                error
+                    .budget_error()
+                    .and_then(BudgetError::observed_lower_bound)
+                    .is_some_and(|observed| observed > maximum)
+            );
+        }
+    }
 }
