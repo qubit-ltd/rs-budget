@@ -10,7 +10,9 @@
 use std::fmt::Debug;
 
 use crate::BudgetError;
+use crate::MeasuredBudgetError;
 use crate::Observation;
+use crate::ResourceQuantity;
 
 /// An inclusive immutable maximum for one resource measurement.
 ///
@@ -93,6 +95,69 @@ where
         } else {
             Ok(())
         }
+    }
+}
+
+impl<R, Q> ResourceLimit<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    /// Checks a machine-sized measurement without truncating it.
+    ///
+    /// # Parameters
+    ///
+    /// * `actual` - Native measurement to convert and compare with the limit.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the converted measurement fits this limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError::Quantity`] when `actual` cannot be
+    /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
+    /// converted value exceeds this limit.
+    #[inline]
+    pub fn check_usize(
+        &self,
+        actual: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+    {
+        let actual = Q::try_from_usize(actual).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource.clone(), source)
+        })?;
+        self.check(actual).map_err(MeasuredBudgetError::from)
+    }
+
+    /// Checks a 64-bit measurement without truncating it.
+    ///
+    /// # Parameters
+    ///
+    /// * `actual` - 64-bit measurement to convert and compare with the limit.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the converted measurement fits this limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError::Quantity`] when `actual` cannot be
+    /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
+    /// converted value exceeds this limit.
+    #[inline]
+    pub fn check_u64(
+        &self,
+        actual: u64,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+    {
+        let actual = Q::try_from_u64(actual).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource.clone(), source)
+        })?;
+        self.check(actual).map_err(MeasuredBudgetError::from)
     }
 }
 

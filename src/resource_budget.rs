@@ -9,6 +9,7 @@
 
 use crate::BudgetError;
 use crate::BudgetGroupError;
+use crate::MeasuredBudgetError;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
@@ -143,6 +144,124 @@ where
         self.check_available(amount)?;
         self.remaining = self.remaining - amount;
         Ok(())
+    }
+
+    /// Checks a machine-sized consumption request without truncating it.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Native quantity to convert and check.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the converted request fits the remaining capacity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError::Quantity`] when `amount` cannot be
+    /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
+    /// the remaining capacity. The budget is unchanged on either failure.
+    #[inline]
+    pub fn check_available_usize(
+        &self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+    {
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
+        self.check_available(amount)
+            .map_err(MeasuredBudgetError::from)
+    }
+
+    /// Checks a 64-bit consumption request without truncating it.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - 64-bit quantity to convert and check.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the converted request fits the remaining capacity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError::Quantity`] when `amount` cannot be
+    /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
+    /// the remaining capacity. The budget is unchanged on either failure.
+    #[inline]
+    pub fn check_available_u64(
+        &self,
+        amount: u64,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+    {
+        let amount = Q::try_from_u64(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
+        self.check_available(amount)
+            .map_err(MeasuredBudgetError::from)
+    }
+
+    /// Consumes a machine-sized quantity without truncating it.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Native quantity to convert and consume.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the converted quantity is consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError::Quantity`] when `amount` cannot be
+    /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
+    /// the remaining capacity. The budget is unchanged on either failure.
+    #[inline]
+    pub fn try_consume_usize(
+        &mut self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+    {
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
+        self.try_consume(amount).map_err(MeasuredBudgetError::from)
+    }
+
+    /// Consumes a 64-bit quantity without truncating it.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - 64-bit quantity to convert and consume.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after the converted quantity is consumed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError::Quantity`] when `amount` cannot be
+    /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
+    /// the remaining capacity. The budget is unchanged on either failure.
+    #[inline]
+    pub fn try_consume_u64(
+        &mut self,
+        amount: u64,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+    {
+        let amount = Q::try_from_u64(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
+        self.try_consume(amount).map_err(MeasuredBudgetError::from)
     }
 
     /// Atomically consumes the same amount from every budget in a group.

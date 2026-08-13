@@ -11,6 +11,7 @@ use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
 use qubit_budget::BudgetError;
 use qubit_budget::BudgetGroupError;
+use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceBudget;
 use qubit_budget::ResourceLimit;
 use qubit_budget::ResourceQuantity;
@@ -133,6 +134,33 @@ fn test_budget_accepts_usize_quantities_without_conversion() {
         ResourceBudget::new(TestResource::Bytes, 5_usize);
     budget.try_consume(2_usize).expect("two bytes should fit");
     assert_eq!(budget.remaining(), 3_usize);
+}
+
+#[test]
+fn test_budget_converts_usize_and_u64_consumption_measurements() {
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 5_u8);
+
+    budget
+        .try_consume_usize(2)
+        .expect("the usize measurement should fit");
+    budget
+        .check_available_u64(3)
+        .expect("the exact u64 measurement should fit");
+    assert_eq!(budget.remaining(), 3);
+    assert!(matches!(
+        budget.try_consume_u64(4),
+        Err(MeasuredBudgetError::Budget(BudgetError::Insufficient {
+            resource: TestResource::Bytes,
+            limit: 5,
+            remaining: 3,
+            requested: 4,
+        }))
+    ));
+    assert_eq!(budget.remaining(), 3);
+    assert!(matches!(
+        budget.try_consume_usize(usize::from(u8::MAX) + 1),
+        Err(MeasuredBudgetError::Quantity { .. })
+    ));
 }
 
 #[test]

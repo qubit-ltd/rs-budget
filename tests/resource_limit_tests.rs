@@ -10,6 +10,7 @@
 use std::time::Duration;
 
 use qubit_budget::BudgetError;
+use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
 use qubit_budget::ResourceLimit;
 
@@ -55,5 +56,26 @@ fn test_resource_limit_supports_duration_measurements() {
             observed: Observation::Exact(reported_actual),
             maximum: reported_maximum,
         }) if reported_actual == actual && reported_maximum == maximum
+    ));
+}
+
+#[test]
+fn test_resource_limit_converts_usize_and_u64_measurements() {
+    let limit = ResourceLimit::new(TestResource::Depth, 3_u8);
+
+    limit
+        .check_usize(3)
+        .expect("the exact usize measurement should fit");
+    assert!(matches!(
+        limit.check_u64(4),
+        Err(MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
+            resource: TestResource::Depth,
+            observed: Observation::Exact(4),
+            maximum: 3,
+        }))
+    ));
+    assert!(matches!(
+        limit.check_usize(usize::from(u8::MAX) + 1),
+        Err(MeasuredBudgetError::Quantity { .. })
     ));
 }
