@@ -20,6 +20,30 @@ for transactional adapters.
 
 ## JSON boundaries
 
-JSON-specific limits, sessions, traversal, decoding, encoding, and Serde
-errors are provided by `qubit-json`. A JSON boundary therefore imports generic
-limits from `qubit_budget` and all JSON APIs from `qubit_json`.
+Enable the `json` feature when the caller needs JSON resource accounting. The
+`qubit-budget` crate owns `JsonResource`, `JsonValueLimits`,
+`JsonDecodeLimits`, `JsonEncodeLimits`, and their sessions. Parsing,
+normalization, traversal, and Serde adapters remain in `qubit-json`.
+
+```rust
+use qubit_budget::json::JsonDecodeLimits;
+
+let limits = JsonDecodeLimits::empty()
+    .with_max_input_bytes(1024)
+    .with_max_normalized_input_bytes(2048)
+    .with_max_depth(32)
+    .with_max_nodes(256);
+assert_eq!(limits.max_normalized_input_bytes(), Some(2048));
+```
+
+The lenient decoder maps its compatibility option
+`JsonDecodeOptions::with_max_normalized_bytes` into the session's normalized
+input budget before normalization. This keeps allocation admission and
+accounting on one budget path.
+
+## Testing and limits
+
+Run `cargo test --all-features` for JSON and optional numeric/time helpers.
+Unconfigured dimensions remain unlimited and are represented by `Option` in
+the corresponding session; callers at untrusted boundaries should configure
+raw input, normalized input, value, and output limits explicitly.
