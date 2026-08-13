@@ -14,6 +14,15 @@
 //! integer type. High-level limits remain generic so callers can preserve their
 //! native measurements; conversions from machine-sized measurements are checked
 //! and reported as resource-accounting errors.
+//!
+//! A failed single-budget operation is non-mutating, and
+//! [`ResourceBudget::try_consume_group`] checks every member before charging
+//! any member. Higher-level sessions may deliberately retain charges for work
+//! already attempted: JSON input bytes and accepted structural traversal are
+//! consumed as they are admitted, while JSON output uses a temporary budget
+//! snapshot and commits only after the complete document succeeds. These are
+//! separate guarantees; output transactionality does not imply whole-operation
+//! rollback for input or structure accounting.
 
 mod budget_error;
 mod budget_group_error;

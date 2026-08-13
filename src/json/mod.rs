@@ -6,6 +6,17 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines dependency-free resource limits and sessions for JSON processing.
+//!
+//! Value budgets admit one node at a time. A rejected node leaves its own
+//! structural and payload counters unchanged, while earlier admitted nodes
+//! remain charged for the lifetime of the session. Decode sessions likewise
+//! consume input bytes before parsing and do not roll those charges back when
+//! later syntax or typed decoding fails.
+//!
+//! Encode sessions keep output accounting transactional at the document
+//! boundary: output is charged to a temporary snapshot and committed only
+//! after serialization succeeds. This output guarantee does not roll back
+//! structural value charges already accepted during serialization.
 
 mod json_decode_limits;
 mod json_decode_session;

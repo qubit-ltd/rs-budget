@@ -53,6 +53,10 @@ where
     }
 
     /// Checks and charges one scalar node.
+    ///
+    /// The node is charged only after its depth and cumulative node checks
+    /// succeed. Earlier successful admissions remain charged if a later node
+    /// in the same traversal is rejected.
     pub fn enter_node(&mut self, depth: Q) -> Result<(), BudgetError<R, Q>> {
         self.structure.enter_node(depth)
     }
@@ -70,6 +74,9 @@ where
     }
 
     /// Checks and charges one array node.
+    ///
+    /// Depth, item-count and cumulative-node checks all run before the node is
+    /// charged, so rejecting this array leaves this budget unchanged.
     pub fn enter_array(
         &mut self,
         depth: Q,
@@ -92,6 +99,9 @@ where
     }
 
     /// Checks and charges one object node.
+    ///
+    /// Depth, entry-count and cumulative-node checks all run before the node is
+    /// charged, so rejecting this object leaves this budget unchanged.
     pub fn enter_object(
         &mut self,
         depth: Q,
@@ -115,6 +125,9 @@ where
     }
 
     /// Checks and atomically charges one string node and its payload.
+    ///
+    /// Depth, node, point-byte and cumulative-payload checks all run before
+    /// either counter changes. Earlier successful admissions remain charged.
     pub fn enter_string(
         &mut self,
         depth: Q,
@@ -129,6 +142,9 @@ where
     }
 
     /// Checks and atomically charges one number node and its payload.
+    ///
+    /// Depth, node, point-byte and cumulative-payload checks all run before
+    /// either counter changes. Earlier successful admissions remain charged.
     pub fn enter_number(
         &mut self,
         depth: Q,
