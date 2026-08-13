@@ -88,4 +88,27 @@ where
             Self::Budget(_) => None,
         }
     }
+
+    /// Returns the resource associated with this failure.
+    ///
+    /// The resource is present for both budget validation and quantity
+    /// conversion failures, so callers do not need to match the error variant
+    /// merely to attach resource context.
+    #[must_use]
+    #[inline(always)]
+    pub const fn resource(&self) -> &R {
+        match self {
+            Self::Quantity { resource, .. } => resource,
+            Self::Budget(error) => error.resource(),
+        }
+    }
+
+    /// Consumes this failure and returns its associated resource.
+    #[inline(always)]
+    pub fn into_resource(self) -> R {
+        match self {
+            Self::Quantity { resource, .. } => resource,
+            Self::Budget(error) => error.into_resource(),
+        }
+    }
 }

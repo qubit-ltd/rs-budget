@@ -8,7 +8,10 @@
 //! Tests for structured resource limit failures.
 
 use qubit_budget::BudgetError;
+use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
+use qubit_budget::QuantityConversionError;
+use qubit_budget::QuantityMeasurement;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TestResource {
@@ -51,5 +54,29 @@ fn test_insufficient_error_exposes_only_consumption_facts() {
     assert_eq!(error.maximum(), None);
     assert_eq!(error.remaining(), Some(1));
     assert_eq!(error.requested(), Some(2));
+    assert_eq!(error.into_resource(), TestResource::Depth);
+}
+
+#[test]
+fn test_measured_budget_error_exposes_resource_for_budget_failures() {
+    let error = MeasuredBudgetError::Budget(BudgetError::Insufficient {
+        resource: TestResource::Depth,
+        limit: 3_usize,
+        remaining: 1,
+        requested: 2,
+    });
+
+    assert_eq!(error.resource(), &TestResource::Depth);
+    assert_eq!(error.into_resource(), TestResource::Depth);
+}
+
+#[test]
+fn test_measured_budget_error_exposes_resource_for_quantity_failures() {
+    let error = MeasuredBudgetError::<TestResource, usize>::quantity(
+        TestResource::Depth,
+        QuantityConversionError::new(QuantityMeasurement::Usize(256), "u8"),
+    );
+
+    assert_eq!(error.resource(), &TestResource::Depth);
     assert_eq!(error.into_resource(), TestResource::Depth);
 }
