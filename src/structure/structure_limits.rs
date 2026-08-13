@@ -90,20 +90,14 @@ where
 
     /// Configures the inclusive sequence-item limit.
     #[inline]
-    pub fn with_sequence_items_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_sequence_items_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_sequence_items = Some(limit);
         self
     }
 
     /// Configures the inclusive map-entry limit.
     #[inline]
-    pub fn with_map_entries_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_map_entries_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_map_entries = Some(limit);
         self
     }
@@ -226,16 +220,14 @@ impl StructureLimits<StructureResource, usize> {
     /// Configures the inclusive maximum nesting depth.
     #[inline]
     pub const fn with_max_depth(mut self, maximum: usize) -> Self {
-        self.max_depth =
-            Some(ResourceLimit::new(StructureResource::Depth, maximum));
+        self.max_depth = Some(ResourceLimit::new(StructureResource::Depth, maximum));
         self
     }
 
     /// Configures the cumulative maximum number of processed nodes.
     #[inline]
     pub const fn with_max_nodes(mut self, maximum: usize) -> Self {
-        self.max_nodes =
-            Some(ResourceLimit::new(StructureResource::Nodes, maximum));
+        self.max_nodes = Some(ResourceLimit::new(StructureResource::Nodes, maximum));
         self
     }
 
@@ -252,16 +244,14 @@ impl StructureLimits<StructureResource, usize> {
     /// Configures the inclusive maximum entry count for one map.
     #[inline]
     pub const fn with_max_map_entries(mut self, maximum: usize) -> Self {
-        self.max_map_entries =
-            Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
+        self.max_map_entries = Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
         self
     }
 
     /// Configures the inclusive maximum byte length of one structural key.
     #[inline]
     pub const fn with_max_key_bytes(mut self, maximum: usize) -> Self {
-        self.max_key_bytes =
-            Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
+        self.max_key_bytes = Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
         self
     }
 }

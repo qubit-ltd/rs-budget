@@ -58,9 +58,8 @@ where
         let Some(limit) = self.max_utf8_bytes.as_ref() else {
             return Ok(());
         };
-        let bytes = Q::try_from_usize(value.len()).map_err(|source| {
-            MeasuredBudgetError::quantity(limit.resource().clone(), source)
-        })?;
+        let bytes = Q::try_from_usize(value.len())
+            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
         limit.check(bytes).map_err(MeasuredBudgetError::from)
     }
 }

@@ -7,6 +7,7 @@
 // =============================================================================
 mod budget_error_tests;
 mod budget_group_error_tests;
+mod json;
 mod observation_tests;
 mod resource_budget_tests;
 mod resource_limit_tests;

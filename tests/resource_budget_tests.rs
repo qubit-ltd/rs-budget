@@ -152,9 +152,8 @@ fn test_group_consume_does_not_charge_any_budget_when_later_check_fails() {
     let mut local = ResourceBudget::new(TestResource::Bytes, 5_u64);
     let mut aggregate = ResourceBudget::new(TestResource::Bytes, 2_u64);
 
-    let error =
-        ResourceBudget::try_consume_group(&mut [&mut local, &mut aggregate], 3)
-            .expect_err("the aggregate budget should reject three bytes");
+    let error = ResourceBudget::try_consume_group(&mut [&mut local, &mut aggregate], 3)
+        .expect_err("the aggregate budget should reject three bytes");
 
     assert_eq!(error.index(), 1);
     assert!(matches!(

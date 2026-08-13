@@ -28,6 +28,8 @@ mod resource_release_error;
 pub mod string;
 mod value;
 
+#[cfg(feature = "json")]
+pub mod json;
 pub mod structure;
 
 pub use budget_error::BudgetError;

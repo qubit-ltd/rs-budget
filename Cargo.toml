@@ -28,6 +28,7 @@ miri = true
 
 [features]
 default = []
+json = []
 big-integer = ["dep:num-bigint"]
 big-decimal = ["big-integer", "dep:bigdecimal"]
 time = ["dep:qubit-clock"]
