@@ -44,15 +44,25 @@ fn test_owned_consumes_raw_and_normalized_input_independently() {
     );
 }
 
-/// Verifies that a borrowed session charges the budgets retained by its caller.
+/// Verifies that each borrowed decode constructor charges only its supplied
+/// budgets.
 #[test]
-fn test_borrowing_retains_caller_owned_budgets() {
+fn test_borrowing_constructors_charge_only_supplied_dimensions() {
     let mut input = ResourceBudget::new(JsonResource::InputBytes, 2_usize);
+    let mut normalized =
+        ResourceBudget::new(JsonResource::NormalizedInputBytes, 3_usize);
     let mut value = JsonValueBudget::new(JsonValueLimits::empty());
-    let mut session =
-        JsonDecodeSession::borrowing(Some(&mut input), None, &mut value);
 
-    session.consume_input_bytes_usize(2).expect("input fits");
-    drop(session);
+    JsonDecodeSession::borrowing_value(&mut value)
+        .consume_input_bytes_usize(99)
+        .expect("input budget is absent");
+    JsonDecodeSession::borrowing_input(&mut input, &mut value)
+        .consume_input_bytes_usize(2)
+        .expect("input fits");
+    JsonDecodeSession::borrowing_all(&mut input, &mut normalized, &mut value)
+        .consume_normalized_input_bytes_usize(3)
+        .expect("normalized input fits");
+
     assert_eq!(input.used(), 2);
+    assert_eq!(normalized.used(), 3);
 }

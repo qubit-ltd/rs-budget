@@ -46,13 +46,26 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
+    /// Creates a session borrowing only a caller-owned value budget.
+    pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
+        Self {
+            storage: EncodeStorage::Borrowed {
+                output: None,
+                value,
+            },
+        }
+    }
+
     /// Creates a session borrowing caller-owned output and value budgets.
-    pub fn borrowing(
-        output: Option<&'a mut ResourceBudget<R, Q>>,
+    pub fn borrowing_output(
+        output: &'a mut ResourceBudget<R, Q>,
         value: &'a mut JsonValueBudget<R, Q>,
     ) -> Self {
         Self {
-            storage: EncodeStorage::Borrowed { output, value },
+            storage: EncodeStorage::Borrowed {
+                output: Some(output),
+                value,
+            },
         }
     }
 

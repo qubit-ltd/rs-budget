@@ -48,16 +48,41 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    /// Creates a session borrowing caller-owned input and value budgets.
-    pub fn borrowing(
-        input: Option<&'a mut ResourceBudget<R, Q>>,
-        normalized_input: Option<&'a mut ResourceBudget<R, Q>>,
+    /// Creates a session borrowing only a caller-owned value budget.
+    pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
+        Self {
+            storage: DecodeStorage::Borrowed {
+                input: None,
+                normalized_input: None,
+                value,
+            },
+        }
+    }
+
+    /// Creates a session borrowing caller-owned raw-input and value budgets.
+    pub fn borrowing_input(
+        input: &'a mut ResourceBudget<R, Q>,
         value: &'a mut JsonValueBudget<R, Q>,
     ) -> Self {
         Self {
             storage: DecodeStorage::Borrowed {
-                input,
-                normalized_input,
+                input: Some(input),
+                normalized_input: None,
+                value,
+            },
+        }
+    }
+
+    /// Creates a session borrowing all caller-owned decode budgets.
+    pub fn borrowing_all(
+        input: &'a mut ResourceBudget<R, Q>,
+        normalized_input: &'a mut ResourceBudget<R, Q>,
+        value: &'a mut JsonValueBudget<R, Q>,
+    ) -> Self {
+        Self {
+            storage: DecodeStorage::Borrowed {
+                input: Some(input),
+                normalized_input: Some(normalized_input),
                 value,
             },
         }
