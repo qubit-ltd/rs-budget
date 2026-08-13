@@ -13,11 +13,15 @@ use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueBudget;
 use qubit_budget::json::JsonValueLimits;
 
-/// Verifies that decode sessions measure raw and normalized input independently.
+/// Verifies that decode sessions measure raw and normalized input
+/// independently.
 #[test]
 fn test_owned_consumes_raw_and_normalized_input_independently() {
     let limits = JsonDecodeLimits::empty()
-        .with_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 3_usize))
+        .with_input_bytes_limit(ResourceLimit::new(
+            JsonResource::InputBytes,
+            3_usize,
+        ))
         .with_normalized_input_bytes_limit(ResourceLimit::new(
             JsonResource::NormalizedInputBytes,
             4_usize,
@@ -45,7 +49,8 @@ fn test_owned_consumes_raw_and_normalized_input_independently() {
 fn test_borrowing_retains_caller_owned_budgets() {
     let mut input = ResourceBudget::new(JsonResource::InputBytes, 2_usize);
     let mut value = JsonValueBudget::new(JsonValueLimits::empty());
-    let mut session = JsonDecodeSession::borrowing(Some(&mut input), None, &mut value);
+    let mut session =
+        JsonDecodeSession::borrowing(Some(&mut input), None, &mut value);
 
     session.consume_input_bytes_usize(2).expect("input fits");
     drop(session);

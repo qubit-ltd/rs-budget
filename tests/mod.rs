@@ -7,6 +7,7 @@
 // =============================================================================
 mod budget_error_tests;
 mod budget_group_error_tests;
+#[cfg(feature = "json")]
 mod json;
 mod observation_tests;
 mod resource_budget_tests;

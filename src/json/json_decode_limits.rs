@@ -7,11 +7,10 @@
 // =============================================================================
 //! Defines JSON decoding limits.
 
-use crate::ResourceLimit;
-use crate::ResourceQuantity;
-
 use super::JsonResource;
 use super::JsonValueLimits;
+use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// Optional limits for one JSON decoding session.
 #[must_use]
@@ -45,12 +44,18 @@ where
         }
     }
     /// Configures the cumulative raw input-byte budget.
-    pub fn with_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.input = Some(limit);
         self
     }
     /// Configures the cumulative normalized input-byte budget.
-    pub fn with_normalized_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_normalized_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.normalized_input = Some(limit);
         self
     }
@@ -64,7 +69,9 @@ where
         self.input.as_ref()
     }
     /// Returns the complete normalized input-byte limit, when configured.
-    pub const fn normalized_input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
+    pub const fn normalized_input_bytes_limit(
+        &self,
+    ) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
     }
     /// Returns the JSON value limits used for decoding.
@@ -87,6 +94,70 @@ impl JsonDecodeLimits<JsonResource, usize> {
     /// Creates an unconfigured JSON decoding limit set.
     pub const fn empty() -> Self {
         Self::unconfigured()
+    }
+
+    /// Configures the cumulative raw input-byte maximum.
+    pub fn with_max_input_bytes(mut self, maximum: usize) -> Self {
+        self.input =
+            Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        self
+    }
+
+    /// Configures the cumulative normalized input-byte maximum.
+    pub fn with_max_normalized_input_bytes(mut self, maximum: usize) -> Self {
+        self.normalized_input = Some(ResourceLimit::new(
+            JsonResource::NormalizedInputBytes,
+            maximum,
+        ));
+        self
+    }
+
+    /// Configures the inclusive maximum nesting depth.
+    pub fn with_max_depth(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_depth(maximum);
+        self
+    }
+
+    /// Configures the cumulative maximum number of JSON nodes.
+    pub fn with_max_nodes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_nodes(maximum);
+        self
+    }
+
+    /// Configures the maximum number of items in one JSON array.
+    pub fn with_max_sequence_items(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_sequence_items(maximum);
+        self
+    }
+
+    /// Configures the maximum number of entries in one JSON object.
+    pub fn with_max_map_entries(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_map_entries(maximum);
+        self
+    }
+
+    /// Configures the maximum UTF-8 byte length of one JSON object key.
+    pub fn with_max_key_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_key_bytes(maximum);
+        self
+    }
+
+    /// Configures the maximum UTF-8 byte length of one JSON string.
+    pub fn with_max_string_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_string_bytes(maximum);
+        self
+    }
+
+    /// Configures the maximum byte length of one JSON number representation.
+    pub fn with_max_number_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_number_bytes(maximum);
+        self
+    }
+
+    /// Configures the cumulative payload-byte maximum.
+    pub fn with_max_payload_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_payload_bytes(maximum);
+        self
     }
 }
 /// Returns an optional maximum without exposing the resource identity.

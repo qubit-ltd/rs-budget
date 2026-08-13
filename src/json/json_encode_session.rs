@@ -7,14 +7,13 @@
 // =============================================================================
 //! Tracks mutable accounting for one JSON encoding operation.
 
+use super::JsonEncodeLimits;
+use super::JsonResource;
+use super::JsonValueBudget;
 use crate::BudgetError;
 use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
-
-use super::JsonEncodeLimits;
-use super::JsonResource;
-use super::JsonValueBudget;
 
 /// Backing storage for owned and caller-borrowed encode budgets.
 #[derive(Debug)]
@@ -58,7 +57,10 @@ where
     }
 
     /// Consumes output bytes.
-    pub fn consume_output_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_output_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.output_budget_mut()
             .map_or(Ok(()), |budget| budget.try_consume(amount))
     }
@@ -71,8 +73,9 @@ where
         let Some(budget) = self.output_budget_mut() else {
             return Ok(());
         };
-        let amount = Q::try_from_usize(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(budget.resource().clone(), source))?;
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(budget.resource().clone(), source)
+        })?;
         budget
             .try_consume(amount)
             .map_err(MeasuredBudgetError::from)

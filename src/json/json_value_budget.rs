@@ -7,15 +7,14 @@
 // =============================================================================
 //! Tracks mutable accounting for one JSON value traversal.
 
+use super::JsonResource;
+use super::JsonValueLimits;
 use crate::BudgetError;
 use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 use crate::StructureBudget;
-
-use super::JsonResource;
-use super::JsonValueLimits;
 
 /// Mutable accounting for JSON structure and value payloads.
 #[must_use]
@@ -59,13 +58,23 @@ where
     }
 
     /// Converts and admits one JSON scalar measured with native depth.
-    pub fn enter_node_usize(&mut self, depth: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let depth = self.convert_usize(depth, self.limits.structure_limits().depth_limit())?;
+    pub fn enter_node_usize(
+        &mut self,
+        depth: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let depth = self.convert_usize(
+            depth,
+            self.limits.structure_limits().depth_limit(),
+        )?;
         self.enter_node(depth).map_err(MeasuredBudgetError::from)
     }
 
     /// Checks and charges one array node.
-    pub fn enter_array(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_array(
+        &mut self,
+        depth: Q,
+        items: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.enter_sequence(depth, items)
     }
 
@@ -83,7 +92,11 @@ where
     }
 
     /// Checks and charges one object node.
-    pub fn enter_object(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_object(
+        &mut self,
+        depth: Q,
+        entries: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.enter_map(depth, entries)
     }
 
@@ -95,13 +108,18 @@ where
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let limits = self.limits.structure_limits();
         let depth = self.convert_usize(depth, limits.depth_limit())?;
-        let entries = self.convert_usize(entries, limits.map_entries_limit())?;
+        let entries =
+            self.convert_usize(entries, limits.map_entries_limit())?;
         self.enter_object(depth, entries)
             .map_err(MeasuredBudgetError::from)
     }
 
     /// Checks and atomically charges one string node and its payload.
-    pub fn enter_string(&mut self, depth: Q, bytes: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_string(
+        &mut self,
+        depth: Q,
+        bytes: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_depth(depth)?;
         self.structure.check_node_available()?;
         self.check_string_bytes(bytes)?;
@@ -111,7 +129,11 @@ where
     }
 
     /// Checks and atomically charges one number node and its payload.
-    pub fn enter_number(&mut self, depth: Q, bytes: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn enter_number(
+        &mut self,
+        depth: Q,
+        bytes: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_depth(depth)?;
         self.structure.check_node_available()?;
         self.check_number_bytes(bytes)?;
@@ -126,8 +148,12 @@ where
         depth: usize,
         bytes: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let depth = self.convert_usize(depth, self.limits.structure_limits().depth_limit())?;
-        let bytes = self.convert_payload_usize(bytes, self.limits.string_bytes_limit())?;
+        let depth = self.convert_usize(
+            depth,
+            self.limits.structure_limits().depth_limit(),
+        )?;
+        let bytes = self
+            .convert_payload_usize(bytes, self.limits.string_bytes_limit())?;
         self.enter_string(depth, bytes)
             .map_err(MeasuredBudgetError::from)
     }
@@ -138,8 +164,12 @@ where
         depth: usize,
         bytes: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let depth = self.convert_usize(depth, self.limits.structure_limits().depth_limit())?;
-        let bytes = self.convert_payload_usize(bytes, self.limits.number_bytes_limit())?;
+        let depth = self.convert_usize(
+            depth,
+            self.limits.structure_limits().depth_limit(),
+        )?;
+        let bytes = self
+            .convert_payload_usize(bytes, self.limits.number_bytes_limit())?;
         self.enter_number(depth, bytes)
             .map_err(MeasuredBudgetError::from)
     }
@@ -164,18 +194,25 @@ where
         self.structure.check_depth(actual)
     }
 
-    /// Charges one JSON node after the caller has performed any required checks.
+    /// Charges one JSON node after the caller has performed any required
+    /// checks.
     pub fn charge_node(&mut self) -> Result<(), BudgetError<R, Q>> {
         self.structure.charge_node()
     }
 
     /// Checks the item count of one JSON array.
-    pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_sequence_items(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_sequence_items(actual)
     }
 
     /// Checks the entry count of one JSON object.
-    pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_map_entries(
+        &self,
+        actual: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.structure.check_map_entries(actual)
     }
 
@@ -185,19 +222,28 @@ where
     }
 
     /// Checks and consumes one object key's payload bytes.
-    pub fn consume_key_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_key_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.check_key_bytes(amount)?;
         self.consume_payload_bytes(amount)
     }
 
     /// Checks and consumes one string value's payload bytes.
-    pub fn consume_string_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_string_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.check_string_bytes(amount)?;
         self.consume_payload_bytes(amount)
     }
 
     /// Checks and consumes one number representation's payload bytes.
-    pub fn consume_number_bytes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn consume_number_bytes(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.check_number_bytes(amount)?;
         self.consume_payload_bytes(amount)
     }
@@ -216,9 +262,14 @@ where
     }
 
     /// Converts and checks one native object-entry count.
-    pub fn check_map_entries_usize(&self, actual: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let actual =
-            self.convert_usize(actual, self.limits.structure_limits().map_entries_limit())?;
+    pub fn check_map_entries_usize(
+        &self,
+        actual: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let actual = self.convert_usize(
+            actual,
+            self.limits.structure_limits().map_entries_limit(),
+        )?;
         self.check_map_entries(actual)
             .map_err(MeasuredBudgetError::from)
     }
@@ -228,8 +279,10 @@ where
         &mut self,
         amount: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let amount =
-            self.convert_payload_usize(amount, self.limits.structure_limits().key_bytes_limit())?;
+        let amount = self.convert_payload_usize(
+            amount,
+            self.limits.structure_limits().key_bytes_limit(),
+        )?;
         self.consume_key_bytes(amount)
             .map_err(MeasuredBudgetError::from)
     }
@@ -239,7 +292,8 @@ where
         &mut self,
         amount: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let amount = self.convert_payload_usize(amount, self.limits.string_bytes_limit())?;
+        let amount = self
+            .convert_payload_usize(amount, self.limits.string_bytes_limit())?;
         self.consume_string_bytes(amount)
             .map_err(MeasuredBudgetError::from)
     }
@@ -249,42 +303,62 @@ where
         &mut self,
         amount: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let amount = self.convert_payload_usize(amount, self.limits.number_bytes_limit())?;
+        let amount = self
+            .convert_payload_usize(amount, self.limits.number_bytes_limit())?;
         self.consume_number_bytes(amount)
             .map_err(MeasuredBudgetError::from)
     }
 
     /// Converts and checks native object-key bytes without consuming payload.
-    pub fn check_key_bytes_usize(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let amount =
-            self.convert_usize(amount, self.limits.structure_limits().key_bytes_limit())?;
+    pub fn check_key_bytes_usize(
+        &self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let amount = self.convert_usize(
+            amount,
+            self.limits.structure_limits().key_bytes_limit(),
+        )?;
         self.check_key_bytes(amount)
             .map_err(MeasuredBudgetError::from)
     }
 
     /// Converts and checks native string bytes without consuming payload.
-    pub fn check_string_bytes_usize(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let amount = self.convert_usize(amount, self.limits.string_bytes_limit())?;
+    pub fn check_string_bytes_usize(
+        &self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let amount =
+            self.convert_usize(amount, self.limits.string_bytes_limit())?;
         self.check_string_bytes(amount)
             .map_err(MeasuredBudgetError::from)
     }
 
     /// Converts and checks native number bytes without consuming payload.
-    pub fn check_number_bytes_usize(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let amount = self.convert_usize(amount, self.limits.number_bytes_limit())?;
+    pub fn check_number_bytes_usize(
+        &self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let amount =
+            self.convert_usize(amount, self.limits.number_bytes_limit())?;
         self.check_number_bytes(amount)
             .map_err(MeasuredBudgetError::from)
     }
 
     /// Checks the byte length of one string value.
-    pub fn check_string_bytes(&self, bytes: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_string_bytes(
+        &self,
+        bytes: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.limits
             .string_bytes_limit()
             .map_or(Ok(()), |limit| limit.check(bytes))
     }
 
     /// Checks the byte length of one number representation.
-    pub fn check_number_bytes(&self, bytes: Q) -> Result<(), BudgetError<R, Q>> {
+    pub fn check_number_bytes(
+        &self,
+        bytes: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.limits
             .number_bytes_limit()
             .map_or(Ok(()), |limit| limit.check(bytes))
@@ -298,7 +372,10 @@ where
     }
 
     /// Consumes a payload amount known to have already passed every check.
-    fn consume_payload_bytes(&mut self, bytes: Q) -> Result<(), BudgetError<R, Q>> {
+    fn consume_payload_bytes(
+        &mut self,
+        bytes: Q,
+    ) -> Result<(), BudgetError<R, Q>> {
         self.payload
             .as_mut()
             .map_or(Ok(()), |payload| payload.try_consume(bytes))
@@ -313,23 +390,29 @@ where
         let Some(limit) = limit else {
             return Ok(Q::ZERO);
         };
-        Q::try_from_usize(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))
+        Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(limit.resource().clone(), source)
+        })
     }
 
-    /// Converts a payload quantity when either its point or cumulative limit is configured.
+    /// Converts a payload quantity when either its point or cumulative limit is
+    /// configured.
     fn convert_payload_usize(
         &self,
         amount: usize,
         point_limit: Option<&ResourceLimit<R, Q>>,
     ) -> Result<Q, MeasuredBudgetError<R, Q>> {
         if let Some(limit) = point_limit {
-            return Q::try_from_usize(amount)
-                .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source));
+            return Q::try_from_usize(amount).map_err(|source| {
+                MeasuredBudgetError::quantity(limit.resource().clone(), source)
+            });
         }
         if let Some(payload) = &self.payload {
             return Q::try_from_usize(amount).map_err(|source| {
-                MeasuredBudgetError::quantity(payload.resource().clone(), source)
+                MeasuredBudgetError::quantity(
+                    payload.resource().clone(),
+                    source,
+                )
             });
         }
         Ok(Q::ZERO)

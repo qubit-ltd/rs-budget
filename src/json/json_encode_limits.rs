@@ -7,11 +7,10 @@
 // =============================================================================
 //! Defines JSON encoding limits.
 
-use crate::ResourceLimit;
-use crate::ResourceQuantity;
-
 use super::JsonResource;
 use super::JsonValueLimits;
+use crate::ResourceLimit;
+use crate::ResourceQuantity;
 
 /// Optional limits for one JSON encoding session.
 #[must_use]
@@ -43,7 +42,10 @@ where
         }
     }
     /// Configures the cumulative output-byte budget.
-    pub fn with_output_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_output_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.output = Some(limit);
         self
     }
@@ -75,5 +77,60 @@ impl JsonEncodeLimits<JsonResource, usize> {
     /// Creates an unconfigured JSON encoding limit set.
     pub const fn empty() -> Self {
         Self::unconfigured()
+    }
+
+    /// Configures the cumulative output-byte maximum.
+    pub fn with_max_output_bytes(mut self, maximum: usize) -> Self {
+        self.output =
+            Some(ResourceLimit::new(JsonResource::OutputBytes, maximum));
+        self
+    }
+
+    /// Configures the inclusive maximum nesting depth.
+    pub fn with_max_depth(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_depth(maximum);
+        self
+    }
+
+    /// Configures the cumulative maximum number of JSON nodes.
+    pub fn with_max_nodes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_nodes(maximum);
+        self
+    }
+
+    /// Configures the maximum number of items in one JSON array.
+    pub fn with_max_sequence_items(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_sequence_items(maximum);
+        self
+    }
+
+    /// Configures the maximum number of entries in one JSON object.
+    pub fn with_max_map_entries(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_map_entries(maximum);
+        self
+    }
+
+    /// Configures the maximum UTF-8 byte length of one JSON object key.
+    pub fn with_max_key_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_key_bytes(maximum);
+        self
+    }
+
+    /// Configures the maximum UTF-8 byte length of one JSON string.
+    pub fn with_max_string_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_string_bytes(maximum);
+        self
+    }
+
+    /// Configures the maximum byte length of one JSON number representation.
+    pub fn with_max_number_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_number_bytes(maximum);
+        self
+    }
+
+    /// Configures the cumulative payload-byte maximum.
+    pub fn with_max_payload_bytes(mut self, maximum: usize) -> Self {
+        self.value = self.value.with_max_payload_bytes(maximum);
+        self
     }
 }

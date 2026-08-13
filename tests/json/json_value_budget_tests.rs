@@ -14,13 +14,19 @@ use qubit_budget::json::JsonValueLimits;
 /// Verifies that a rejected scalar does not consume its node or payload quota.
 #[test]
 fn test_enter_string_usize_rejection_is_atomic() {
-    let limits = JsonValueLimits::empty()
-        .with_structure_limits(
-            StructureLimits::empty()
-                .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, 1_usize)),
-        )
-        .with_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, 2_usize))
-        .with_payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, 2_usize));
+    let limits =
+        JsonValueLimits::empty()
+            .with_structure_limits(StructureLimits::empty().with_nodes_limit(
+                ResourceLimit::new(JsonResource::Nodes, 1_usize),
+            ))
+            .with_string_bytes_limit(ResourceLimit::new(
+                JsonResource::StringBytes,
+                2_usize,
+            ))
+            .with_payload_bytes_limit(ResourceLimit::new(
+                JsonResource::PayloadBytes,
+                2_usize,
+            ));
     let mut budget = JsonValueBudget::new(limits);
 
     assert!(budget.enter_string_usize(1, 3).is_err());

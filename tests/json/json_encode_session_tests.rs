@@ -13,8 +13,9 @@ use qubit_budget::json::JsonResource;
 /// Verifies that an owned encode session measures its output budget.
 #[test]
 fn test_owned_consumes_output_bytes() {
-    let limits = JsonEncodeLimits::empty()
-        .with_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 3_usize));
+    let limits = JsonEncodeLimits::empty().with_output_bytes_limit(
+        ResourceLimit::new(JsonResource::OutputBytes, 3_usize),
+    );
     let mut session = JsonEncodeSession::owned(limits);
 
     session.consume_output_bytes_usize(3).expect("output fits");

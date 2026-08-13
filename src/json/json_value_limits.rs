@@ -7,11 +7,11 @@
 // =============================================================================
 //! Defines direction-independent limits for JSON values.
 
+use super::JsonResource;
+use super::JsonValueBudget;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 use crate::StructureLimits;
-
-use super::JsonResource;
 
 /// Optional limits for one JSON value traversal.
 #[must_use]
@@ -50,17 +50,26 @@ where
         }
     }
     /// Configures the inclusive byte limit for one string value.
-    pub fn with_string_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_string_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_string_bytes = Some(limit);
         self
     }
     /// Configures the inclusive byte limit for one number representation.
-    pub fn with_number_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_number_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_number_bytes = Some(limit);
         self
     }
     /// Configures the cumulative byte budget for keys, strings and numbers.
-    pub fn with_payload_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn with_payload_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_payload_bytes = Some(limit);
         self
     }
@@ -115,7 +124,8 @@ where
     pub const fn max_string_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_string_bytes.as_ref())
     }
-    /// Returns the configured maximum byte length for one number representation.
+    /// Returns the configured maximum byte length for one number
+    /// representation.
     pub const fn max_number_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_number_bytes.as_ref())
     }
@@ -129,6 +139,72 @@ impl JsonValueLimits<JsonResource, usize> {
     /// Creates a value limit set with every JSON value dimension unconfigured.
     pub const fn empty() -> Self {
         Self::unconfigured()
+    }
+
+    /// Configures the inclusive maximum nesting depth.
+    pub fn with_max_depth(mut self, maximum: usize) -> Self {
+        self.structure = self
+            .structure
+            .with_depth_limit(ResourceLimit::new(JsonResource::Depth, maximum));
+        self
+    }
+
+    /// Configures the cumulative maximum number of JSON nodes.
+    pub fn with_max_nodes(mut self, maximum: usize) -> Self {
+        self.structure = self
+            .structure
+            .with_nodes_limit(ResourceLimit::new(JsonResource::Nodes, maximum));
+        self
+    }
+
+    /// Configures the maximum number of items in one JSON array.
+    pub fn with_max_sequence_items(mut self, maximum: usize) -> Self {
+        self.structure = self.structure.with_sequence_items_limit(
+            ResourceLimit::new(JsonResource::SequenceItems, maximum),
+        );
+        self
+    }
+
+    /// Configures the maximum number of entries in one JSON object.
+    pub fn with_max_map_entries(mut self, maximum: usize) -> Self {
+        self.structure = self.structure.with_map_entries_limit(
+            ResourceLimit::new(JsonResource::MapEntries, maximum),
+        );
+        self
+    }
+
+    /// Configures the maximum UTF-8 byte length of one JSON object key.
+    pub fn with_max_key_bytes(mut self, maximum: usize) -> Self {
+        self.structure = self.structure.with_key_bytes_limit(
+            ResourceLimit::new(JsonResource::KeyBytes, maximum),
+        );
+        self
+    }
+
+    /// Configures the maximum UTF-8 byte length of one JSON string.
+    pub fn with_max_string_bytes(mut self, maximum: usize) -> Self {
+        self.max_string_bytes =
+            Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
+        self
+    }
+
+    /// Configures the maximum byte length of one JSON number representation.
+    pub fn with_max_number_bytes(mut self, maximum: usize) -> Self {
+        self.max_number_bytes =
+            Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
+        self
+    }
+
+    /// Configures the cumulative payload-byte maximum.
+    pub fn with_max_payload_bytes(mut self, maximum: usize) -> Self {
+        self.max_payload_bytes =
+            Some(ResourceLimit::new(JsonResource::PayloadBytes, maximum));
+        self
+    }
+
+    /// Creates a fresh mutable budget from these JSON value limits.
+    pub fn budget(self) -> JsonValueBudget {
+        JsonValueBudget::new(self)
     }
 }
 

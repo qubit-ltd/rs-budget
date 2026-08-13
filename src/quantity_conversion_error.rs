@@ -62,7 +62,10 @@ impl QuantityConversionError {
     ///
     /// A failure retaining both the original measurement and target type.
     #[inline(always)]
-    pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
+    pub const fn new(
+        measurement: QuantityMeasurement,
+        target: &'static str,
+    ) -> Self {
         Self {
             measurement,
             target,
