@@ -7,75 +7,100 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
-`qubit-budget` provides dependency-light, format-agnostic finite resource
-limits and accounting primitives for Qubit Rust crates.
+`qubit-budget` gives Qubit Rust applications exact, finite resource limits and
+accounting primitives. Use it when a parser, converter, serializer, or I/O
+boundary must reject oversized work without relying on unchecked arithmetic or
+format-specific policy.
 
-It owns generic `ResourceLimit`, `ResourceBudget`, `ResourcePool`,
-`StructureLimits`, `StructureBudget`, and string, numeric, duration, and time
-helpers. A budget is always finite; use `Option<ResourceBudget<_, _>>` for an
-unconfigured dimension.
+## Installation
 
-## Features
+```toml
+[dependencies]
+qubit-budget = "0.4"
+```
 
-| Feature | Adds |
-| --- | --- |
-| `json` | JSON resource limits and budget sessions |
-| `big-integer` | `BigIntegerLimits` |
-| `big-decimal` | `BigDecimalLimits` |
-| `time` | clock-backed `TimeBudget` |
+Enable `json`, `big-integer`, `big-decimal`, or `time` only when the associated
+budget types are needed.
 
-The minimum supported Rust version is 1.94.
+## Quick Start
 
-## Quick start
+Suppose an HTTP handler accepts a request body and must stop processing after
+8 KiB. The handler can charge bytes as they arrive and inspect the remaining
+capacity without maintaining a second counter:
 
 ```rust
 use qubit_budget::ResourceBudget;
 
-let mut budget = ResourceBudget::new("body bytes", 8_u64);
-budget.try_consume(3)?;
-assert_eq!(budget.remaining(), 5);
+let mut body_budget = ResourceBudget::new("request body bytes", 8_u64);
+body_budget.try_consume(3)?;
+assert_eq!(body_budget.remaining(), 5);
 # Ok::<(), qubit_budget::BudgetError<&str>>(())
 ```
 
-`ResourceBudget` can be cloned to create an independent accounting snapshot.
-Each snapshot remains valid and can be charged independently.
+`ResourceBudget::try_consume` is atomic: a request larger than the remaining
+capacity returns a structured error and leaves the budget unchanged.
 
-## JSON support
+## What It Provides
 
-With the optional `json` feature, this crate owns JSON resource identities,
-limits, and mutable sessions. Enable it with `qubit-budget = { version =
-"0.4", features = ["json"] }` and import `Json*` budget types from
-`qubit_budget::json`. Parsing, normalization, traversal, and Serde adapters
+| Feature | Adds |
+| --- | --- |
+| `json` | JSON resource identities, limits, and mutable decode/encode sessions |
+| `big-integer` | `BigIntegerLimits` |
+| `big-decimal` | `BigDecimalLimits` |
+| `time` | Clock-backed `TimeBudget` |
+
+The crate provides `ResourceLimit`, `ResourceBudget`, `ResourcePool`,
+`StructureLimits`, `StructureBudget`, and string, numeric, duration, and time
+helpers. A dimension that is not configured is represented by `Option`, not by
+an unlimited budget object.
+
+JSON limits and sessions live here so configuration, metadata, value objects,
+and format adapters can share the same accounting contract. Parsing,
+normalization, traversal, Serde adapters, and application error policies
 remain in [`qubit-json`](https://crates.io/crates/qubit-json).
-
-```rust
-use qubit_budget::json::JsonDecodeLimits;
-
-let limits = JsonDecodeLimits::empty()
-    .with_max_input_bytes(1024)
-    .with_max_nodes(128)
-    .with_max_string_bytes(4096);
-assert_eq!(limits.max_input_bytes(), Some(1024));
-```
 
 ## Boundaries
 
-This crate does not parse JSON, perform I/O, allocate output, select limits,
-or define application-specific error policies.
+This crate does not parse JSON, perform I/O, allocate output, select
+application limits, or define application-specific error policies.
+
+## Learn More
+
+- [API documentation](https://docs.rs/qubit-budget)
+- [中文 README](README.zh_CN.md)
+- [Repository](https://github.com/qubit-ltd/rs-budget)
 
 ## Testing
 
-Run `cargo test --all-features` for the complete feature set.
+```bash
+# Run tests with the default feature set
+cargo test
+
+# Run tests with all declared features
+cargo test --all-features
+
+# Project CI checks
+./ci-check.sh
+
+# Check code coverage
+./coverage.sh
+```
 
 ## License
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
+Copyright (c) 2025 - 2026. Haixing Hu. All rights reserved.
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the
+full license text.
 
 ## Contributing
 
-Run the repository's `style-check.sh`, Clippy, tests, and documentation checks
-before submitting a change.
+Contributions are welcome. Please follow the Rust API guidelines, keep public
+API documentation and tests current, and run `./align-ci.sh` to format code and
+`./ci-check.sh` to satisfy CI requirements before submitting a pull request.
 
 ## Author
 
-Haixing Hu
+**Haixing Hu** - *Qubit Co. Ltd.*
+
+Repository: [https://github.com/qubit-ltd/rs-budget](https://github.com/qubit-ltd/rs-budget)

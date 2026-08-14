@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "name": "json",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["json"]
+    },
+    {
+      "name": "big-integer",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["big-integer"]
+    },
+    {
+      "name": "big-decimal",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["big-decimal"]
+    },
+    {
+      "name": "time",
+      "commands": ["check", "test", "doc"],
+      "defaultFeatures": false,
+      "features": ["time"]
+    }
+  ]
+}
