@@ -164,6 +164,19 @@ fn test_budget_converts_usize_and_u64_consumption_measurements() {
 }
 
 #[test]
+fn test_check_available_usize_preserves_budget_state() {
+    let budget = ResourceBudget::new(TestResource::Bytes, 5_u8);
+    budget
+        .check_available_usize(5)
+        .expect("the exact native request should fit");
+    assert_eq!(budget.remaining(), 5);
+    assert!(matches!(
+        budget.check_available_usize(usize::from(u8::MAX) + 1),
+        Err(MeasuredBudgetError::Quantity { .. })
+    ));
+}
+
+#[test]
 fn test_group_consume_charges_every_budget_after_all_checks_pass() {
     let mut local = ResourceBudget::new(TestResource::Bytes, 5_u64);
     let mut aggregate = ResourceBudget::new(TestResource::Bytes, 8_u64);

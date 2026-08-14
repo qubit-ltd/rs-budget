@@ -63,3 +63,10 @@ fn test_string_limits_reject_unrepresentable_measurements() {
         Err(MeasuredBudgetError::Quantity { .. })
     ));
 }
+
+#[test]
+fn test_string_limits_default_is_unconfigured() {
+    StringLimits::<TestResource>::default()
+        .check("default")
+        .expect("default limits accept every string");
+}

@@ -62,3 +62,12 @@ fn test_structure_limits_expresses_borrowing_and_ownership() {
     assert_eq!(limits.structure_limits().max_depth(), Some(4));
     assert_eq!(limits.into_structure_limits().max_depth(), Some(4));
 }
+
+#[test]
+fn test_empty_value_limits_report_unconfigured_maxima() {
+    let limits = JsonValueLimits::empty();
+    assert_eq!(limits.max_depth(), None);
+    assert_eq!(limits.max_string_bytes(), None);
+    assert_eq!(limits.max_number_bytes(), None);
+    assert_eq!(limits.max_payload_bytes(), None);
+}

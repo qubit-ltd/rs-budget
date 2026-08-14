@@ -39,7 +39,8 @@ fn test_io_output_commits_only_after_success() {
     let output = budget
         .try_write_string(|writer| {
             let mut output = writer.as_io();
-            output.write_all(b"hello")
+            output.write_all(b"hello")?;
+            output.flush()
         })
         .expect("exact-limit output should fit");
     assert_eq!(output, "hello");

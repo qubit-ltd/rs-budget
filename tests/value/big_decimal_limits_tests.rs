@@ -74,3 +74,33 @@ fn test_big_decimal_limits_support_usize_quantities() {
         })
     ));
 }
+
+#[test]
+fn test_big_decimal_accessors_and_unconfigured_limits() {
+    let coefficient = BigIntegerLimits::empty().with_magnitude_bits_limit(
+        ResourceLimit::new(TestResource::Digits, 8_u64),
+    );
+    let limits = BigDecimalLimits::empty()
+        .with_coefficient_limits(coefficient)
+        .with_scale_magnitude_limit(ResourceLimit::new(TestResource::Scale, 3));
+    assert_eq!(
+        limits
+            .coefficient_limits()
+            .magnitude_bits_limit()
+            .unwrap()
+            .maximum(),
+        8
+    );
+    assert_eq!(limits.scale_magnitude_limit().unwrap().maximum(), 3);
+    BigDecimalLimits::<TestResource>::empty()
+        .check(&BigDecimal::from(1))
+        .expect("unconfigured limits accept every value");
+}
+
+#[test]
+fn test_big_decimal_default_is_unconfigured() {
+    let limits = BigDecimalLimits::<TestResource>::default();
+    limits
+        .check(&BigDecimal::from(1))
+        .expect("default limits accept every value");
+}

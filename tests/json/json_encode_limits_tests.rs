@@ -5,7 +5,9 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
+use qubit_budget::ResourceLimit;
 use qubit_budget::json::JsonEncodeLimits;
+use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
 /// Verifies that JSON encode limits use machine-sized quantities by default.
@@ -46,4 +48,19 @@ fn test_value_limits_expresses_borrowing_and_ownership() {
     let _: &JsonValueLimits = limits.value_limits();
     assert_eq!(limits.value_limits().max_depth(), Some(2));
     assert_eq!(limits.into_value_limits().max_depth(), Some(2));
+}
+
+#[test]
+fn test_empty_encode_limits_report_unconfigured_maximum() {
+    assert_eq!(JsonEncodeLimits::empty().max_output_bytes(), None);
+}
+
+#[test]
+fn test_generic_encode_limits_expose_maximum() {
+    let limits = JsonEncodeLimits::<JsonResource, u8>::unconfigured()
+        .with_output_bytes_limit(ResourceLimit::new(
+            JsonResource::OutputBytes,
+            4,
+        ));
+    assert_eq!(limits.max_output_bytes(), Some(4));
 }

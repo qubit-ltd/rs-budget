@@ -79,3 +79,10 @@ fn test_resource_limit_converts_usize_and_u64_measurements() {
         Err(MeasuredBudgetError::Quantity { .. })
     ));
 }
+
+#[test]
+fn test_resource_limit_conversions_support_another_quantity_type() {
+    let limit = ResourceLimit::new(TestResource::Depth, 4_u16);
+    limit.check_usize(4).expect("usize should convert to u16");
+    limit.check_u64(4).expect("u64 should convert to u16");
+}

@@ -90,6 +90,34 @@ fn test_big_integer_limits_support_usize_quantities() {
     ));
 }
 
+#[test]
+fn test_big_integer_accessors_and_unconfigured_limits() {
+    let limits = BigIntegerLimits::empty()
+        .with_magnitude_bits_limit(ResourceLimit::new(
+            TestResource::Bits,
+            8_u64,
+        ))
+        .with_significant_decimal_digits_limit(ResourceLimit::new(
+            TestResource::Digits,
+            3_u64,
+        ));
+    assert_eq!(limits.magnitude_bits_limit().unwrap().maximum(), 8);
+    assert_eq!(
+        limits.significant_decimal_digits_limit().unwrap().maximum(),
+        3
+    );
+    BigIntegerLimits::<TestResource>::empty()
+        .check(&BigInt::from(123456))
+        .expect("unconfigured limits accept every value");
+}
+
+#[test]
+fn test_big_integer_default_is_unconfigured() {
+    BigIntegerLimits::<TestResource>::default()
+        .check(&BigInt::from(1))
+        .expect("default limits accept every value");
+}
+
 proptest! {
     #[test]
     fn test_significant_decimal_digit_limit_matches_exact_measurement(

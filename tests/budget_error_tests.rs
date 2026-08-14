@@ -80,3 +80,22 @@ fn test_measured_budget_error_exposes_resource_for_quantity_failures() {
     assert_eq!(error.resource(), &TestResource::Depth);
     assert_eq!(error.into_resource(), TestResource::Depth);
 }
+
+#[test]
+fn test_measured_budget_error_exposes_both_optional_sources() {
+    let budget = MeasuredBudgetError::Budget(BudgetError::Insufficient {
+        resource: TestResource::Depth,
+        limit: 3_usize,
+        remaining: 1,
+        requested: 2,
+    });
+    assert!(budget.budget_error().is_some());
+    assert!(budget.quantity_error().is_none());
+
+    let quantity = MeasuredBudgetError::<TestResource, usize>::quantity(
+        TestResource::Depth,
+        QuantityConversionError::new(QuantityMeasurement::Usize(256), "u8"),
+    );
+    assert!(quantity.budget_error().is_none());
+    assert!(quantity.quantity_error().is_some());
+}

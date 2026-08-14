@@ -34,3 +34,32 @@ fn test_unsigned_quantities_convert_native_measurements_without_truncation() {
     assert_eq!(error.measurement(), QuantityMeasurement::Usize(256));
     assert_eq!(error.target(), "u8");
 }
+
+#[test]
+fn test_u128_quantity_accepts_both_native_measurements() {
+    assert_eq!(u128::try_from_usize(3).expect("usize fits"), 3);
+    assert_eq!(u128::try_from_u64(4).expect("u64 fits"), 4);
+}
+
+#[test]
+fn test_each_unsigned_quantity_implements_exact_conversions() {
+    macro_rules! assert_quantity {
+        ($quantity:ty) => {
+            assert_eq!(
+                <$quantity as ResourceQuantity>::checked_add(1, 2),
+                Some(3)
+            );
+            assert_eq!(
+                <$quantity as ResourceQuantity>::try_from_usize(3),
+                Ok(3)
+            );
+            assert_eq!(<$quantity as ResourceQuantity>::try_from_u64(4), Ok(4));
+        };
+    }
+    assert_quantity!(u8);
+    assert_quantity!(u16);
+    assert_quantity!(u32);
+    assert_quantity!(u64);
+    assert_quantity!(u128);
+    assert_quantity!(usize);
+}
