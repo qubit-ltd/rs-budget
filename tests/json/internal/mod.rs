@@ -9,3 +9,5 @@
 
 mod decode_storage_tests;
 mod encode_storage_tests;
+mod json_value_state_tests;
+mod prepared_json_admission_tests;

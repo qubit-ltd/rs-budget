@@ -7,8 +7,11 @@
 // =============================================================================
 //! Defines direction-independent limits for JSON values.
 
+use super::JsonMeasurement;
 use super::JsonResource;
 use super::JsonValueBudget;
+use super::internal::PreparedJsonAdmission;
+use crate::MeasuredBudgetError;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 use crate::StructureLimits;
@@ -150,6 +153,24 @@ where
     #[must_use]
     pub const fn max_payload_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_payload_bytes.as_ref())
+    }
+
+    /// Validates one native JSON measurement without creating a budget.
+    ///
+    /// The measurement is converted only for configured dimensions, then
+    /// checked in conversion, depth, and variant-specific point-limit order.
+    /// Cumulative limits are not charged or checked by this method.
+    ///
+    /// Returns conversion or point-limit errors retaining their associated
+    /// resource identity.
+    pub fn check(
+        &self,
+        measurement: JsonMeasurement,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+    {
+        PreparedJsonAdmission::prepare(self, measurement)?.check_point(self)
     }
 }
 

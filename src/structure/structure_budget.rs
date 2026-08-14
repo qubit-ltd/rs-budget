@@ -60,16 +60,6 @@ where
         self.charge_nodes(Q::ONE)
     }
 
-    /// Checks whether one additional node can be admitted without consuming it.
-    #[inline]
-    #[cfg(feature = "json")]
-    pub(crate) fn check_node_available(&self) -> Result<(), BudgetError<R, Q>> {
-        match &self.nodes {
-            Some(nodes) => nodes.check_available(Q::ONE),
-            None => Ok(()),
-        }
-    }
-
     /// Charges several processed nodes atomically.
     #[inline]
     pub fn charge_nodes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
