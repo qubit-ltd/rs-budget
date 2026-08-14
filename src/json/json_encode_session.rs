@@ -7,12 +7,11 @@
 // =============================================================================
 //! Tracks mutable accounting for one JSON encoding operation.
 
+use super::JsonEncodeAttempt;
 use super::JsonEncodeLimits;
 use super::JsonResource;
 use super::JsonValueBudget;
 use super::internal::EncodeStorage;
-use crate::BudgetError;
-use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
@@ -55,29 +54,15 @@ where
         }
     }
 
-    /// Consumes output bytes.
-    pub fn consume_output_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
-        self.output_budget_mut()
-            .map_or(Ok(()), |budget| budget.try_consume(amount))
-    }
-
-    /// Converts and consumes output bytes.
-    pub fn consume_output_bytes_usize(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let Some(budget) = self.output_budget_mut() else {
-            return Ok(());
-        };
-        let amount = Q::try_from_usize(amount).map_err(|source| {
-            MeasuredBudgetError::quantity(budget.resource().clone(), source)
-        })?;
-        budget
-            .try_consume(amount)
-            .map_err(MeasuredBudgetError::from)
+    /// Starts accounting for one complete JSON value.
+    ///
+    /// The returned attempt charges accepted output immediately, but publishes
+    /// staged JSON value accounting only after `commit`. Dropping it rolls back
+    /// only the staged value state.
+    #[must_use = "dropping the attempt rolls back JSON value accounting"]
+    pub fn begin_value(&mut self) -> JsonEncodeAttempt<'_, R, Q> {
+        let (output, value) = self.storage.split();
+        JsonEncodeAttempt::new(output, value.transaction())
     }
 
     /// Returns the output budget when configured.
@@ -101,22 +86,6 @@ where
         match &self.storage {
             EncodeStorage::Owned { value, .. } => value,
             EncodeStorage::Borrowed { value, .. } => value,
-        }
-    }
-
-    /// Returns the value budget for traversal accounting.
-    pub fn value_budget_mut(&mut self) -> &mut JsonValueBudget<R, Q> {
-        match &mut self.storage {
-            EncodeStorage::Owned { value, .. } => value,
-            EncodeStorage::Borrowed { value, .. } => value,
-        }
-    }
-
-    /// Returns a mutable output budget when configured.
-    fn output_budget_mut(&mut self) -> Option<&mut ResourceBudget<R, Q>> {
-        match &mut self.storage {
-            EncodeStorage::Owned { output, .. } => output.as_mut(),
-            EncodeStorage::Borrowed { output, .. } => output.as_deref_mut(),
         }
     }
 }

@@ -23,20 +23,54 @@ qubit-budget = "0.4"
 
 ## 快速开始
 
-假设 HTTP handler 接收请求体，并且必须在 8 KiB 后停止处理。handler 可以在
-数据到达时直接扣减字节，并读取剩余容量，无需维护第二个计数器：
+JSON value 的记账显式且全有或全无。先暂存一个完整 value 的每项测量，只有外围
+操作成功后才发布：
 
 ```rust
-use qubit_budget::ResourceBudget;
+use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonValueLimits;
 
-let mut body_budget = ResourceBudget::new("request body bytes", 8_u64);
-body_budget.try_consume(3)?;
-assert_eq!(body_budget.remaining(), 5);
-# Ok::<(), qubit_budget::BudgetError<&str>>(())
+let mut budget = JsonValueLimits::empty()
+    .with_max_nodes(8)
+    .with_max_string_bytes(16)
+    .budget();
+let mut transaction = budget.transaction();
+transaction.try_admit(JsonMeasurement::String {
+    depth: 1,
+    bytes: 5,
+})?;
+transaction.commit();
+# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
-`ResourceBudget::try_consume` 具有原子性：请求超过剩余容量时返回结构化错误，
-预算保持不变。
+每次 `try_admit` 对单项测量都是原子的。`commit` 会发布暂存的全部 value nodes 和
+payload bytes；丢弃 transaction（包括 panic unwind 时）只会丢弃尚未提交的 value
+记账。
+
+## JSON 原子性
+
+`JsonDecodeAttempt` 和 `JsonEncodeAttempt` 把不可逆的 I/O 计费与可事务化的 value
+记账分开。下表给出高层 JSON 集成应当保持的合同。
+
+| 场景 | input | normalized input | value | output |
+| --- | --- | --- | --- | --- |
+| strict decode 成功 | 保留 | 不适用 | 提交 | 不适用 |
+| strict decode 失败 | 保留 | 不适用 | 回滚 | 不适用 |
+| lenient decode 失败 | 保留 | 保留 | 回滚 | 不适用 |
+| 缓冲的 `Vec<u8>` output 失败 | 不适用 | 不适用 | 回滚 | 只在成功时计费；没有 `Vec` 就不计 output |
+| buffered writer 部分失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
+| incremental writer 失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
+| stream 中单个 value 失败 | 跨 value 持续累计 | 跨 value 持续累计 | 仅当前 value 回滚 | 之前接受的 output 继续保留 |
+
+attempt 一旦接受 raw input 或 normalized input，就立即计费。先得到完整 `Vec<u8>` 的
+encoder 只会在完整 output 成功后计费；writer-oriented encoder 则会在 writer 接受每个
+prefix 后立刻计费，之后的错误不会撤销已经被 writer 接受的字节。
+
+transaction 是预算边界，不是通用回滚机制。丢弃 transaction 不能撤销 writer 已接受的
+写入、callback 的副作用、`Hasher` 更新或对象 mutation。stream 通常为每个完整顶层
+value 创建相互独立的 attempt；higher-level grouping 也可以让一个 transaction 覆盖更大
+的业务操作。业务代码处理一次 rejection 后仍可继续使用该 transaction，并在最终成功时
+提交其余可接纳的测量。
 
 ## 提供的能力
 
@@ -64,6 +98,8 @@ JSON limits 和 session 保留在这里，使配置、元数据、值对象和�
 
 - [API 文档](https://docs.rs/qubit-budget)
 - [English README](README.md)
+- [English user guide](doc/user_guide.md)
+- [中文用户指南](doc/user_guide.zh_CN.md)
 - [仓库](https://github.com/qubit-ltd/rs-budget)
 
 ## 测试

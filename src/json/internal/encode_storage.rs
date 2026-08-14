@@ -32,3 +32,21 @@ where
         value: &'a mut JsonValueBudget<R, Q>,
     },
 }
+
+impl<R, Q> EncodeStorage<'_, R, Q>
+where
+    Q: ResourceQuantity,
+{
+    /// Splits storage into the budgets borrowed by one encode attempt.
+    pub(crate) fn split(
+        &mut self,
+    ) -> (
+        Option<&mut ResourceBudget<R, Q>>,
+        &mut JsonValueBudget<R, Q>,
+    ) {
+        match self {
+            Self::Owned { output, value } => (output.as_mut(), value),
+            Self::Borrowed { output, value } => (output.as_deref_mut(), value),
+        }
+    }
+}

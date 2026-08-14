@@ -11,6 +11,13 @@ use crate::ResourceBudget;
 use crate::ResourceQuantity;
 use crate::json::JsonValueBudget;
 
+/// Mutable budgets borrowed by one decode attempt.
+type DecodeStorageSplit<'a, R, Q> = (
+    Option<&'a mut ResourceBudget<R, Q>>,
+    Option<&'a mut ResourceBudget<R, Q>>,
+    &'a mut JsonValueBudget<R, Q>,
+);
+
 /// Backing storage for owned and caller-borrowed decode budgets.
 #[derive(Debug)]
 pub(crate) enum DecodeStorage<'a, R, Q>
@@ -35,4 +42,25 @@ where
         /// JSON value budget.
         value: &'a mut JsonValueBudget<R, Q>,
     },
+}
+
+impl<R, Q> DecodeStorage<'_, R, Q>
+where
+    Q: ResourceQuantity,
+{
+    /// Splits storage into the budgets borrowed by one decode attempt.
+    pub(crate) fn split(&mut self) -> DecodeStorageSplit<'_, R, Q> {
+        match self {
+            Self::Owned {
+                input,
+                normalized_input,
+                value,
+            } => (input.as_mut(), normalized_input.as_mut(), value),
+            Self::Borrowed {
+                input,
+                normalized_input,
+                value,
+            } => (input.as_deref_mut(), normalized_input.as_deref_mut(), value),
+        }
+    }
 }
