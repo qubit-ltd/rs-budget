@@ -23,6 +23,7 @@ use crate::ResourceQuantity;
 /// The writer is constructed and committed by
 /// [`ResourceBudget::try_write_string`]. A failed render drops the buffered
 /// prefix and leaves the budget unchanged.
+#[must_use]
 pub struct BudgetedStringWriter<'a, R, Q = u64>
 where
     Q: ResourceQuantity,

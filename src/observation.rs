@@ -43,6 +43,7 @@ where
 {
     /// Returns the exact quantity, or `None` for a lower-bound observation.
     #[inline(always)]
+    #[must_use]
     pub const fn exact(self) -> Option<Q> {
         match self {
             Self::Exact(value) => Some(value),
@@ -52,6 +53,7 @@ where
 
     /// Returns the safe lower bound represented by this observation.
     #[inline(always)]
+    #[must_use]
     pub const fn lower_bound(self) -> Q {
         match self {
             Self::Exact(value) | Self::AtLeast(value) => value,

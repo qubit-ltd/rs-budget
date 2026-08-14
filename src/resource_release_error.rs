@@ -48,6 +48,7 @@ where
 
     /// Consumes this error and returns its associated resource.
     #[inline(always)]
+    #[must_use]
     pub fn into_resource(self) -> R {
         match self {
             Self::InvalidRelease { resource, .. } => resource,

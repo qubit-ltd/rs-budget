@@ -173,6 +173,7 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     /// assert!(budget.is_expired());
     /// ```
     #[inline]
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         self.clock.now() >= self.deadline
     }

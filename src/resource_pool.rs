@@ -188,6 +188,7 @@ where
 
     /// Returns currently acquired capacity.
     #[inline(always)]
+    #[must_use]
     pub fn in_use(&self) -> Q {
         self.limit.maximum() - self.available
     }

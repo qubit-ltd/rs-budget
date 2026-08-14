@@ -18,6 +18,7 @@ use crate::QuantityConversionError;
 
 /// Describes why a budgeted string rendering transaction failed.
 #[derive(Debug, Error)]
+#[must_use]
 pub enum BudgetedStringError<R, E, Q = u64>
 where
     R: Debug,

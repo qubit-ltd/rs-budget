@@ -74,6 +74,7 @@ where
 
     /// Consumes this error and returns its associated resource.
     #[inline(always)]
+    #[must_use]
     pub fn into_resource(self) -> R {
         match self {
             Self::LimitExceeded { resource, .. }
@@ -109,6 +110,7 @@ where
 
     /// Returns the exact point measurement when the observation is exact.
     #[inline(always)]
+    #[must_use]
     pub const fn exact_observed(&self) -> Option<Q> {
         match self.observation() {
             Some(Observation::Exact(value)) => Some(value),
@@ -118,6 +120,7 @@ where
 
     /// Returns the safe lower bound of a point measurement.
     #[inline(always)]
+    #[must_use]
     pub const fn observed_lower_bound(&self) -> Option<Q> {
         match self.observation() {
             Some(observed) => Some(observed.lower_bound()),
@@ -130,6 +133,7 @@ where
     /// Returns `Some(maximum)` for [`Self::LimitExceeded`], or `None` for a
     /// cumulative-budget or pool failure.
     #[inline(always)]
+    #[must_use]
     pub const fn maximum(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { maximum, .. } => Some(*maximum),
@@ -142,6 +146,7 @@ where
     /// Returns `Some(remaining)` for [`Self::Insufficient`], including failed
     /// pool acquisitions, or `None` for a point-limit failure.
     #[inline(always)]
+    #[must_use]
     pub const fn remaining(&self) -> Option<Q> {
         match self {
             Self::Insufficient { remaining, .. } => Some(*remaining),
@@ -154,6 +159,7 @@ where
     /// Returns `Some(requested)` for [`Self::Insufficient`], or `None` for a
     /// point-limit failure.
     #[inline(always)]
+    #[must_use]
     pub const fn requested(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,

@@ -54,12 +54,14 @@ where
 
     /// Returns the resource bound to this limit.
     #[inline(always)]
+    #[must_use]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
     /// Returns this limit's inclusive maximum measurement.
     #[inline(always)]
+    #[must_use]
     pub const fn maximum(&self) -> Q {
         self.maximum
     }

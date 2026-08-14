@@ -44,6 +44,7 @@ where
 
     /// Returns the zero-based index of the first rejecting budget.
     #[inline(always)]
+    #[must_use]
     pub const fn index(&self) -> usize {
         self.index
     }

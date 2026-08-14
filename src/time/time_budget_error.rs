@@ -71,6 +71,7 @@ impl<R> TimeBudgetError<R> {
 
     /// Consumes the error and returns its resource.
     #[inline(always)]
+    #[must_use]
     pub fn into_resource(self) -> R {
         match self {
             Self::Clock { resource, .. }

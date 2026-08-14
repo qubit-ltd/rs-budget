@@ -144,6 +144,7 @@ where
 
     /// Returns the number of nodes consumed by this session.
     #[inline(always)]
+    #[must_use]
     pub fn used_nodes(&self) -> Q {
         match &self.nodes {
             Some(nodes) => nodes.used(),
