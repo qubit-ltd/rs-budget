@@ -7,30 +7,40 @@
 // =============================================================================
 //! Defines dependency-free resource limits and sessions for JSON processing.
 //!
-//! Value budgets admit one node at a time. A rejected node leaves its own
-//! structural and payload counters unchanged, while earlier admitted nodes
-//! remain charged for the lifetime of the session. Decode sessions likewise
-//! consume input bytes before parsing and do not roll those charges back when
-//! later syntax or typed decoding fails.
+//! Value budgets admit one complete value through a transaction. Staged usage
+//! becomes committed only when that transaction succeeds, so a rejected value
+//! or unwinding rollback cannot consume structural or payload capacity.
 //!
-//! Encode sessions keep output accounting transactional at the document
-//! boundary: output is charged to a temporary snapshot and committed only
-//! after serialization succeeds. This output guarantee does not roll back
-//! structural value charges already accepted during serialization.
+//! A JSON encoder that buffers a complete `Vec<u8>` can charge output only
+//! after serialization succeeds. Writer-oriented encoders instead charge every
+//! accepted output prefix immediately, so those charges remain after a later
+//! error or panic.
+//!
+//! Decode and encode attempts both retain their immediate I/O charges. They
+//! publish staged value accounting only through `commit`; dropping an attempt,
+//! including while unwinding, rolls the value state back.
 
 mod internal;
+mod json_decode_attempt;
 mod json_decode_limits;
 mod json_decode_session;
+mod json_encode_attempt;
 mod json_encode_limits;
 mod json_encode_session;
+mod json_measurement;
 mod json_resource;
 mod json_value_budget;
 mod json_value_limits;
+mod json_value_transaction;
 
+pub use json_decode_attempt::JsonDecodeAttempt;
 pub use json_decode_limits::JsonDecodeLimits;
 pub use json_decode_session::JsonDecodeSession;
+pub use json_encode_attempt::JsonEncodeAttempt;
 pub use json_encode_limits::JsonEncodeLimits;
 pub use json_encode_session::JsonEncodeSession;
+pub use json_measurement::JsonMeasurement;
 pub use json_resource::JsonResource;
 pub use json_value_budget::JsonValueBudget;
 pub use json_value_limits::JsonValueLimits;
+pub use json_value_transaction::JsonValueTransaction;

@@ -24,21 +24,59 @@ budget types are needed.
 
 ## Quick Start
 
-Suppose an HTTP handler accepts a request body and must stop processing after
-8 KiB. The handler can charge bytes as they arrive and inspect the remaining
-capacity without maintaining a second counter:
+JSON value accounting is explicit and all-or-nothing. Stage every measurement
+for one complete value, then publish it only after the enclosing operation has
+succeeded:
 
 ```rust
-use qubit_budget::ResourceBudget;
+use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonValueLimits;
 
-let mut body_budget = ResourceBudget::new("request body bytes", 8_u64);
-body_budget.try_consume(3)?;
-assert_eq!(body_budget.remaining(), 5);
-# Ok::<(), qubit_budget::BudgetError<&str>>(())
+let mut budget = JsonValueLimits::empty()
+    .with_max_nodes(8)
+    .with_max_string_bytes(16)
+    .budget();
+let mut transaction = budget.transaction();
+transaction.try_admit(JsonMeasurement::String {
+    depth: 1,
+    bytes: 5,
+})?;
+transaction.commit();
+# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
-`ResourceBudget::try_consume` is atomic: a request larger than the remaining
-capacity returns a structured error and leaves the budget unchanged.
+Each `try_admit` is atomic for its measurement. `commit` publishes all staged
+value nodes and payload bytes; dropping the transaction, including during
+unwinding, discards only its staged value accounting.
+
+## JSON Atomicity
+
+`JsonDecodeAttempt` and `JsonEncodeAttempt` separate irreversible I/O charges
+from transactional value accounting. The matrix below states the contract that
+high-level JSON integrations must preserve.
+
+| Scenario | Input | Normalized input | Value | Output |
+| --- | --- | --- | --- | --- |
+| Strict decode succeeds | retained | not applicable | committed | not applicable |
+| Strict decode fails | retained | not applicable | rolled back | not applicable |
+| Lenient decode fails | retained | retained | rolled back | not applicable |
+| Buffered `Vec<u8>` output fails | not applicable | not applicable | rolled back | success-only; no `Vec` means no output charge |
+| Buffered writer partially fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
+| Incremental writer fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
+| One value in a stream fails | retained across values | retained across values | only the current value rolls back | previously accepted output remains retained |
+
+Raw and normalized input are charged immediately when an attempt accepts them.
+For an encoder that first produces a complete `Vec<u8>`, output is charged only
+after that complete output succeeds. Writer-oriented encoders instead charge
+each accepted prefix immediately; a later error does not undo bytes the writer
+has already accepted.
+
+The transaction is a budget boundary, not a general rollback mechanism.
+Dropping it cannot undo writes already accepted by a writer, callback effects,
+`Hasher` updates, or object mutation. A stream normally creates one independent
+attempt per complete top-level value, while higher-level grouping may use one
+transaction for a larger business operation. A handled rejection may continue
+to use that transaction and commit the measurements that remain admissible.
 
 ## What It Provides
 
@@ -68,6 +106,8 @@ application limits, or define application-specific error policies.
 
 - [API documentation](https://docs.rs/qubit-budget)
 - [中文 README](README.zh_CN.md)
+- [User guide](doc/user_guide.md)
+- [中文用户指南](doc/user_guide.zh_CN.md)
 - [Repository](https://github.com/qubit-ltd/rs-budget)
 
 ## Testing
