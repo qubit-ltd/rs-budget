@@ -5,11 +5,12 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Transactional string output helpers backed by finite resource budgets.
+//! Private implementation details for budgeted string rendering.
 
-mod budgeted_string_error;
-mod budgeted_string_writer;
-mod internal;
+mod fmt_writer;
+mod io_writer;
+mod writer_failure;
 
-pub use budgeted_string_error::BudgetedStringError;
-pub use budgeted_string_writer::BudgetedStringWriter;
+pub(super) use fmt_writer::FmtWriter;
+pub(super) use io_writer::IoWriter;
+pub(super) use writer_failure::WriterFailure;

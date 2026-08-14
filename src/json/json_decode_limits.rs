@@ -19,8 +19,11 @@ pub struct JsonDecodeLimits<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Optional cumulative raw input-byte limit.
     input: Option<ResourceLimit<R, Q>>,
+    /// Optional cumulative normalized input-byte limit.
     normalized_input: Option<ResourceLimit<R, Q>>,
+    /// Direction-independent JSON value limits.
     value: JsonValueLimits<R, Q>,
 }
 impl<R, Q> Default for JsonDecodeLimits<R, Q>
@@ -65,28 +68,34 @@ where
         self
     }
     /// Returns the complete raw input-byte limit, when configured.
+    #[must_use]
     pub const fn input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.input.as_ref()
     }
     /// Returns the complete normalized input-byte limit, when configured.
+    #[must_use]
     pub const fn normalized_input_bytes_limit(
         &self,
     ) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
     }
     /// Borrows the JSON value limits used for decoding.
+    #[must_use = "the value limits determine decode traversal constraints"]
     pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
         &self.value
     }
     /// Consumes these decoding limits and returns their JSON value limits.
+    #[must_use = "the returned value limits can configure a JSON value budget"]
     pub fn into_value_limits(self) -> JsonValueLimits<R, Q> {
         self.value
     }
     /// Returns the configured raw input-byte maximum.
+    #[must_use]
     pub const fn max_input_bytes(&self) -> Option<Q> {
         limit_maximum(self.input.as_ref())
     }
     /// Returns the configured normalized input-byte maximum.
+    #[must_use]
     pub const fn max_normalized_input_bytes(&self) -> Option<Q> {
         limit_maximum(self.normalized_input.as_ref())
     }

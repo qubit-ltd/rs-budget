@@ -14,11 +14,7 @@ use std::ops::Sub;
 
 use crate::QuantityConversionError;
 use crate::QuantityMeasurement;
-
-mod private {
-    /// Seals [`super::ResourceQuantity`] to the supported unsigned integers.
-    pub trait Sealed {}
-}
+use crate::internal::ResourceQuantitySealed;
 
 /// An exact, non-negative quantity accepted by resource budgets and pools.
 ///
@@ -26,7 +22,7 @@ mod private {
 /// signed values, floating-point `NaN`/infinity, and rounding-based arithmetic
 /// from the accounting invariants.
 pub trait ResourceQuantity:
-    private::Sealed
+    ResourceQuantitySealed
     + Copy
     + Debug
     + Display
@@ -51,6 +47,7 @@ pub trait ResourceQuantity:
     ///
     /// `Some(sum)` when the sum fits in the quantity type, or `None` on
     /// overflow.
+    #[must_use]
     fn checked_add(self, other: Self) -> Option<Self>;
 
     /// Converts one Rust-native length into this resource quantity.
@@ -67,6 +64,7 @@ pub trait ResourceQuantity:
     ///
     /// Returns [`QuantityConversionError`] when `value` cannot be represented
     /// without truncation.
+    #[must_use = "the conversion result reports whether the measurement fits"]
     fn try_from_usize(value: usize) -> Result<Self, QuantityConversionError>;
 
     /// Converts one stable 64-bit measurement into this resource quantity.
@@ -83,13 +81,14 @@ pub trait ResourceQuantity:
     ///
     /// Returns [`QuantityConversionError`] when `value` cannot be represented
     /// without truncation.
+    #[must_use = "the conversion result reports whether the measurement fits"]
     fn try_from_u64(value: u64) -> Result<Self, QuantityConversionError>;
 }
 
 macro_rules! impl_resource_quantity {
     ($($quantity:ty),+ $(,)?) => {
         $(
-            impl private::Sealed for $quantity {}
+            impl ResourceQuantitySealed for $quantity {}
 
             impl ResourceQuantity for $quantity {
                 const ZERO: Self = 0;

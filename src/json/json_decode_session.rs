@@ -10,28 +10,11 @@
 use super::JsonDecodeLimits;
 use super::JsonResource;
 use super::JsonValueBudget;
+use super::internal::DecodeStorage;
 use crate::BudgetError;
 use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
-
-/// Backing storage for owned and caller-borrowed decode budgets.
-#[derive(Debug)]
-enum DecodeStorage<'a, R, Q>
-where
-    Q: ResourceQuantity,
-{
-    Owned {
-        input: Option<ResourceBudget<R, Q>>,
-        normalized_input: Option<ResourceBudget<R, Q>>,
-        value: JsonValueBudget<R, Q>,
-    },
-    Borrowed {
-        input: Option<&'a mut ResourceBudget<R, Q>>,
-        normalized_input: Option<&'a mut ResourceBudget<R, Q>>,
-        value: &'a mut JsonValueBudget<R, Q>,
-    },
-}
 
 /// Mutable resource accounting for one JSON decoding operation.
 #[must_use]
@@ -40,6 +23,7 @@ pub struct JsonDecodeSession<'a, R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Owned or borrowed budgets backing this decode operation.
     storage: DecodeStorage<'a, R, Q>,
 }
 
@@ -123,6 +107,7 @@ where
     }
 
     /// Returns the raw input budget when configured.
+    #[must_use = "the raw input budget reports consumed input bytes"]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             DecodeStorage::Owned { input, .. } => input.as_ref(),
@@ -131,16 +116,19 @@ where
     }
 
     /// Returns the configured raw input-byte maximum.
+    #[must_use]
     pub fn max_input_bytes(&self) -> Option<Q> {
         self.input_budget().map(ResourceBudget::limit)
     }
 
     /// Returns the configured normalized input-byte maximum.
+    #[must_use]
     pub fn max_normalized_input_bytes(&self) -> Option<Q> {
         self.normalized_input_budget().map(ResourceBudget::limit)
     }
 
     /// Returns the normalized input budget when configured.
+    #[must_use = "the normalized budget reports consumed normalized bytes"]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             DecodeStorage::Owned {
@@ -153,6 +141,7 @@ where
     }
 
     /// Returns the value budget for read-only inspection.
+    #[must_use = "the value budget reports accepted JSON traversal"]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
             DecodeStorage::Owned { value, .. } => value,

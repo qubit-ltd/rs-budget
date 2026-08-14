@@ -6,38 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines failures converting native measurements into resource quantities.
-// qubit-style: allow source-test-pair
-// qubit-style: allow multiple-public-types
 
-use std::fmt;
-
-/// A native unsigned measurement whose value could not fit a resource quantity.
-#[must_use]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QuantityMeasurement {
-    /// Measurement supplied by a Rust container or string length.
-    Usize(usize),
-    /// Measurement supplied by an API with a stable 64-bit quantity.
-    U64(u64),
-}
-
-impl fmt::Display for QuantityMeasurement {
-    /// Formats the native measurement without changing its numeric value.
-    ///
-    /// # Parameters
-    ///
-    /// * `formatter` - Formatter receiving the decimal measurement.
-    ///
-    /// # Returns
-    ///
-    /// Returns the result of writing the measurement.
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Usize(value) => value.fmt(formatter),
-            Self::U64(value) => value.fmt(formatter),
-        }
-    }
-}
+use crate::QuantityMeasurement;
 
 /// Error returned when a native measurement cannot fit the selected quantity.
 #[must_use]
@@ -73,6 +43,7 @@ impl QuantityConversionError {
     }
 
     /// Returns the native measurement that could not be represented.
+    #[must_use = "the measurement identifies the failed native quantity"]
     #[inline(always)]
     pub const fn measurement(&self) -> QuantityMeasurement {
         self.measurement

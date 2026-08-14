@@ -5,11 +5,10 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Transactional string output helpers backed by finite resource budgets.
+//! Private storage types for JSON budget sessions.
 
-mod budgeted_string_error;
-mod budgeted_string_writer;
-mod internal;
+mod decode_storage;
+mod encode_storage;
 
-pub use budgeted_string_error::BudgetedStringError;
-pub use budgeted_string_writer::BudgetedStringWriter;
+pub(super) use decode_storage::DecodeStorage;
+pub(super) use encode_storage::EncodeStorage;

@@ -18,6 +18,7 @@
 //! after serialization succeeds. This output guarantee does not roll back
 //! structural value charges already accepted during serialization.
 
+mod internal;
 mod json_decode_limits;
 mod json_decode_session;
 mod json_encode_limits;

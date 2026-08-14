@@ -23,8 +23,11 @@ pub struct JsonValueBudget<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Immutable limits retained for reset and inspection.
     limits: JsonValueLimits<R, Q>,
+    /// Structural node and shape accounting.
     structure: StructureBudget<R, Q>,
+    /// Optional cumulative payload accounting.
     payload: Option<ResourceBudget<R, Q>>,
 }
 
@@ -191,16 +194,19 @@ where
     }
 
     /// Returns the structural accounting state.
+    #[must_use = "the structural budget reports node and shape usage"]
     pub const fn structure_budget(&self) -> &StructureBudget<R, Q> {
         &self.structure
     }
 
     /// Returns the cumulative payload budget when configured.
+    #[must_use = "the payload budget reports cumulative byte usage"]
     pub const fn payload_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.payload.as_ref()
     }
 
     /// Returns the immutable limits used by this traversal.
+    #[must_use = "the limits describe this traversal's configured dimensions"]
     pub const fn limits(&self) -> &JsonValueLimits<R, Q> {
         &self.limits
     }

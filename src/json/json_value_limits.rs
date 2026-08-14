@@ -20,9 +20,13 @@ pub struct JsonValueLimits<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Structural limits for depth, nodes, containers, and keys.
     structure: StructureLimits<R, Q>,
+    /// Optional per-string byte limit.
     max_string_bytes: Option<ResourceLimit<R, Q>>,
+    /// Optional per-number byte limit.
     max_number_bytes: Option<ResourceLimit<R, Q>>,
+    /// Optional cumulative payload byte limit.
     max_payload_bytes: Option<ResourceLimit<R, Q>>,
 }
 
@@ -82,55 +86,68 @@ where
         self
     }
     /// Borrows the structural limits used by this value configuration.
+    #[must_use = "the structural limits determine traversal constraints"]
     pub const fn structure_limits(&self) -> &StructureLimits<R, Q> {
         &self.structure
     }
     /// Consumes these value limits and returns their structural limits.
+    #[must_use = "the returned structural limits can configure a structure budget"]
     pub fn into_structure_limits(self) -> StructureLimits<R, Q> {
         self.structure
     }
     /// Returns the configured root-inclusive nesting-depth maximum.
+    #[must_use]
     pub const fn max_depth(&self) -> Option<Q> {
         self.structure.max_depth()
     }
     /// Returns the configured cumulative JSON-node maximum.
+    #[must_use]
     pub const fn max_nodes(&self) -> Option<Q> {
         self.structure.max_nodes()
     }
     /// Returns the configured maximum item count for one JSON array.
+    #[must_use]
     pub const fn max_sequence_items(&self) -> Option<Q> {
         self.structure.max_sequence_items()
     }
     /// Returns the configured maximum entry count for one JSON object.
+    #[must_use]
     pub const fn max_map_entries(&self) -> Option<Q> {
         self.structure.max_map_entries()
     }
     /// Returns the configured maximum byte length for one JSON object key.
+    #[must_use]
     pub const fn max_key_bytes(&self) -> Option<Q> {
         self.structure.max_key_bytes()
     }
     /// Returns the complete string-byte limit, when configured.
+    #[must_use]
     pub const fn string_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_string_bytes.as_ref()
     }
     /// Returns the complete number-byte limit, when configured.
+    #[must_use]
     pub const fn number_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_number_bytes.as_ref()
     }
     /// Returns the complete cumulative payload-byte limit, when configured.
+    #[must_use]
     pub const fn payload_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_payload_bytes.as_ref()
     }
     /// Returns the configured maximum byte length for one string value.
+    #[must_use]
     pub const fn max_string_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_string_bytes.as_ref())
     }
     /// Returns the configured maximum byte length for one number
     /// representation.
+    #[must_use]
     pub const fn max_number_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_number_bytes.as_ref())
     }
     /// Returns the configured cumulative payload-byte maximum.
+    #[must_use]
     pub const fn max_payload_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_payload_bytes.as_ref())
     }

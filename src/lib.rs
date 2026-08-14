@@ -26,9 +26,11 @@
 
 mod budget_error;
 mod budget_group_error;
+mod internal;
 mod measured_budget_error;
 mod observation;
 mod quantity_conversion_error;
+mod quantity_measurement;
 mod resource_budget;
 mod resource_limit;
 mod resource_pool;
@@ -46,7 +48,7 @@ pub use budget_group_error::BudgetGroupError;
 pub use measured_budget_error::MeasuredBudgetError;
 pub use observation::Observation;
 pub use quantity_conversion_error::QuantityConversionError;
-pub use quantity_conversion_error::QuantityMeasurement;
+pub use quantity_measurement::QuantityMeasurement;
 pub use resource_budget::ResourceBudget;
 pub use resource_limit::ResourceLimit;
 pub use resource_pool::ResourcePool;

@@ -5,11 +5,8 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Transactional string output helpers backed by finite resource budgets.
+//! Private implementation details shared by the crate root.
 
-mod budgeted_string_error;
-mod budgeted_string_writer;
-mod internal;
+mod resource_quantity_sealed;
 
-pub use budgeted_string_error::BudgetedStringError;
-pub use budgeted_string_writer::BudgetedStringWriter;
+pub(crate) use resource_quantity_sealed::ResourceQuantitySealed;

@@ -17,7 +17,7 @@ use crate::ResourceLimit;
 /// This type never reads a clock. Operation code decides which measured
 /// durations count and submits them through [`Self::try_consume`]. Waiting,
 /// queueing and backoff do not consume this budget automatically; use
-/// [`super::TimeBudget`] for a continuous deadline.
+/// the clock-backed `TimeBudget` for a continuous deadline.
 ///
 /// # Type Parameters
 ///

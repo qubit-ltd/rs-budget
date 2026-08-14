@@ -19,7 +19,9 @@ pub struct JsonEncodeLimits<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Optional cumulative output-byte limit.
     output: Option<ResourceLimit<R, Q>>,
+    /// Direction-independent JSON value limits.
     value: JsonValueLimits<R, Q>,
 }
 impl<R, Q> Default for JsonEncodeLimits<R, Q>
@@ -55,18 +57,22 @@ where
         self
     }
     /// Returns the complete output-byte limit, when configured.
+    #[must_use]
     pub const fn output_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.output.as_ref()
     }
     /// Borrows the JSON value limits used for encoding.
+    #[must_use = "the value limits determine encode traversal constraints"]
     pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
         &self.value
     }
     /// Consumes these encoding limits and returns their JSON value limits.
+    #[must_use = "the returned value limits can configure a JSON value budget"]
     pub fn into_value_limits(self) -> JsonValueLimits<R, Q> {
         self.value
     }
     /// Returns the configured output-byte maximum.
+    #[must_use]
     pub const fn max_output_bytes(&self) -> Option<Q> {
         match self.output.as_ref() {
             Some(limit) => Some(limit.maximum()),

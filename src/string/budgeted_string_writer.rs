@@ -11,17 +11,12 @@ use std::fmt;
 use std::io;
 
 use super::BudgetedStringError;
+use super::internal::FmtWriter;
+use super::internal::IoWriter;
+use super::internal::WriterFailure;
 use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
-
-enum WriterFailure<R, Q>
-where
-    Q: ResourceQuantity,
-{
-    Budget(MeasuredBudgetError<R, Q>),
-    LengthOverflow,
-}
 
 /// Collects a UTF-8 string while checking a finite byte budget incrementally.
 ///
@@ -42,6 +37,7 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
+    /// Creates an empty writer backed by an immutable budget snapshot.
     fn new(budget: &'a ResourceBudget<R, Q>) -> Self {
         Self {
             budget,
@@ -50,11 +46,16 @@ where
         }
     }
 
+    /// Separates rendered bytes from the first captured failure.
     fn into_parts(self) -> (Vec<u8>, Option<WriterFailure<R, Q>>) {
         (self.output, self.failure)
     }
 
-    fn append(&mut self, bytes: &[u8]) -> bool {
+    /// Appends bytes after checking the next cumulative length and budget.
+    ///
+    /// Returns `true` when the bytes were appended, or `false` after storing
+    /// the first failure for the enclosing transaction.
+    pub(crate) fn append(&mut self, bytes: &[u8]) -> bool {
         if self.failure.is_some() {
             return false;
         }
@@ -88,64 +89,21 @@ where
     }
 
     /// Returns a formatting writer view over the current transaction.
+    #[must_use = "formatted output is written through the returned adapter"]
     #[inline]
     pub fn as_fmt(&mut self) -> impl fmt::Write + '_ {
         FmtWriter { writer: self }
     }
 
     /// Returns an I/O writer view over the current transaction.
+    #[must_use = "output bytes are written through the returned adapter"]
     #[inline]
     pub fn as_io(&mut self) -> impl io::Write + '_ {
         IoWriter { writer: self }
     }
 }
 
-struct FmtWriter<'writer, 'budget, R, Q>
-where
-    Q: ResourceQuantity,
-{
-    writer: &'writer mut BudgetedStringWriter<'budget, R, Q>,
-}
-
-impl<R, Q> fmt::Write for FmtWriter<'_, '_, R, Q>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    fn write_str(&mut self, value: &str) -> fmt::Result {
-        if self.writer.append(value.as_bytes()) {
-            Ok(())
-        } else {
-            Err(fmt::Error)
-        }
-    }
-}
-
-struct IoWriter<'writer, 'budget, R, Q>
-where
-    Q: ResourceQuantity,
-{
-    writer: &'writer mut BudgetedStringWriter<'budget, R, Q>,
-}
-
-impl<R, Q> io::Write for IoWriter<'_, '_, R, Q>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        if self.writer.append(bytes) {
-            Ok(bytes.len())
-        } else {
-            Err(io::Error::other("budgeted string writer rejected output"))
-        }
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
+/// Adds two output lengths while detecting `usize` overflow.
 const fn checked_output_len(
     current: usize,
     additional: usize,

@@ -10,26 +10,11 @@
 use super::JsonEncodeLimits;
 use super::JsonResource;
 use super::JsonValueBudget;
+use super::internal::EncodeStorage;
 use crate::BudgetError;
 use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
-
-/// Backing storage for owned and caller-borrowed encode budgets.
-#[derive(Debug)]
-enum EncodeStorage<'a, R, Q>
-where
-    Q: ResourceQuantity,
-{
-    Owned {
-        output: Option<ResourceBudget<R, Q>>,
-        value: JsonValueBudget<R, Q>,
-    },
-    Borrowed {
-        output: Option<&'a mut ResourceBudget<R, Q>>,
-        value: &'a mut JsonValueBudget<R, Q>,
-    },
-}
 
 /// Mutable resource accounting for one JSON encoding operation.
 #[must_use]
@@ -38,6 +23,7 @@ pub struct JsonEncodeSession<'a, R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Owned or borrowed budgets backing this encode operation.
     storage: EncodeStorage<'a, R, Q>,
 }
 
@@ -95,6 +81,7 @@ where
     }
 
     /// Returns the output budget when configured.
+    #[must_use = "the output budget reports consumed output bytes"]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             EncodeStorage::Owned { output, .. } => output.as_ref(),
@@ -103,11 +90,13 @@ where
     }
 
     /// Returns the configured output-byte maximum.
+    #[must_use]
     pub fn max_output_bytes(&self) -> Option<Q> {
         self.output_budget().map(ResourceBudget::limit)
     }
 
     /// Returns the value budget for read-only inspection.
+    #[must_use = "the value budget reports accepted JSON traversal"]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
             EncodeStorage::Owned { value, .. } => value,
