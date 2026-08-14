@@ -7,12 +7,11 @@
 // =============================================================================
 //! Tracks mutable accounting for one JSON decoding operation.
 
+use super::JsonDecodeAttempt;
 use super::JsonDecodeLimits;
 use super::JsonResource;
 use super::JsonValueBudget;
 use super::internal::DecodeStorage;
-use crate::BudgetError;
-use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
@@ -72,38 +71,15 @@ where
         }
     }
 
-    /// Consumes raw input bytes.
-    pub fn consume_input_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
-        self.input_budget_mut()
-            .map_or(Ok(()), |budget| budget.try_consume(amount))
-    }
-
-    /// Converts and consumes raw input bytes.
-    pub fn consume_input_bytes_usize(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        consume_usize(self.input_budget_mut(), amount)
-    }
-
-    /// Consumes normalized input bytes.
-    pub fn consume_normalized_input_bytes(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), BudgetError<R, Q>> {
-        self.normalized_input_budget_mut()
-            .map_or(Ok(()), |budget| budget.try_consume(amount))
-    }
-
-    /// Converts and consumes normalized input bytes.
-    pub fn consume_normalized_input_bytes_usize(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        consume_usize(self.normalized_input_budget_mut(), amount)
+    /// Starts accounting for one complete JSON value.
+    ///
+    /// The returned attempt charges raw and normalized input immediately, but
+    /// publishes staged JSON value accounting only after `commit`. Dropping it
+    /// rolls back only the staged value state.
+    #[must_use = "dropping the attempt rolls back JSON value accounting"]
+    pub fn begin_value(&mut self) -> JsonDecodeAttempt<'_, R, Q> {
+        let (input, normalized_input, value) = self.storage.split();
+        JsonDecodeAttempt::new(input, normalized_input, value.transaction())
     }
 
     /// Returns the raw input budget when configured.
@@ -148,36 +124,6 @@ where
             DecodeStorage::Borrowed { value, .. } => value,
         }
     }
-
-    /// Returns the value budget for traversal accounting.
-    pub fn value_budget_mut(&mut self) -> &mut JsonValueBudget<R, Q> {
-        match &mut self.storage {
-            DecodeStorage::Owned { value, .. } => value,
-            DecodeStorage::Borrowed { value, .. } => value,
-        }
-    }
-
-    /// Returns a mutable raw input budget when configured.
-    fn input_budget_mut(&mut self) -> Option<&mut ResourceBudget<R, Q>> {
-        match &mut self.storage {
-            DecodeStorage::Owned { input, .. } => input.as_mut(),
-            DecodeStorage::Borrowed { input, .. } => input.as_deref_mut(),
-        }
-    }
-
-    /// Returns a mutable normalized-input budget when configured.
-    fn normalized_input_budget_mut(
-        &mut self,
-    ) -> Option<&mut ResourceBudget<R, Q>> {
-        match &mut self.storage {
-            DecodeStorage::Owned {
-                normalized_input, ..
-            } => normalized_input.as_mut(),
-            DecodeStorage::Borrowed {
-                normalized_input, ..
-            } => normalized_input.as_deref_mut(),
-        }
-    }
 }
 
 impl<R, Q> JsonDecodeSession<'static, R, Q>
@@ -204,24 +150,4 @@ where
             },
         }
     }
-}
-
-/// Converts and consumes a machine-sized measurement when a budget exists.
-fn consume_usize<R, Q>(
-    budget: Option<&mut ResourceBudget<R, Q>>,
-    amount: usize,
-) -> Result<(), MeasuredBudgetError<R, Q>>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    let Some(budget) = budget else {
-        return Ok(());
-    };
-    let amount = Q::try_from_usize(amount).map_err(|source| {
-        MeasuredBudgetError::quantity(budget.resource().clone(), source)
-    })?;
-    budget
-        .try_consume(amount)
-        .map_err(MeasuredBudgetError::from)
 }
