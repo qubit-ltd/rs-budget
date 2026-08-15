@@ -9,7 +9,7 @@
 
 use std::time::Duration;
 
-use crate::BudgetError;
+use crate::InsufficientBudgetError;
 use crate::ResourceLimit;
 
 /// A finite, monotonic budget for durations explicitly submitted by callers.
@@ -90,19 +90,19 @@ impl<R> DurationBudget<R> {
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::Insufficient`] when `duration` exceeds the
+    /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
     /// remaining duration.
     pub fn check_available(
         &self,
         duration: Duration,
-    ) -> Result<(), BudgetError<R, Duration>>
+    ) -> Result<(), InsufficientBudgetError<R, Duration>>
     where
         R: Clone,
     {
         if duration <= self.remaining {
             Ok(())
         } else {
-            Err(BudgetError::Insufficient {
+            Err(InsufficientBudgetError {
                 resource: self.limit.resource().clone(),
                 limit: self.limit.maximum(),
                 remaining: self.remaining,
@@ -124,13 +124,13 @@ impl<R> DurationBudget<R> {
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::Insufficient`] when `duration` exceeds the
+    /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
     /// remaining duration. The budget remains unchanged in that case.
     #[inline]
     pub fn try_consume(
         &mut self,
         duration: Duration,
-    ) -> Result<(), BudgetError<R, Duration>>
+    ) -> Result<(), InsufficientBudgetError<R, Duration>>
     where
         R: Clone,
     {
@@ -150,7 +150,7 @@ impl<R> DurationBudget<R> {
     /// The exact duration consumed, equal to the smaller of `requested` and
     /// the current remaining duration.
     #[inline]
-    #[must_use]
+    #[must_use = "the resource limit configures this duration budget"]
     pub fn consume_available(&mut self, requested: Duration) -> Duration {
         let consumed = requested.min(self.remaining);
         self.remaining -= consumed;
@@ -165,6 +165,7 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns the immutable resource limit that configures this budget.
+    #[must_use = "the resource limit configures this duration budget"]
     #[inline(always)]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Duration> {
         &self.limit

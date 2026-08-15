@@ -44,6 +44,8 @@ pub mod json;
 pub mod structure;
 
 pub use budget_error::BudgetError;
+pub use budget_error::InsufficientBudgetError;
+pub use budget_error::LimitExceededError;
 pub use budget_group_error::BudgetGroupError;
 pub use measured_budget_error::MeasuredBudgetError;
 pub use observation::Observation;

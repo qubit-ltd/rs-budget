@@ -7,8 +7,8 @@
 // =============================================================================
 use std::time::Duration;
 
-use qubit_budget::BudgetError;
 use qubit_budget::DurationBudget;
+use qubit_budget::InsufficientBudgetError;
 use qubit_budget::ResourceLimit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,7 +26,7 @@ fn test_try_consume_uses_remaining_duration_and_is_atomic_on_failure() {
         .expect("two seconds should fit");
     assert!(matches!(
         budget.try_consume(Duration::from_secs(4)),
-        Err(BudgetError::<_, Duration>::Insufficient {
+        Err(InsufficientBudgetError::<_, Duration> {
             resource: TestResource::OperationDuration,
             limit,
             remaining,

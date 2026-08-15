@@ -13,6 +13,8 @@ use std::fmt::Debug;
 use thiserror::Error;
 
 use crate::BudgetError;
+use crate::InsufficientBudgetError;
+use crate::LimitExceededError;
 use crate::QuantityConversionError;
 
 /// Error returned when native measurement or budget validation rejects a value.
@@ -111,5 +113,27 @@ where
             Self::Quantity { resource, .. } => resource,
             Self::Budget(error) => error.into_resource(),
         }
+    }
+}
+
+impl<R, Q> From<LimitExceededError<R, Q>> for MeasuredBudgetError<R, Q>
+where
+    Q: Copy + Debug,
+{
+    /// Wraps a point-limit failure in a measured-budget failure.
+    #[inline(always)]
+    fn from(error: LimitExceededError<R, Q>) -> Self {
+        Self::Budget(error.into())
+    }
+}
+
+impl<R, Q> From<InsufficientBudgetError<R, Q>> for MeasuredBudgetError<R, Q>
+where
+    Q: Copy + Debug,
+{
+    /// Wraps a cumulative-budget failure in a measured-budget failure.
+    #[inline(always)]
+    fn from(error: InsufficientBudgetError<R, Q>) -> Self {
+        Self::Budget(error.into())
     }
 }

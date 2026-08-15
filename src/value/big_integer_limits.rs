@@ -9,7 +9,7 @@
 
 use num_bigint::BigInt;
 
-use crate::BudgetError;
+use crate::LimitExceededError;
 use crate::MeasuredBudgetError;
 use crate::Observation;
 use crate::ResourceLimit;
@@ -135,7 +135,7 @@ where
         let Some(observed) = maximum.checked_add(Q::ONE) else {
             return Ok(());
         };
-        return Err(BudgetError::LimitExceeded {
+        return Err(LimitExceededError {
             resource: limit.resource().clone(),
             observed: Observation::AtLeast(observed),
             maximum,
@@ -149,7 +149,7 @@ where
         MeasuredBudgetError::quantity(limit.resource().clone(), source)
     })?;
     if digits > maximum {
-        Err(BudgetError::LimitExceeded {
+        Err(LimitExceededError {
             resource: limit.resource().clone(),
             observed: Observation::Exact(digits),
             maximum,

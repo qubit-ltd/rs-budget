@@ -6,8 +6,8 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 
-use qubit_budget::BudgetError;
 use qubit_budget::BudgetGroupError;
+use qubit_budget::InsufficientBudgetError;
 use qubit_budget::ResourceBudget;
 
 #[test]
@@ -22,6 +22,6 @@ fn test_group_error_exposes_the_rejecting_budget() {
     assert_eq!(error.index(), 0);
     assert!(matches!(
         error.source_error(),
-        BudgetError::Insufficient { requested: 2, .. }
+        InsufficientBudgetError { requested: 2, .. }
     ));
 }

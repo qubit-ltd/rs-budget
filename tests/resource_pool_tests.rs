@@ -9,7 +9,7 @@ use proptest::prelude::any;
 use proptest::prelude::prop;
 use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
-use qubit_budget::BudgetError;
+use qubit_budget::InsufficientBudgetError;
 use qubit_budget::ResourceLimit;
 use qubit_budget::ResourcePool;
 use qubit_budget::ResourceQuantity;
@@ -81,7 +81,7 @@ fn test_acquire_reports_exhaustion_without_mutation() {
         .expect_err("one more unit should be exhausted");
     assert!(matches!(
         error,
-        BudgetError::Insufficient {
+        InsufficientBudgetError {
             resource: TestResource::OpenFiles,
             limit: 2,
             remaining: 0,

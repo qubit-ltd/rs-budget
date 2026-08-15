@@ -64,7 +64,7 @@ where
     #[inline]
     pub fn charge_nodes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         match &mut self.nodes {
-            Some(nodes) => nodes.try_consume(amount),
+            Some(nodes) => nodes.try_consume(amount).map_err(BudgetError::from),
             None => Ok(()),
         }
     }

@@ -11,7 +11,7 @@ use std::fmt::Debug;
 
 use thiserror::Error;
 
-use crate::BudgetError;
+use crate::InsufficientBudgetError;
 
 /// Failure returned by an atomic grouped budget consumption.
 ///
@@ -30,7 +30,7 @@ where
 
     /// Structured failure returned by that budget.
     #[source]
-    source: BudgetError<R, Q>,
+    source: InsufficientBudgetError<R, Q>,
 }
 
 impl<R, Q> BudgetGroupError<R, Q>
@@ -38,26 +38,31 @@ where
     Q: Copy + Debug,
 {
     /// Creates a grouped failure for the first rejecting budget.
-    pub(crate) const fn new(index: usize, source: BudgetError<R, Q>) -> Self {
+    pub(crate) const fn new(
+        index: usize,
+        source: InsufficientBudgetError<R, Q>,
+    ) -> Self {
         Self { index, source }
     }
 
     /// Returns the zero-based index of the first rejecting budget.
     #[inline(always)]
-    #[must_use]
+    #[must_use = "the index identifies the rejecting budget"]
     pub const fn index(&self) -> usize {
         self.index
     }
 
     /// Returns the structured failure from the rejecting budget.
     #[inline(always)]
-    pub const fn source_error(&self) -> &BudgetError<R, Q> {
+    #[must_use = "the rejecting budget error contains the failure facts"]
+    pub const fn source_error(&self) -> &InsufficientBudgetError<R, Q> {
         &self.source
     }
 
     /// Consumes this error and returns the rejecting budget's failure.
     #[inline(always)]
-    pub fn into_source_error(self) -> BudgetError<R, Q> {
+    #[must_use = "the rejecting budget error contains the failure facts"]
+    pub fn into_source_error(self) -> InsufficientBudgetError<R, Q> {
         self.source
     }
 }

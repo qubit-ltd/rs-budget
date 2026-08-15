@@ -7,7 +7,7 @@
 // =============================================================================
 //! Defines finite releasable resource pools.
 
-use crate::BudgetError;
+use crate::InsufficientBudgetError;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 use crate::ResourceReleaseError;
@@ -93,19 +93,22 @@ where
     /// # Returns
     ///
     /// `Ok(())` after subtracting the amount, or
-    /// [`BudgetError::Insufficient`] with no state change when it does
+    /// [`InsufficientBudgetError`] with no state change when it does
     /// not fit.
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds current
+    /// Returns [`InsufficientBudgetError`] when `amount` exceeds current
     /// availability. The pool remains unchanged in that case.
-    pub fn try_acquire(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>>
+    pub fn try_acquire(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
         if amount > self.available {
-            return Err(BudgetError::Insufficient {
+            return Err(InsufficientBudgetError {
                 resource: self.limit.resource().clone(),
                 limit: self.limit.maximum(),
                 remaining: self.available,
@@ -153,13 +156,14 @@ where
     }
 
     /// Returns the associated resource.
-    #[must_use]
+    #[must_use = "the resource limit configures this pool"]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
 
     /// Returns the immutable resource limit that configures this pool.
+    #[must_use = "the resource limit configures this pool"]
     #[inline(always)]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
         &self.limit

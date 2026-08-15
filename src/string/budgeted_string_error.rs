@@ -14,7 +14,7 @@ use std::string::FromUtf8Error;
 
 use thiserror::Error;
 
-use crate::BudgetError;
+use crate::InsufficientBudgetError;
 use crate::QuantityConversionError;
 
 /// Describes why a budgeted string rendering transaction failed.
@@ -28,7 +28,7 @@ where
 {
     /// The rendered prefix exceeded the remaining resource budget.
     #[error(transparent)]
-    Budget(BudgetError<R, Q>),
+    Budget(InsufficientBudgetError<R, Q>),
     /// The output buffer could not reserve the requested capacity.
     #[error("string output allocation failed: {0}")]
     Allocation(#[source] TryReserveError),

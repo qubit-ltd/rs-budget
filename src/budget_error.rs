@@ -5,7 +5,8 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Defines unified errors for finite resource constraints.
+//! Defines precise and aggregate errors for finite resource constraints.
+// qubit-style: allow multiple-public-types
 
 use std::fmt::Debug;
 
@@ -13,11 +14,150 @@ use thiserror::Error;
 
 use crate::Observation;
 
-/// Structured facts describing a resource constraint failure.
+/// Structured facts for a point measurement that exceeded its maximum.
 ///
-/// Point checks use [`Self::LimitExceeded`], and cumulative budgets use
-/// [`Self::Insufficient`]. Releasable pool release failures use the separate
-/// [`crate::ResourceReleaseError`] type because they are not budget failures.
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
+/// * `Q` - Copyable measurement value used by the failed constraint.
+#[must_use]
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+#[error(
+    "resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}"
+)]
+pub struct LimitExceededError<R, Q = u64>
+where
+    Q: Copy + Debug,
+{
+    /// Resource associated with the failed point check.
+    pub resource: R,
+    /// Observed point measurement or safe lower bound.
+    pub observed: Observation<Q>,
+    /// Configured inclusive point maximum.
+    pub maximum: Q,
+}
+
+impl<R, Q> LimitExceededError<R, Q>
+where
+    Q: Copy + Debug,
+{
+    /// Returns the resource associated with this failure.
+    #[must_use = "the observation describes the failed point limit"]
+    #[inline(always)]
+    pub const fn resource(&self) -> &R {
+        &self.resource
+    }
+
+    /// Consumes this error and returns its associated resource.
+    #[must_use]
+    #[inline(always)]
+    pub fn into_resource(self) -> R {
+        self.resource
+    }
+
+    /// Returns the observed point measurement or safe lower bound.
+    #[must_use = "the observation describes the failed point limit"]
+    #[inline(always)]
+    pub const fn observation(&self) -> Observation<Q> {
+        self.observed
+    }
+
+    /// Returns the exact point measurement when the observation is exact.
+    #[must_use]
+    #[inline(always)]
+    pub const fn exact_observed(&self) -> Option<Q> {
+        match self.observed {
+            Observation::Exact(value) => Some(value),
+            Observation::AtLeast(_) => None,
+        }
+    }
+
+    /// Returns the safe lower bound of the observed point measurement.
+    #[must_use]
+    #[inline(always)]
+    pub const fn observed_lower_bound(&self) -> Q {
+        self.observed.lower_bound()
+    }
+
+    /// Returns the configured inclusive point maximum.
+    #[must_use]
+    #[inline(always)]
+    pub const fn maximum(&self) -> Q {
+        self.maximum
+    }
+}
+
+/// Structured facts for a cumulative request that exceeded remaining capacity.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource value retained for diagnostics.
+/// * `Q` - Copyable measurement value used by the failed constraint.
+#[must_use]
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+#[error(
+    "resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains"
+)]
+pub struct InsufficientBudgetError<R, Q = u64>
+where
+    Q: Copy + Debug,
+{
+    /// Resource associated with the failed consumption request.
+    pub resource: R,
+    /// Configured finite limit.
+    pub limit: Q,
+    /// Capacity remaining before the failed request.
+    pub remaining: Q,
+    /// Quantity requested by the failed operation.
+    pub requested: Q,
+}
+
+impl<R, Q> InsufficientBudgetError<R, Q>
+where
+    Q: Copy + Debug,
+{
+    /// Returns the resource associated with this failure.
+    #[must_use]
+    #[inline(always)]
+    pub const fn resource(&self) -> &R {
+        &self.resource
+    }
+
+    /// Consumes this error and returns its associated resource.
+    #[must_use]
+    #[inline(always)]
+    pub fn into_resource(self) -> R {
+        self.resource
+    }
+
+    /// Returns the configured finite limit.
+    #[must_use]
+    #[inline(always)]
+    pub const fn limit(&self) -> Q {
+        self.limit
+    }
+
+    /// Returns the capacity remaining before the failed request.
+    #[must_use]
+    #[inline(always)]
+    pub const fn remaining(&self) -> Q {
+        self.remaining
+    }
+
+    /// Returns the quantity requested by the failed operation.
+    #[must_use]
+    #[inline(always)]
+    pub const fn requested(&self) -> Q {
+        self.requested
+    }
+}
+
+/// Aggregate error for APIs that can perform both point and cumulative checks.
+///
+/// APIs with a single failure mode return [`LimitExceededError`] or
+/// [`InsufficientBudgetError`] directly. This type remains the common carrier
+/// for composite operations and measured-value errors. Releasable pool release
+/// failures use the separate [`crate::ResourceReleaseError`] type.
 ///
 /// # Type Parameters
 ///
@@ -164,6 +304,48 @@ where
         match self {
             Self::LimitExceeded { .. } => None,
             Self::Insufficient { requested, .. } => Some(*requested),
+        }
+    }
+}
+
+impl<R, Q> From<LimitExceededError<R, Q>> for BudgetError<R, Q>
+where
+    Q: Copy + Debug,
+{
+    /// Converts a precise point-limit failure into an aggregate error.
+    #[inline(always)]
+    fn from(error: LimitExceededError<R, Q>) -> Self {
+        let LimitExceededError {
+            resource,
+            observed,
+            maximum,
+        } = error;
+        Self::LimitExceeded {
+            resource,
+            observed,
+            maximum,
+        }
+    }
+}
+
+impl<R, Q> From<InsufficientBudgetError<R, Q>> for BudgetError<R, Q>
+where
+    Q: Copy + Debug,
+{
+    /// Converts a precise cumulative-budget failure into an aggregate error.
+    #[inline(always)]
+    fn from(error: InsufficientBudgetError<R, Q>) -> Self {
+        let InsufficientBudgetError {
+            resource,
+            limit,
+            remaining,
+            requested,
+        } = error;
+        Self::Insufficient {
+            resource,
+            limit,
+            remaining,
+            requested,
         }
     }
 }

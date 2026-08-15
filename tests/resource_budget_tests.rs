@@ -11,6 +11,7 @@ use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
 use qubit_budget::BudgetError;
 use qubit_budget::BudgetGroupError;
+use qubit_budget::InsufficientBudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::ResourceBudget;
 use qubit_budget::ResourceLimit;
@@ -53,7 +54,7 @@ fn test_failed_consume_is_atomic_and_reports_exact_facts() {
         .expect("initial consumption should fit");
     assert!(matches!(
         budget.try_consume(4),
-        Err(BudgetError::Insufficient {
+        Err(InsufficientBudgetError {
             resource: TestResource::Bytes,
             limit: 5,
             remaining: 3,
@@ -182,7 +183,7 @@ fn test_group_consume_does_not_charge_any_budget_when_later_check_fails() {
     assert_eq!(error.index(), 1);
     assert!(matches!(
         error.source_error(),
-        BudgetError::Insufficient {
+        InsufficientBudgetError {
             resource: TestResource::Bytes,
             limit: 2,
             remaining: 2,
@@ -203,7 +204,7 @@ fn test_group_error_exposes_the_failing_index_and_budget_error() {
             .expect_err("the first budget should reject two bytes");
 
     assert_eq!(error.index(), 0);
-    assert_eq!(error.into_source_error().requested(), Some(2));
+    assert_eq!(error.into_source_error().requested(), 2);
     assert_eq!(first.remaining(), 1);
     assert_eq!(second.remaining(), 1);
 }

@@ -10,8 +10,8 @@ use std::convert::Infallible;
 use std::fmt::Write as _;
 use std::io::Write as _;
 
-use qubit_budget::BudgetError;
 use qubit_budget::BudgetedStringError;
+use qubit_budget::InsufficientBudgetError;
 use qubit_budget::ResourceBudget;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,7 +59,7 @@ fn test_budget_failure_rolls_back_and_reports_first_failing_prefix() {
         .expect_err("the second chunk should exceed the budget");
     assert!(matches!(
         error,
-        BudgetedStringError::Budget(BudgetError::Insufficient {
+        BudgetedStringError::Budget(InsufficientBudgetError {
             resource: TestResource::OutputBytes,
             limit: 3,
             remaining: 3,

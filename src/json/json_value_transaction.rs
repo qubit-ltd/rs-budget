@@ -12,7 +12,7 @@ use super::JsonMeasurement;
 use super::JsonValueBudget;
 use super::internal::JsonValueState;
 use super::internal::PreparedJsonAdmission;
-use crate::BudgetError;
+use crate::InsufficientBudgetError;
 use crate::MeasuredBudgetError;
 use crate::ResourceQuantity;
 
@@ -181,7 +181,7 @@ where
             .structure_limits()
             .nodes_limit()
             .expect("working node state requires a configured limit");
-        Err(BudgetError::Insufficient {
+        Err(InsufficientBudgetError {
             resource: limit.resource().clone(),
             limit: limit.maximum(),
             remaining,
@@ -206,7 +206,7 @@ where
             .limits()
             .payload_bytes_limit()
             .expect("working payload state requires a configured limit");
-        Err(BudgetError::Insufficient {
+        Err(InsufficientBudgetError {
             resource: limit.resource().clone(),
             limit: limit.maximum(),
             remaining,

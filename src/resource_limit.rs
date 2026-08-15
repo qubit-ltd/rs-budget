@@ -10,6 +10,7 @@
 use std::fmt::Debug;
 
 use crate::BudgetError;
+use crate::LimitExceededError;
 use crate::MeasuredBudgetError;
 use crate::Observation;
 use crate::ResourceQuantity;
@@ -80,16 +81,16 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::LimitExceeded`] when `actual` is greater than
+    /// Returns [`LimitExceededError`] when `actual` is greater than
     /// this limit's maximum.
     #[inline]
-    pub fn check(&self, actual: Q) -> Result<(), BudgetError<R, Q>>
+    pub fn check(&self, actual: Q) -> Result<(), LimitExceededError<R, Q>>
     where
         R: Clone,
         Q: Ord,
     {
         if actual > self.maximum {
-            Err(BudgetError::LimitExceeded {
+            Err(LimitExceededError {
                 resource: self.resource.clone(),
                 observed: Observation::Exact(actual),
                 maximum: self.maximum,
@@ -189,7 +190,7 @@ where
     Q: Copy + Debug + Ord,
 {
     match limit {
-        Some(limit) => limit.check(actual),
+        Some(limit) => limit.check(actual).map_err(BudgetError::from),
         None => Ok(()),
     }
 }

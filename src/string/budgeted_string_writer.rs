@@ -14,7 +14,6 @@ use super::BudgetedStringError;
 use super::internal::FmtWriter;
 use super::internal::IoWriter;
 use super::internal::WriterFailure;
-use crate::MeasuredBudgetError;
 use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
@@ -68,16 +67,15 @@ where
         let next_length = match Q::try_from_usize(next_len) {
             Ok(value) => value,
             Err(source) => {
-                self.failure =
-                    Some(WriterFailure::Budget(MeasuredBudgetError::quantity(
-                        self.budget.resource().clone(),
-                        source,
-                    )));
+                self.failure = Some(WriterFailure::Quantity {
+                    resource: self.budget.resource().clone(),
+                    source,
+                });
                 return false;
             }
         };
         if let Err(error) = self.budget.check_available(next_length) {
-            self.failure = Some(WriterFailure::Budget(error.into()));
+            self.failure = Some(WriterFailure::Budget(error));
             return false;
         }
         if next_len > self.output.capacity() {
@@ -135,13 +133,10 @@ where
         let rendered = render(&mut writer);
         let (bytes, failure) = writer.into_parts();
         match failure {
-            Some(WriterFailure::Budget(MeasuredBudgetError::Budget(error))) => {
+            Some(WriterFailure::Budget(error)) => {
                 return Err(BudgetedStringError::Budget(error));
             }
-            Some(WriterFailure::Budget(MeasuredBudgetError::Quantity {
-                resource,
-                source,
-            })) => {
+            Some(WriterFailure::Quantity { resource, source }) => {
                 return Err(BudgetedStringError::Quantity { resource, source });
             }
             Some(WriterFailure::LengthOverflow) => {

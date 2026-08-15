@@ -7,8 +7,8 @@
 // =============================================================================
 //! Defines monotonic finite resource budgets.
 
-use crate::BudgetError;
 use crate::BudgetGroupError;
+use crate::InsufficientBudgetError;
 use crate::MeasuredBudgetError;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
@@ -107,21 +107,24 @@ where
     /// # Returns
     ///
     /// `Ok(())` when `amount <= remaining`; otherwise returns
-    /// [`BudgetError::Insufficient`] containing the resource, limit and
+    /// [`InsufficientBudgetError`] containing the resource, limit and
     /// pre-failure balance. This method never changes the budget.
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the
+    /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity.
-    pub fn check_available(&self, amount: Q) -> Result<(), BudgetError<R, Q>>
+    pub fn check_available(
+        &self,
+        amount: Q,
+    ) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
         if amount <= self.remaining {
             Ok(())
         } else {
-            Err(BudgetError::Insufficient {
+            Err(InsufficientBudgetError {
                 resource: self.limit.resource().clone(),
                 limit: self.limit.maximum(),
                 remaining: self.remaining,
@@ -143,10 +146,13 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError::Insufficient`] when `amount` exceeds the
+    /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity. The budget remains unchanged in that case.
     #[inline]
-    pub fn try_consume(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>>
+    pub fn try_consume(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -323,7 +329,7 @@ where
     /// The exact consumed quantity, equal to `min(requested, remaining)`.
     /// This operation always succeeds and never increases the balance.
     #[inline]
-    #[must_use]
+    #[must_use = "the resource limit configures this budget"]
     pub fn consume_available(&mut self, requested: Q) -> Q {
         let consumed = requested.min(self.remaining);
         self.remaining = self.remaining - consumed;
@@ -338,6 +344,7 @@ where
     }
 
     /// Returns the immutable resource limit that configures this budget.
+    #[must_use = "the resource limit configures this budget"]
     #[inline(always)]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
         &self.limit
