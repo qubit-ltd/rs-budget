@@ -1,0 +1,33 @@
+[package]
+name = "qubit-budget-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+qubit-budget = { version = "0.4.0", path = "..", features = ["json"] }
+
+[[bin]]
+name = "resource_budget_invariants"
+path = "fuzz_targets/resource_budget_invariants.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "json_value_transaction_invariants"
+path = "fuzz_targets/json_value_transaction_invariants.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "budgeted_string_writer_invariants"
+path = "fuzz_targets/budgeted_string_writer_invariants.rs"
+test = false
+doc = false
+bench = false

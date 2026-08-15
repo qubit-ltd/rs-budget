@@ -26,8 +26,17 @@ use crate::ResourceQuantity;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `Q` - Exact unsigned quantity used for the limit and accounting.
+///
+/// A budget is intentionally not cloneable because cloning would create a
+/// second independently consumable copy of the same finite allowance.
+///
+/// ```compile_fail
+/// use qubit_budget::ResourceBudget;
+/// let budget = ResourceBudget::new("bytes", 8_u64);
+/// let _copy = budget.clone();
+/// ```
 #[must_use]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ResourceBudget<R, Q = u64>
 where
     Q: ResourceQuantity,

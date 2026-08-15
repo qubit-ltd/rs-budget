@@ -13,6 +13,7 @@ use thiserror::Error;
 
 /// Structured facts describing a pool release that exceeds current usage.
 #[must_use]
+#[non_exhaustive]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ResourceReleaseError<R, Q = u64>
 where

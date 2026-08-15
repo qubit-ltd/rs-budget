@@ -63,6 +63,33 @@ where
         Ok(())
     }
 
+    /// Checks the prospective number of items in one JSON array without
+    /// mutation.
+    pub fn check_sequence_items(
+        &self,
+        items: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        self.check_container_items(
+            items,
+            self.target
+                .limits()
+                .structure_limits()
+                .sequence_items_limit(),
+        )
+    }
+
+    /// Checks the prospective number of entries in one JSON object without
+    /// mutation.
+    pub fn check_map_entries(
+        &self,
+        entries: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        self.check_container_items(
+            entries,
+            self.target.limits().structure_limits().map_entries_limit(),
+        )
+    }
+
     /// Publishes every successful staged admission to the target budget.
     ///
     /// Consumes this transaction. Dropping an uncommitted transaction has no
@@ -118,6 +145,21 @@ where
             self.check_nodes()?;
         }
         self.check_payload(payload_bytes)
+    }
+
+    /// Converts and checks one prospective container count without mutation.
+    fn check_container_items(
+        &self,
+        amount: usize,
+        limit: Option<&crate::ResourceLimit<R, Q>>,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let Some(limit) = limit else {
+            return Ok(());
+        };
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(limit.resource().clone(), source)
+        })?;
+        limit.check(amount).map_err(MeasuredBudgetError::from)
     }
 
     /// Checks the configured node budget for one additional value node.

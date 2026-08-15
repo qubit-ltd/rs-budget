@@ -86,3 +86,12 @@ fn test_resource_limit_conversions_support_another_quantity_type() {
     limit.check_usize(4).expect("usize should convert to u16");
     limit.check_u64(4).expect("u64 should convert to u16");
 }
+
+#[test]
+fn test_resource_limit_reports_u64_conversion_overflow() {
+    let limit = ResourceLimit::new(TestResource::Depth, u8::MAX);
+    assert!(matches!(
+        limit.check_u64(u64::from(u8::MAX) + 1),
+        Err(MeasuredBudgetError::Quantity { .. })
+    ));
+}

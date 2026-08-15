@@ -8,6 +8,7 @@
 //! Defines resource identities for structural input limits.
 
 /// A structural quantity constrained while processing nested data.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StructureResource {
     /// The nesting depth of the current value.

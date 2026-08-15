@@ -8,6 +8,7 @@
 //! Defines resource identities for JSON processing limits.
 
 /// A JSON quantity constrained while processing one JSON input.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum JsonResource {
     /// The total byte length of one complete JSON input.

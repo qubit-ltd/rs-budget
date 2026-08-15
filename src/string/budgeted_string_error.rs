@@ -7,6 +7,7 @@
 // =============================================================================
 //! Errors returned by transactional string rendering.
 
+use std::collections::TryReserveError;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::string::FromUtf8Error;
@@ -28,6 +29,9 @@ where
     /// The rendered prefix exceeded the remaining resource budget.
     #[error(transparent)]
     Budget(BudgetError<R, Q>),
+    /// The output buffer could not reserve the requested capacity.
+    #[error("string output allocation failed: {0}")]
+    Allocation(#[source] TryReserveError),
     /// The rendered UTF-8 byte length cannot be represented by the budget
     /// quantity.
     #[error("string byte measurement cannot be represented: {source}")]

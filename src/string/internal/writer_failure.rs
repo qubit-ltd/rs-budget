@@ -7,6 +7,8 @@
 // =============================================================================
 //! Private failures captured while rendering a budgeted string.
 
+use std::collections::TryReserveError;
+
 use crate::MeasuredBudgetError;
 use crate::ResourceQuantity;
 
@@ -17,6 +19,8 @@ where
 {
     /// A resource budget or quantity conversion rejected output.
     Budget(MeasuredBudgetError<R, Q>),
+    /// The output buffer could not reserve the requested capacity.
+    Allocation(TryReserveError),
     /// The buffered output length overflowed `usize`.
     LengthOverflow,
 }

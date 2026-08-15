@@ -82,8 +82,13 @@ where
         }
         if next_len > self.output.capacity() {
             let target = self.output.capacity().saturating_mul(2).max(next_len);
-            self.output
-                .reserve_exact(target.saturating_sub(self.output.len()));
+            if let Err(source) = self
+                .output
+                .try_reserve_exact(target.saturating_sub(self.output.len()))
+            {
+                self.failure = Some(WriterFailure::Allocation(source));
+                return false;
+            }
         }
         self.output.extend_from_slice(bytes);
         true
@@ -141,6 +146,9 @@ where
             }
             Some(WriterFailure::LengthOverflow) => {
                 return Err(BudgetedStringError::LengthOverflow);
+            }
+            Some(WriterFailure::Allocation(source)) => {
+                return Err(BudgetedStringError::Allocation(source));
             }
             None => {}
         }

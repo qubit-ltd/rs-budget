@@ -18,6 +18,24 @@ fn test_default_uses_usize_quantity() {
     let _: JsonValueLimits = JsonValueLimits::default();
 }
 
+/// Verifies that JSON convenience builders preserve a non-`usize` quantity.
+#[test]
+fn test_standard_builder_supports_u64_quantity() {
+    let limits = JsonValueLimits::<JsonResource, u64>::unconfigured()
+        .with_max_depth(1_u64)
+        .with_max_nodes(2_u64)
+        .with_max_sequence_items(3_u64)
+        .with_max_map_entries(4_u64)
+        .with_max_key_bytes(5_u64)
+        .with_max_string_bytes(6_u64)
+        .with_max_number_bytes(7_u64)
+        .with_max_payload_bytes(8_u64);
+
+    assert_eq!(limits.max_depth(), Some(1_u64));
+    assert_eq!(limits.max_payload_bytes(), Some(8_u64));
+    let _ = limits.budget();
+}
+
 /// Verifies that the standard JSON builder binds every value dimension.
 #[test]
 fn test_standard_builder_configures_all_value_dimensions() {
