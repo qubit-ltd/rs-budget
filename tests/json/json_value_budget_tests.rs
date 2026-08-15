@@ -32,6 +32,56 @@ fn test_payload_rejection_preserves_working_nodes_and_payload() {
     assert_eq!(transaction.used_payload_bytes(), Some(0));
 }
 
+#[test]
+fn test_payload_limit_accepts_exact_total_and_rejects_next_byte() {
+    let mut budget =
+        JsonValueLimits::empty().with_max_payload_bytes(3).budget();
+    let mut transaction = budget.transaction();
+    transaction
+        .try_admit(JsonMeasurement::String { depth: 1, bytes: 3 })
+        .expect("the exact payload limit must fit");
+    let error = transaction
+        .try_admit(JsonMeasurement::Key { bytes: 1 })
+        .expect_err("one byte above the payload limit must fail");
+    assert_eq!(error.resource(), &JsonResource::PayloadBytes);
+}
+
+#[test]
+fn test_rejected_point_measurement_does_not_consume_payload() {
+    let mut budget = JsonValueLimits::empty()
+        .with_max_string_bytes(3)
+        .with_max_payload_bytes(4)
+        .budget();
+    let mut transaction = budget.transaction();
+    let error = transaction
+        .try_admit(JsonMeasurement::String { depth: 1, bytes: 4 })
+        .expect_err("the string point limit must reject first");
+    assert_eq!(error.resource(), &JsonResource::StringBytes);
+    transaction
+        .try_admit(JsonMeasurement::Number { depth: 1, bytes: 4 })
+        .expect("the rejected string must not consume shared payload");
+}
+
+#[test]
+fn test_keys_strings_and_numbers_share_payload_budget() {
+    let mut budget =
+        JsonValueLimits::empty().with_max_payload_bytes(6).budget();
+    let mut transaction = budget.transaction();
+    transaction
+        .try_admit(JsonMeasurement::Key { bytes: 1 })
+        .expect("key fits");
+    transaction
+        .try_admit(JsonMeasurement::String { depth: 1, bytes: 2 })
+        .expect("string fits");
+    transaction
+        .try_admit(JsonMeasurement::Number { depth: 1, bytes: 3 })
+        .expect("number fits");
+    let error = transaction
+        .try_admit(JsonMeasurement::Key { bytes: 1 })
+        .expect_err("all payload capacity is consumed");
+    assert_eq!(error.resource(), &JsonResource::PayloadBytes);
+}
+
 /// Verifies dropping a failed transaction rolls back the complete value.
 #[test]
 fn test_drop_after_error_rolls_back_complete_value() {

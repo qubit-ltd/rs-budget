@@ -97,6 +97,43 @@ fn test_empty_value_limits_report_unconfigured_maxima() {
     assert_eq!(limits.max_payload_bytes(), None);
 }
 
+#[test]
+fn test_custom_resources_remain_attached_to_value_limits() {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum Resource {
+        String,
+        Number,
+        Payload,
+    }
+
+    let limits = JsonValueLimits::<Resource, u8>::unconfigured()
+        .with_string_bytes_limit(ResourceLimit::new(Resource::String, 3))
+        .with_number_bytes_limit(ResourceLimit::new(Resource::Number, 4))
+        .with_payload_bytes_limit(ResourceLimit::new(Resource::Payload, 5));
+
+    assert_eq!(
+        limits
+            .string_bytes_limit()
+            .expect("string limit")
+            .resource(),
+        &Resource::String,
+    );
+    assert_eq!(
+        limits
+            .number_bytes_limit()
+            .expect("number limit")
+            .resource(),
+        &Resource::Number,
+    );
+    assert_eq!(
+        limits
+            .payload_bytes_limit()
+            .expect("payload limit")
+            .resource(),
+        &Resource::Payload,
+    );
+}
+
 /// Verifies point checks reject an oversized array without creating a budget.
 #[test]
 fn test_check_array_measurement_rejects_items_without_mutable_budget() {
