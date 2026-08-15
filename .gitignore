@@ -80,3 +80,6 @@ external/
 *.tar.gz
 *.rar
 *.7z
+
+# Local cargo-fuzz build output
+fuzz/target/
