@@ -7,10 +7,10 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![中文文档](https://img.shields.io/badge/文档-中文版-blue.svg)](README.zh_CN.md)
 
-`qubit-budget` gives Qubit Rust applications exact, finite resource limits and
-accounting primitives. Use it when a parser, converter, serializer, or I/O
-boundary must reject oversized work without relying on unchecked arithmetic or
-format-specific policy.
+`qubit-budget` provides dependency-light primitives for enforcing finite
+resource limits in Rust. It helps parsers, serializers, converters, and I/O
+boundaries reject oversized work with exact accounting, structured errors, and
+well-defined mutation semantics.
 
 ## Installation
 
@@ -19,14 +19,86 @@ format-specific policy.
 qubit-budget = "0.4"
 ```
 
-Enable `json`, `big-integer`, `big-decimal`, or `time` only when the associated
-budget types are needed.
+The crate has no default features. Enable only the integrations you need:
+
+```toml
+[dependencies]
+qubit-budget = { version = "0.4", features = ["json"] }
+```
+
+Available features are `json`, `big-integer`, `big-decimal`, and `time`.
+`big-decimal` also enables `big-integer`. The minimum supported Rust version is
+1.94.
 
 ## Quick Start
 
-JSON value accounting is explicit and all-or-nothing. Stage every measurement
-for one complete value, then publish it only after the enclosing operation has
-succeeded:
+Suppose a service may spend at most 8 bytes while constructing one response.
+Successful charges reduce the remaining allowance; a rejected charge leaves
+the budget unchanged and reports the exact failure facts:
+
+```rust
+use qubit_budget::ResourceBudget;
+
+let mut response = ResourceBudget::new("response-bytes", 8_u64);
+response.try_consume(5).expect("the first chunk fits");
+
+let error = response
+    .try_consume(4)
+    .expect_err("only three bytes remain");
+
+assert_eq!(error.resource(), &"response-bytes");
+assert_eq!(error.limit(), 8);
+assert_eq!(error.remaining(), 3);
+assert_eq!(error.requested(), 4);
+assert_eq!(response.used(), 5);
+assert_eq!(response.remaining(), 3);
+```
+
+The same resource identity and structured diagnostics carry through point
+limits, releasable pools, structural limits, measured values, and JSON
+accounting.
+
+## Why This Project Exists
+
+Resource protection is often scattered across ad hoc counters, unchecked
+integer conversions, and format-specific error types. That makes it difficult
+to answer whether a failed operation changed state or which limit rejected it.
+
+`qubit-budget` separates three common policies:
+
+| Policy | Type | State model |
+| --- | --- | --- |
+| Validate one observation | `ResourceLimit` | Immutable inclusive maximum |
+| Spend a finite allowance | `ResourceBudget` | Monotonic, non-releasable consumption |
+| Borrow reusable capacity | `ResourcePool` | Explicit acquire and release |
+
+All quantities are exact unsigned integers. An unconfigured dimension is
+represented by `Option::None`; the crate does not create a hidden “unlimited”
+budget.
+
+## What It Provides
+
+- Atomic single-budget charges and all-or-nothing grouped charges.
+- Checked conversion from native `usize` and `u64` measurements.
+- Structured point-limit, insufficient-budget, grouped-budget, conversion, and
+  invalid-release errors.
+- Reusable structural limits for depth, nodes, container sizes, and key bytes.
+- Transactional UTF-8 string rendering that commits bytes only after success.
+- Optional limits for strings, big integers, big decimals, durations, and
+  clock-backed deadlines.
+- With `json`, direction-independent value limits plus decode and encode
+  sessions that distinguish immediate I/O charges from transactional value
+  accounting.
+
+For JSON, dropping an attempt rolls back only staged value accounting. Raw or
+normalized input already accepted by a decoder, and output prefixes already
+accepted by a writer, remain charged. See the user guide for the complete
+atomicity model and integration patterns.
+
+## JSON Transaction Boundary
+
+With the `json` feature, stage all measurements for one complete value and
+publish them only after the enclosing operation succeeds:
 
 ```rust
 use qubit_budget::json::JsonMeasurement;
@@ -45,15 +117,7 @@ transaction.commit();
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
-Each `try_admit` is atomic for its measurement. `commit` publishes all staged
-value nodes and payload bytes; dropping the transaction, including during
-unwinding, discards only its staged value accounting.
-
-## JSON Atomicity
-
-`JsonDecodeAttempt` and `JsonEncodeAttempt` separate irreversible I/O charges
-from transactional value accounting. The matrix below states the contract that
-high-level JSON integrations must preserve.
+The complete attempt contract is:
 
 | Scenario | Input | Normalized input | Value | Output |
 | --- | --- | --- | --- | --- |
@@ -65,49 +129,27 @@ high-level JSON integrations must preserve.
 | Incremental writer fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
 | One value in a stream fails | retained across values | retained across values | only the current value rolls back | previously accepted output remains retained |
 
-Raw and normalized input are charged immediately when an attempt accepts them.
-For an encoder that first produces a complete `Vec<u8>`, output is charged only
-after that complete output succeeds. Writer-oriented encoders instead charge
-each accepted prefix immediately; a later error does not undo bytes the writer
-has already accepted.
-
-The transaction is a budget boundary, not a general rollback mechanism.
-Dropping it cannot undo writes already accepted by a writer, callback effects,
-`Hasher` updates, or object mutation. A stream normally creates one independent
-attempt per complete top-level value, while higher-level grouping may use one
-transaction for a larger business operation. A handled rejection may continue
-to use that transaction and commit the measurements that remain admissible.
-
-## What It Provides
-
-| Feature | Adds |
-| --- | --- |
-| `json` | JSON resource identities, limits, and mutable decode/encode sessions |
-| `big-integer` | `BigIntegerLimits` |
-| `big-decimal` | `BigDecimalLimits` |
-| `time` | Clock-backed `TimeBudget` |
-
-The crate provides `ResourceLimit`, `ResourceBudget`, `ResourcePool`,
-`StructureLimits`, `StructureBudget`, and string, numeric, duration, and time
-helpers. A dimension that is not configured is represented by `Option`, not by
-an unlimited budget object.
-
-JSON limits and sessions live here so configuration, metadata, value objects,
-and format adapters can share the same accounting contract. Parsing,
-normalization, traversal, Serde adapters, and application error policies
-remain in [`qubit-json`](https://crates.io/crates/qubit-json).
+Raw input and normalized input are charged as soon as an attempt accepts them.
+Dropping a transaction cannot undo an accepted prefix, callback effect,
+`Hasher` update, or object mutation. A higher-level operation may deliberately
+choose a wider transaction boundary, but only `commit` publishes staged value
+accounting.
 
 ## Boundaries
 
-This crate does not parse JSON, perform I/O, allocate output, select
-application limits, or define application-specific error policies.
+This crate does not parse JSON, perform I/O, allocate permits, wait for pool
+capacity, choose application limits, or define application-specific recovery
+policy. `ResourcePool` is an in-memory accounting primitive, not a synchronized
+semaphore or RAII permit system. JSON parsing, normalization, traversal, and
+Serde integration belong to format adapters such as
+[`qubit-json`](https://crates.io/crates/qubit-json).
 
 ## Learn More
 
+- [English user guide](doc/user_guide.md)
+- [中文用户手册](doc/user_guide.zh_CN.md)
 - [API documentation](https://docs.rs/qubit-budget)
 - [中文 README](README.zh_CN.md)
-- [User guide](doc/user_guide.md)
-- [中文用户指南](doc/user_guide.zh_CN.md)
 - [Repository](https://github.com/qubit-ltd/rs-budget)
 
 ## Testing

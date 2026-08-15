@@ -7,9 +7,9 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![English Document](https://img.shields.io/badge/Document-English-blue.svg)](README.md)
 
-`qubit-budget` 为 Qubit Rust 应用提供精确、有限的资源上限和记账原语。
-当解析器、转换器、序列化器或 I/O 边界需要拒绝超量工作，同时避免未检查的
-算术和格式相关策略时，可以使用本 crate。
+`qubit-budget` 为 Rust 程序提供轻量的有限资源约束原语。解析器、序列化器、
+转换器或 I/O 边界可以用它精确记账，在工作量超限时获得结构化错误，并明确知道
+失败操作是否改变了状态。
 
 ## 安装
 
@@ -18,13 +18,77 @@
 qubit-budget = "0.4"
 ```
 
-只有在需要对应预算类型时，才启用 `json`、`big-integer`、`big-decimal` 或
-`time` feature。
+本 crate 默认不启用任何 feature。只需按实际用途选择集成能力：
+
+```toml
+[dependencies]
+qubit-budget = { version = "0.4", features = ["json"] }
+```
+
+可用 feature 包括 `json`、`big-integer`、`big-decimal` 和 `time`；其中
+`big-decimal` 会同时启用 `big-integer`。项目支持的最低 Rust 版本为 1.94。
 
 ## 快速开始
 
-JSON value 的记账显式且全有或全无。先暂存一个完整 value 的每项测量，只有外围
-操作成功后才发布：
+假设服务在构造一次响应时最多允许产生 8 字节。成功计费会扣减余额；请求超出
+余额时，预算保持不变，错误中包含完整的诊断信息：
+
+```rust
+use qubit_budget::ResourceBudget;
+
+let mut response = ResourceBudget::new("response-bytes", 8_u64);
+response.try_consume(5).expect("the first chunk fits");
+
+let error = response
+    .try_consume(4)
+    .expect_err("only three bytes remain");
+
+assert_eq!(error.resource(), &"response-bytes");
+assert_eq!(error.limit(), 8);
+assert_eq!(error.remaining(), 3);
+assert_eq!(error.requested(), 4);
+assert_eq!(response.used(), 5);
+assert_eq!(response.remaining(), 3);
+```
+
+点上限、可释放资源池、结构限制、原生值测量和 JSON 记账都沿用同样的资源标识与
+结构化诊断方式。
+
+## 为什么需要这个项目
+
+资源保护逻辑经常散落在临时计数器、未经检查的整数转换和格式专属错误中。出错后，
+调用方很难判断状态是否已经改变，也难以定位究竟是哪项限制拒绝了操作。
+
+`qubit-budget` 把三种常见策略明确区分开：
+
+| 策略 | 类型 | 状态模型 |
+| --- | --- | --- |
+| 校验一次测量值 | `ResourceLimit` | 不可变的包含式上限 |
+| 消耗一份有限额度 | `ResourceBudget` | 单调递减，不可释放 |
+| 借用可复用容量 | `ResourcePool` | 显式获取与释放 |
+
+所有资源量都使用精确的无符号整数。未配置的维度由 `Option::None` 表示，不会在
+内部创建一个含义模糊的“无限预算”。
+
+## 核心能力
+
+- 单项预算原子计费，以及多项预算的全有或全无计费。
+- 对原生 `usize` 与 `u64` 测量执行无截断的检查转换。
+- 提供点上限、预算不足、预算组、数量转换和非法释放等结构化错误。
+- 复用深度、节点数、容器大小和键字节数等结构限制。
+- 事务式生成 UTF-8 字符串，仅在完整成功后提交字节计费。
+- 可选支持字符串、大整数、大十进制数、时长及基于时钟的截止时间。
+- 启用 `json` 后，可配置与方向无关的 value 限制，并通过 decode/encode session
+  区分立即生效的 I/O 计费和可回滚的 value 记账。
+
+在 JSON 流程中，丢弃 attempt 只会回滚尚未提交的 value 记账。decoder 已接受的
+原始或规范化输入，以及 writer 已接受的输出前缀，仍然保留计费。完整原子性模型和
+集成方式见用户手册。
+
+## JSON transaction 边界
+
+启用 `json` feature 后，先暂存一个完整 value 的全部测量，只有外围操作成功后才
+发布：
 
 ```rust
 use qubit_budget::json::JsonMeasurement;
@@ -43,14 +107,7 @@ transaction.commit();
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
-每次 `try_admit` 对单项测量都是原子的。`commit` 会发布暂存的全部 value nodes 和
-payload bytes；丢弃 transaction（包括 panic unwind 时）只会丢弃尚未提交的 value
-记账。
-
-## JSON 原子性
-
-`JsonDecodeAttempt` 和 `JsonEncodeAttempt` 把不可逆的 I/O 计费与可事务化的 value
-记账分开。下表给出高层 JSON 集成应当保持的合同。
+完整的 attempt 合同如下：
 
 | 场景 | input | normalized input | value | output |
 | --- | --- | --- | --- | --- |
@@ -62,45 +119,25 @@ payload bytes；丢弃 transaction（包括 panic unwind 时）只会丢弃尚�
 | incremental writer 失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
 | stream 中单个 value 失败 | 跨 value 持续累计 | 跨 value 持续累计 | 仅当前 value 回滚 | 之前接受的 output 继续保留 |
 
-attempt 一旦接受 raw input 或 normalized input，就立即计费。先得到完整 `Vec<u8>` 的
-encoder 只会在完整 output 成功后计费；writer-oriented encoder 则会在 writer 接受每个
-prefix 后立刻计费，之后的错误不会撤销已经被 writer 接受的字节。
+attempt 一旦接受 raw input 或 normalized input，就会立即计费。丢弃 transaction
+无法撤销 accepted prefix、callback 副作用、`Hasher` 更新或对象 mutation。
+higher-level 操作可以有意扩大 transaction 边界，但暂存的 value 记账仍然只通过
+`commit` 发布。
 
-transaction 是预算边界，不是通用回滚机制。丢弃 transaction 不能撤销 writer 已接受的
-写入、callback 的副作用、`Hasher` 更新或对象 mutation。stream 通常为每个完整顶层
-value 创建相互独立的 attempt；higher-level grouping 也可以让一个 transaction 覆盖更大
-的业务操作。业务代码处理一次 rejection 后仍可继续使用该 transaction，并在最终成功时
-提交其余可接纳的测量。
+## 使用边界
 
-## 提供的能力
-
-| Feature | 提供内容 |
-| --- | --- |
-| `json` | JSON 资源标识、limits，以及可变 decode/encode session |
-| `big-integer` | `BigIntegerLimits` |
-| `big-decimal` | `BigDecimalLimits` |
-| `time` | 基于时钟的 `TimeBudget` |
-
-本 crate 提供 `ResourceLimit`、`ResourceBudget`、`ResourcePool`、
-`StructureLimits`、`StructureBudget`，以及字符串、数值、时长和时间辅助类型。
-未配置的维度使用 `Option` 表示，而不是创建一个无限预算对象。
-
-JSON limits 和 session 保留在这里，使配置、元数据、值对象和格式适配器能够共享
-同一套记账合同。JSON 解析、规范化、遍历、Serde adapter 和应用错误策略仍由
-[`qubit-json`](https://crates.io/crates/qubit-json) 提供。
-
-## 边界
-
-本 crate 不解析 JSON、不执行 I/O、不分配输出、不选择应用上限，也不定义应用专属
-错误策略。
+本 crate 不负责解析 JSON、执行 I/O、分配 permit、等待资源池容量、替应用选择
+限制值，也不定义应用自己的恢复策略。`ResourcePool` 只是内存中的记账原语，并非
+同步 semaphore 或 RAII permit 系统。JSON 解析、规范化、遍历和 Serde 集成应由
+[`qubit-json`](https://crates.io/crates/qubit-json) 等格式适配层实现。
 
 ## 延伸阅读
 
+- [中文用户手册](doc/user_guide.zh_CN.md)
+- [English user guide](doc/user_guide.md)
 - [API 文档](https://docs.rs/qubit-budget)
 - [English README](README.md)
-- [English user guide](doc/user_guide.md)
-- [中文用户指南](doc/user_guide.zh_CN.md)
-- [仓库](https://github.com/qubit-ltd/rs-budget)
+- [项目仓库](https://github.com/qubit-ltd/rs-budget)
 
 ## 测试
 
@@ -122,12 +159,13 @@ cargo test --all-features
 
 Copyright (c) 2025 - 2026. Haixing Hu. All rights reserved.
 
-本项目基于 Apache License 2.0 授权。完整许可证文本请参阅 [LICENSE](LICENSE)。
+本项目基于 Apache License 2.0 授权。完整许可证文本请参阅
+[LICENSE](LICENSE)。
 
 ## 贡献
 
-欢迎贡献。请遵循 Rust API 指南，及时更新公共 API 文档与测试，并在提交 Pull
-Request 前运行 `./align-ci.sh` 格式化代码，运行 `./ci-check.sh` 满足 CI 要求。
+欢迎贡献。请遵循 Rust API 指南，及时更新公共 API 文档与测试，并在提交
+Pull Request 前运行 `./align-ci.sh`格式化代码，运行`./ci-check.sh`对齐CI要求。
 
 ## 作者
 
