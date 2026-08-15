@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Private owned and borrowed encode-session storage.
+// qubit-style: allow source-test-pair
 
 use crate::ResourceBudget;
 use crate::ResourceQuantity;

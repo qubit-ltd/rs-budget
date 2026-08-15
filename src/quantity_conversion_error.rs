@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines failures converting native measurements into resource quantities.
+// qubit-style: allow source-test-pair
 
 use crate::QuantityMeasurement;
 

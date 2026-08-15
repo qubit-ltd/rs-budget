@@ -1,3 +1,10 @@
+// =============================================================================
+//    Copyright (c) 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
@@ -23,27 +30,42 @@ fuzz_target!(|data: &[u8]| {
             payload,
         ));
     let mut budget = limits.budget();
-    for chunk in input.get(2..).unwrap_or_default().chunks(3) {
-        let measurement = match chunk.first().copied().unwrap_or_default() % 4 {
-            0 => JsonMeasurement::Null { depth: 0 },
-            1 => JsonMeasurement::Boolean { depth: 0 },
-            2 => JsonMeasurement::String {
-                depth: 0,
-                bytes: usize::from(chunk.get(1).copied().unwrap_or_default()),
-            },
-            _ => JsonMeasurement::Key {
-                bytes: usize::from(chunk.get(1).copied().unwrap_or_default()),
-            },
-        };
+    for chunk in input.get(2..).unwrap_or_default().chunks(10) {
         let before_nodes = budget.used_nodes();
         let before_payload = budget.used_payload_bytes();
-        let commit = chunk.get(2).copied().unwrap_or_default() & 1 == 1;
+        let commit = chunk.first().copied().unwrap_or_default() & 1 == 1;
         let mut transaction = budget.transaction();
-        let result = transaction.try_admit(measurement);
-        if result.is_ok() && commit {
+        let mut admitted = true;
+        for measurement_chunk in chunk.get(1..).unwrap_or_default().chunks(3) {
+            let measurement = match measurement_chunk
+                .first()
+                .copied()
+                .unwrap_or_default()
+                % 4
+            {
+                0 => JsonMeasurement::Null { depth: 0 },
+                1 => JsonMeasurement::Boolean { depth: 0 },
+                2 => JsonMeasurement::String {
+                    depth: 0,
+                    bytes: usize::from(
+                        measurement_chunk.get(1).copied().unwrap_or_default(),
+                    ),
+                },
+                _ => JsonMeasurement::Key {
+                    bytes: usize::from(
+                        measurement_chunk.get(1).copied().unwrap_or_default(),
+                    ),
+                },
+            };
+            if transaction.try_admit(measurement).is_err() {
+                admitted = false;
+                break;
+            }
+        }
+        if admitted && commit {
             transaction.commit();
         }
-        if result.is_err() || !commit {
+        if !admitted || !commit {
             assert_eq!(budget.used_nodes(), before_nodes);
             assert_eq!(budget.used_payload_bytes(), before_payload);
         }

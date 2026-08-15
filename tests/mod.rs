@@ -7,11 +7,9 @@
 // =============================================================================
 mod budget_error_tests;
 mod budget_group_error_tests;
-mod internal;
 #[cfg(feature = "json")]
 mod json;
 mod observation_tests;
-mod quantity_conversion_error_tests;
 mod quantity_measurement_tests;
 mod resource_budget_tests;
 mod resource_limit_tests;

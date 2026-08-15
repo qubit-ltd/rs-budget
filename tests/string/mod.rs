@@ -7,4 +7,3 @@
 // =============================================================================
 mod budgeted_string_error_tests;
 mod budgeted_string_writer_tests;
-mod internal;

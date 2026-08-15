@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Private formatting adapter for budgeted string rendering.
+// qubit-style: allow source-test-pair
 
 use std::fmt;
 

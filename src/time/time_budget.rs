@@ -134,18 +134,21 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
 
 impl<R, C> TimeBudget<R, C> {
     /// Returns the associated resource.
+    #[must_use = "the resource identity is needed for diagnostics"]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
     /// Returns the instant sampled at construction.
+    #[must_use = "the construction instant defines elapsed time"]
     #[inline(always)]
     pub const fn started_at(&self) -> MonotonicInstant {
         self.started_at
     }
 
     /// Returns the fixed deadline.
+    #[must_use = "the deadline defines budget expiry"]
     #[inline(always)]
     pub const fn deadline(&self) -> MonotonicInstant {
         self.deadline
