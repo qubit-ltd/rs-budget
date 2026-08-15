@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 mod internal;
+mod json_container_kind_tests;
 mod json_decode_attempt_tests;
 mod json_decode_limits_tests;
 mod json_decode_session_tests;

@@ -21,6 +21,7 @@
 //! including while unwinding, rolls the value state back.
 
 mod internal;
+mod json_container_kind;
 mod json_decode_attempt;
 mod json_decode_limits;
 mod json_decode_session;
@@ -33,6 +34,7 @@ mod json_value_budget;
 mod json_value_limits;
 mod json_value_transaction;
 
+pub use json_container_kind::JsonContainerKind;
 pub use json_decode_attempt::JsonDecodeAttempt;
 pub use json_decode_limits::JsonDecodeLimits;
 pub use json_decode_session::JsonDecodeSession;

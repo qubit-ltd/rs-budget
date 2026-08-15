@@ -7,6 +7,7 @@
 // =============================================================================
 //! Transactional admission for one complete JSON value.
 
+use super::JsonContainerKind;
 use super::JsonMeasurement;
 use super::JsonValueBudget;
 use super::internal::JsonValueState;
@@ -63,31 +64,35 @@ where
         Ok(())
     }
 
-    /// Checks the prospective number of items in one JSON array without
-    /// mutation.
-    pub fn check_sequence_items(
+    /// Checks one prospective JSON container count without mutating this
+    /// transaction.
+    ///
+    /// # Parameters
+    ///
+    /// * `kind` - Container dimension selected for the point-limit check.
+    /// * `prospective` - Count that would result if the next child were
+    ///   entered.
+    ///
+    /// # Errors
+    ///
+    /// Returns a quantity conversion error when `prospective` cannot be
+    /// represented by `Q`, or a point-limit error for `kind`.
+    pub fn check_container_count(
         &self,
-        items: usize,
+        kind: JsonContainerKind,
+        prospective: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        self.check_container_items(
-            items,
-            self.target
+        let limit = match kind {
+            JsonContainerKind::Sequence => self
+                .target
                 .limits()
                 .structure_limits()
                 .sequence_items_limit(),
-        )
-    }
-
-    /// Checks the prospective number of entries in one JSON object without
-    /// mutation.
-    pub fn check_map_entries(
-        &self,
-        entries: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        self.check_container_items(
-            entries,
-            self.target.limits().structure_limits().map_entries_limit(),
-        )
+            JsonContainerKind::Map => {
+                self.target.limits().structure_limits().map_entries_limit()
+            }
+        };
+        self.check_container_items(prospective, limit)
     }
 
     /// Publishes every successful staged admission to the target budget.

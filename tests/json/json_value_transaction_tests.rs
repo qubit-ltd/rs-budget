@@ -7,6 +7,7 @@
 // =============================================================================
 //! Verifies value transaction commit and rollback semantics.
 
+use qubit_budget::json::JsonContainerKind;
 use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
@@ -26,9 +27,9 @@ fn test_value_transaction_commit_publishes_usage() {
     assert_eq!(budget.used_nodes(), Some(1));
 }
 
-/// Verifies that checking the next sequence item does not mutate accounting.
+/// Verifies prospective container checks retain transaction accounting.
 #[test]
-fn test_check_sequence_items_rejects_next_item_without_mutation() {
+fn test_check_container_count_rejects_next_item_without_mutation() {
     let mut budget = JsonValueLimits::<JsonResource, usize>::empty()
         .with_max_sequence_items(1)
         .with_max_nodes(4)
@@ -36,10 +37,30 @@ fn test_check_sequence_items_rejects_next_item_without_mutation() {
     let transaction = budget.transaction();
 
     let _ = transaction
-        .check_sequence_items(2)
+        .check_container_count(JsonContainerKind::Sequence, 2)
         .expect_err("the next item exceeds the configured limit");
     assert_eq!(transaction.used_nodes(), Some(0));
     assert_eq!(transaction.remaining_nodes(), Some(4));
     transaction.commit();
     assert_eq!(budget.used_nodes(), Some(0));
+}
+
+/// Verifies prospective map checks use the object-entry resource limit.
+#[test]
+fn test_check_container_count_rejects_next_map_entry() {
+    let mut budget = JsonValueLimits::<JsonResource, usize>::empty()
+        .with_max_map_entries(1)
+        .budget();
+    let transaction = budget.transaction();
+
+    assert!(
+        transaction
+            .check_container_count(JsonContainerKind::Map, 1)
+            .is_ok()
+    );
+    let error = transaction
+        .check_container_count(JsonContainerKind::Map, 2)
+        .expect_err("the second map entry exceeds the configured limit");
+
+    assert_eq!(error.resource(), &JsonResource::MapEntries);
 }
