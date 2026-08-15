@@ -14,7 +14,7 @@ use qubit_budget::StructureResource;
 
 #[test]
 fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
-    let limits = StructureLimits::new()
+    let limits = StructureLimits::<StructureResource, usize>::new()
         .with_max_depth(2)
         .with_max_nodes(2)
         .with_max_sequence_items(1)
@@ -43,7 +43,8 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
 
 #[test]
 fn test_unconfigured_structure_limits_allow_all_checks() {
-    let mut budget = StructureLimits::new().budget();
+    let mut budget =
+        StructureLimits::<StructureResource, usize>::new().budget();
 
     budget
         .check_depth(usize::MAX)
@@ -59,7 +60,9 @@ fn test_unconfigured_structure_limits_allow_all_checks() {
 
 #[test]
 fn test_charge_node_failure_is_atomic() {
-    let mut budget = StructureLimits::new().with_max_nodes(1).budget();
+    let mut budget = StructureLimits::<StructureResource, usize>::new()
+        .with_max_nodes(1)
+        .budget();
 
     budget.charge_node().expect("first node should fit");
     assert!(matches!(
@@ -79,7 +82,8 @@ fn test_charge_node_failure_is_atomic() {
 
 #[test]
 fn test_budget_creates_independent_node_accounting_sessions() {
-    let limits = StructureLimits::new().with_max_nodes(1);
+    let limits =
+        StructureLimits::<StructureResource, usize>::new().with_max_nodes(1);
     let mut first_budget = limits.budget();
     let mut second_budget = limits.budget();
 
@@ -118,7 +122,7 @@ fn test_generic_structure_budget_uses_custom_resource_and_quantity() {
 /// Verifies sequence and map entry points perform all atomic checks.
 #[test]
 fn test_structure_budget_enters_sequences_and_maps() {
-    let limits = StructureLimits::new()
+    let limits = StructureLimits::<StructureResource, usize>::new()
         .with_max_depth(2)
         .with_max_nodes(2)
         .with_max_sequence_items(1)

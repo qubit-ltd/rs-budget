@@ -31,9 +31,9 @@ where
 {
     /// Creates limits with no configured decimal bounds.
     #[inline]
-    pub const fn empty() -> Self {
+    pub const fn new() -> Self {
         Self {
-            coefficient: BigIntegerLimits::empty(),
+            coefficient: BigIntegerLimits::new(),
             max_scale_magnitude: None,
         }
     }
@@ -101,6 +101,6 @@ where
     /// Creates unconfigured decimal limits.
     #[inline]
     fn default() -> Self {
-        Self::empty()
+        Self::new()
     }
 }

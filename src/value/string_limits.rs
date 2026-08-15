@@ -27,7 +27,7 @@ where
 {
     /// Creates limits with no configured string bound.
     #[inline]
-    pub const fn empty() -> Self {
+    pub const fn new() -> Self {
         Self {
             max_utf8_bytes: None,
         }
@@ -72,6 +72,6 @@ where
     /// Creates unconfigured string limits.
     #[inline]
     fn default() -> Self {
-        Self::empty()
+        Self::new()
     }
 }

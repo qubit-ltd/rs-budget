@@ -83,7 +83,7 @@ qubit-budget = { version = "0.4", features = ["json"] }
 
 ### 1. 配置自持有的 decode session
 
-`JsonDecodeLimits::empty()` 创建的配置没有任何限制。只添加当前边界真正需要执行的
+`JsonDecodeLimits::<JsonResource, usize>::new()` 创建的配置没有任何限制。只添加当前边界真正需要执行的
 维度：
 
 ```rust
@@ -92,7 +92,7 @@ use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
 
 let mut session = JsonDecodeSession::owned(
-    JsonDecodeLimits::empty()
+    JsonDecodeLimits::<JsonResource, usize>::new()
         .with_max_input_bytes(64)
         .with_max_normalized_input_bytes(64)
         .with_max_depth(3)

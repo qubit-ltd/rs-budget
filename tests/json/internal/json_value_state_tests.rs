@@ -8,12 +8,13 @@
 //! Verifies cumulative JSON value state through its public transaction API.
 
 use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
 /// Verifies node and payload state are staged together before commit.
 #[test]
 fn test_state_stages_node_and_payload_usage() {
-    let mut budget = JsonValueLimits::empty()
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
         .with_max_nodes(2)
         .with_max_payload_bytes(4)
         .budget();

@@ -31,30 +31,9 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    /// Creates an empty committed ledger for `limits`.
-    pub fn new(limits: JsonValueLimits<R, Q>) -> Self {
-        let state =
-            JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
-        Self { limits, state }
-    }
-
-    /// Restores the ledger to its original zero-used committed state.
-    pub fn reset(&mut self) {
-        self.state = JsonValueState::new(
-            self.limits.max_nodes(),
-            self.limits.max_payload_bytes(),
-        );
-    }
-
     /// Starts an all-or-nothing accounting transaction for one JSON value.
     pub fn transaction(&mut self) -> JsonValueTransaction<'_, R, Q> {
         JsonValueTransaction::new(self)
-    }
-
-    /// Returns the immutable limits shared by all transactions.
-    #[must_use = "the limits determine which transactions can be committed"]
-    pub const fn limits(&self) -> &JsonValueLimits<R, Q> {
-        &self.limits
     }
 
     /// Returns committed node usage when the cumulative node limit is set.
@@ -87,5 +66,31 @@ where
     #[must_use]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.state.remaining_payload_bytes()
+    }
+}
+
+impl<R, Q> JsonValueBudget<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    /// Creates an empty committed ledger for `limits`.
+    pub fn new(limits: JsonValueLimits<R, Q>) -> Self {
+        let state =
+            JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
+        Self { limits, state }
+    }
+
+    /// Restores the ledger to its original zero-used committed state.
+    pub fn reset(&mut self) {
+        self.state = JsonValueState::new(
+            self.limits.max_nodes(),
+            self.limits.max_payload_bytes(),
+        );
+    }
+
+    /// Returns the immutable limits shared by all transactions.
+    #[must_use = "the limits determine which transactions can be committed"]
+    pub const fn limits(&self) -> &JsonValueLimits<R, Q> {
+        &self.limits
     }
 }

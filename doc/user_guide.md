@@ -92,7 +92,7 @@ Optional features are:
 
 ### 1. Configure one owned decode session
 
-`JsonDecodeLimits::empty()` starts with every dimension unconfigured. Add only
+`JsonDecodeLimits::<JsonResource, usize>::new()` starts with every dimension unconfigured. Add only
 the dimensions enforced by this boundary:
 
 ```rust
@@ -101,7 +101,7 @@ use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
 
 let mut session = JsonDecodeSession::owned(
-    JsonDecodeLimits::empty()
+    JsonDecodeLimits::<JsonResource, usize>::new()
         .with_max_input_bytes(64)
         .with_max_normalized_input_bytes(64)
         .with_max_depth(3)

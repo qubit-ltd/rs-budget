@@ -29,7 +29,7 @@ where
     Q: ResourceQuantity,
 {
     fn default() -> Self {
-        Self::unconfigured()
+        Self::new()
     }
 }
 impl<R, Q> JsonEncodeLimits<R, Q>
@@ -37,11 +37,14 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an unconfigured generic encoding limit set.
-    pub const fn unconfigured() -> Self {
+    pub const fn new() -> Self {
         Self {
             output: None,
-            value: JsonValueLimits::unconfigured(),
+            value: JsonValueLimits::new(),
         }
+    }
+    pub const fn unconfigured() -> Self {
+        Self::new()
     }
     /// Configures the cumulative output-byte budget.
     pub fn with_output_bytes_limit(
@@ -81,11 +84,9 @@ where
     }
 }
 impl JsonEncodeLimits<JsonResource, usize> {
-    /// Creates an unconfigured JSON encoding limit set.
     pub const fn empty() -> Self {
-        Self::unconfigured()
+        Self::new()
     }
-
     /// Configures the cumulative output-byte maximum.
     pub fn with_max_output_bytes(mut self, maximum: usize) -> Self {
         self.output =

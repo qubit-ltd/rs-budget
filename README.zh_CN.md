@@ -94,7 +94,7 @@ assert_eq!(response.remaining(), 3);
 use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonValueLimits;
 
-let mut budget = JsonValueLimits::empty()
+let mut budget = JsonValueLimits::<JsonResource, usize>::new()
     .with_max_nodes(8)
     .with_max_string_bytes(16)
     .budget();

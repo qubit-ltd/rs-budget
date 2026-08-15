@@ -64,7 +64,7 @@ where
     /// with [`Self::new`]. Custom resource sets use this constructor because
     /// their resource identity is supplied by each `*_limit` method.
     #[inline]
-    pub const fn empty() -> Self {
+    pub const fn new() -> Self {
         Self {
             max_depth: None,
             max_nodes: None,
@@ -211,18 +211,6 @@ where
 }
 
 impl StructureLimits<StructureResource, usize> {
-    /// Creates a configuration with every structural limit unconfigured.
-    #[inline]
-    pub const fn new() -> Self {
-        Self {
-            max_depth: None,
-            max_nodes: None,
-            max_sequence_items: None,
-            max_map_entries: None,
-            max_key_bytes: None,
-        }
-    }
-
     /// Configures the inclusive maximum nesting depth.
     #[inline]
     pub const fn with_max_depth(mut self, maximum: usize) -> Self {

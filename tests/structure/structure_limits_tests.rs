@@ -15,7 +15,7 @@ use qubit_budget::StructureResource;
 
 #[test]
 fn test_structure_limits_expose_configured_values() {
-    let limits = StructureLimits::new()
+    let limits = StructureLimits::<StructureResource, usize>::new()
         .with_max_depth(1)
         .with_max_nodes(2)
         .with_max_sequence_items(3)
@@ -37,7 +37,7 @@ fn test_generic_structure_limits_support_custom_key_limit() {
         KeyBytes,
     }
 
-    let limits = StructureLimits::<Resource, u8>::empty()
+    let limits = StructureLimits::<Resource, u8>::new()
         .with_key_bytes_limit(ResourceLimit::new(Resource::KeyBytes, 3));
 
     assert_eq!(limits.max_key_bytes(), Some(3));
@@ -49,7 +49,7 @@ fn test_generic_structure_limits_support_custom_key_limit() {
 
 #[test]
 fn test_with_max_methods_bind_each_limit_to_its_structure_resource() {
-    let mut budget = StructureLimits::new()
+    let mut budget = StructureLimits::<StructureResource, usize>::new()
         .with_max_depth(1)
         .with_max_nodes(1)
         .with_max_sequence_items(1)

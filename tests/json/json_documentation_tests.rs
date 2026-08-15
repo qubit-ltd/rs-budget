@@ -126,9 +126,12 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     use qubit_budget::json::JsonEncodeLimits;
     use qubit_budget::json::JsonEncodeSession;
     use qubit_budget::json::JsonMeasurement;
+    use qubit_budget::json::JsonResource;
     use qubit_budget::json::JsonValueLimits;
 
-    let mut budget = JsonValueLimits::empty().with_max_nodes(2).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(2)
+        .budget();
     {
         let mut transaction = budget.transaction();
         transaction
@@ -144,7 +147,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     assert_eq!(budget.used_nodes(), Some(1));
 
     let mut decode = JsonDecodeSession::owned(
-        JsonDecodeLimits::empty()
+        JsonDecodeLimits::<JsonResource, usize>::new()
             .with_max_input_bytes(4)
             .with_max_normalized_input_bytes(4)
             .with_max_nodes(2),
@@ -170,7 +173,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     assert_eq!(decode.value_budget().used_nodes(), Some(0));
 
     let mut encode = JsonEncodeSession::owned(
-        JsonEncodeLimits::empty()
+        JsonEncodeLimits::<JsonResource, usize>::new()
             .with_max_output_bytes(4)
             .with_max_nodes(2),
     );

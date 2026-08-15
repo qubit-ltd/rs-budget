@@ -10,12 +10,13 @@
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
 
 /// Verifies dropping an attempt keeps input charges and rolls back value state.
 #[test]
 fn test_decode_attempt_drop_preserves_input_only() {
     let mut session = JsonDecodeSession::owned(
-        JsonDecodeLimits::empty()
+        JsonDecodeLimits::<JsonResource, usize>::new()
             .with_max_input_bytes(4)
             .with_max_nodes(1),
     );

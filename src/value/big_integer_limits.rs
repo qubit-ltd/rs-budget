@@ -32,7 +32,7 @@ where
 {
     /// Creates limits with no configured integer bounds.
     #[inline]
-    pub const fn empty() -> Self {
+    pub const fn new() -> Self {
         Self {
             max_magnitude_bits: None,
             max_significant_decimal_digits: None,
@@ -103,7 +103,7 @@ where
     /// Creates unconfigured integer limits.
     #[inline]
     fn default() -> Self {
-        Self::empty()
+        Self::new()
     }
 }
 

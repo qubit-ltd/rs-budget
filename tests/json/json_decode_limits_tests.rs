@@ -19,7 +19,7 @@ fn test_default_uses_usize_quantity() {
 /// Verifies that decode builders configure input and nested value limits.
 #[test]
 fn test_standard_builder_configures_decode_dimensions() {
-    let limits = JsonDecodeLimits::empty()
+    let limits = JsonDecodeLimits::<JsonResource, usize>::new()
         .with_max_input_bytes(1)
         .with_max_normalized_input_bytes(2)
         .with_max_depth(3)
@@ -46,7 +46,8 @@ fn test_standard_builder_configures_decode_dimensions() {
 /// Verifies that nested value limits may be borrowed or explicitly consumed.
 #[test]
 fn test_value_limits_expresses_borrowing_and_ownership() {
-    let limits = JsonDecodeLimits::empty().with_max_depth(3);
+    let limits =
+        JsonDecodeLimits::<JsonResource, usize>::new().with_max_depth(3);
     let _: &JsonValueLimits = limits.value_limits();
     assert_eq!(limits.value_limits().max_depth(), Some(3));
     assert_eq!(limits.into_value_limits().max_depth(), Some(3));
@@ -54,14 +55,14 @@ fn test_value_limits_expresses_borrowing_and_ownership() {
 
 #[test]
 fn test_empty_decode_limits_report_unconfigured_maxima() {
-    let limits = JsonDecodeLimits::empty();
+    let limits = JsonDecodeLimits::<JsonResource, usize>::new();
     assert_eq!(limits.max_input_bytes(), None);
     assert_eq!(limits.max_normalized_input_bytes(), None);
 }
 
 #[test]
 fn test_generic_decode_limits_expose_maxima() {
-    let limits = JsonDecodeLimits::<JsonResource, u8>::unconfigured()
+    let limits = JsonDecodeLimits::<JsonResource, u8>::new()
         .with_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 4))
         .with_normalized_input_bytes_limit(ResourceLimit::new(
             JsonResource::NormalizedInputBytes,

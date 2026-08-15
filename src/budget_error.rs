@@ -152,6 +152,18 @@ where
     }
 }
 
+impl<R, Q> InsufficientBudgetError<R, Q>
+where
+    Q: crate::ResourceQuantity,
+{
+    /// Returns the amount already consumed before the failed request.
+    #[must_use]
+    #[inline]
+    pub fn used(&self) -> Q {
+        self.limit - self.remaining
+    }
+}
+
 /// Aggregate error for APIs that can perform both point and cumulative checks.
 ///
 /// APIs with a single failure mode return [`LimitExceededError`] or
@@ -304,6 +316,33 @@ where
         match self {
             Self::LimitExceeded { .. } => None,
             Self::Insufficient { requested, .. } => Some(*requested),
+        }
+    }
+}
+
+impl<R, Q> BudgetError<R, Q>
+where
+    Q: crate::ResourceQuantity,
+{
+    /// Returns the configured limit for either point or cumulative failures.
+    #[must_use]
+    #[inline]
+    pub const fn configured_limit(&self) -> Q {
+        match self {
+            Self::LimitExceeded { maximum, .. } => *maximum,
+            Self::Insufficient { limit, .. } => *limit,
+        }
+    }
+
+    /// Returns cumulative usage before a failed request, when applicable.
+    #[must_use]
+    #[inline]
+    pub fn used(&self) -> Option<Q> {
+        match self {
+            Self::LimitExceeded { .. } => None,
+            Self::Insufficient {
+                limit, remaining, ..
+            } => Some(*limit - *remaining),
         }
     }
 }

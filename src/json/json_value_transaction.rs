@@ -64,6 +64,27 @@ where
         Ok(())
     }
 
+    /// Stages admission of a container before traversing its children.
+    ///
+    /// This checks the container depth and consumes its node immediately;
+    /// child-count limits remain enforceable through
+    /// [`Self::check_container_count`].
+    pub fn try_enter_container(
+        &mut self,
+        kind: JsonContainerKind,
+        depth: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        let measurement = match kind {
+            JsonContainerKind::Sequence => {
+                JsonMeasurement::Array { depth, items: 0 }
+            }
+            JsonContainerKind::Map => {
+                JsonMeasurement::Object { depth, entries: 0 }
+            }
+        };
+        self.try_admit(measurement)
+    }
+
     /// Checks one prospective JSON container count without mutating this
     /// transaction.
     ///

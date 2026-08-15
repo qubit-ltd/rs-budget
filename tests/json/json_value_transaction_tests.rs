@@ -15,7 +15,9 @@ use qubit_budget::json::JsonValueLimits;
 /// Verifies only an explicit commit publishes staged value usage.
 #[test]
 fn test_value_transaction_commit_publishes_usage() {
-    let mut budget = JsonValueLimits::empty().with_max_nodes(1).budget();
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(1)
+        .budget();
     let mut transaction = budget.transaction();
     transaction
         .try_admit(JsonMeasurement::Null { depth: 1 })
@@ -30,7 +32,7 @@ fn test_value_transaction_commit_publishes_usage() {
 /// Verifies prospective container checks retain transaction accounting.
 #[test]
 fn test_check_container_count_rejects_next_item_without_mutation() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::empty()
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
         .with_max_sequence_items(1)
         .with_max_nodes(4)
         .budget();
@@ -48,7 +50,7 @@ fn test_check_container_count_rejects_next_item_without_mutation() {
 /// Verifies prospective map checks use the object-entry resource limit.
 #[test]
 fn test_check_container_count_rejects_next_map_entry() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::empty()
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
         .with_max_map_entries(1)
         .budget();
     let transaction = budget.transaction();
@@ -63,4 +65,24 @@ fn test_check_container_count_rejects_next_map_entry() {
         .expect_err("the second map entry exceeds the configured limit");
 
     assert_eq!(error.resource(), &JsonResource::MapEntries);
+}
+
+#[test]
+fn test_enter_container_admits_node_before_children() {
+    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_depth(1)
+        .with_max_nodes(1)
+        .budget();
+    let mut transaction = budget.transaction();
+
+    transaction
+        .try_enter_container(JsonContainerKind::Sequence, 1)
+        .expect("container admission fits");
+    assert_eq!(transaction.used_nodes(), Some(1));
+
+    let error = transaction
+        .try_enter_container(JsonContainerKind::Sequence, 2)
+        .expect_err("nested container exceeds depth");
+    assert_eq!(error.resource(), &JsonResource::Depth);
+    assert_eq!(transaction.used_nodes(), Some(1));
 }

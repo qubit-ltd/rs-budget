@@ -39,7 +39,7 @@ where
 {
     /// Creates a limit set with every value dimension unconfigured.
     fn default() -> Self {
-        Self::unconfigured()
+        Self::new()
     }
 }
 
@@ -48,9 +48,9 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an unconfigured generic value limit set.
-    pub const fn unconfigured() -> Self {
+    pub const fn new() -> Self {
         Self {
-            structure: StructureLimits::empty(),
+            structure: StructureLimits::new(),
             max_string_bytes: None,
             max_number_bytes: None,
             max_payload_bytes: None,
@@ -246,9 +246,8 @@ where
 }
 
 impl JsonValueLimits<JsonResource, usize> {
-    /// Creates a value limit set with every JSON value dimension unconfigured.
     pub const fn empty() -> Self {
-        Self::unconfigured()
+        Self::new()
     }
 }
 

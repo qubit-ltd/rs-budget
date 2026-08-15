@@ -19,7 +19,7 @@ fn test_default_uses_usize_quantity() {
 /// Verifies that encode builders configure output and nested value limits.
 #[test]
 fn test_standard_builder_configures_encode_dimensions() {
-    let limits = JsonEncodeLimits::empty()
+    let limits = JsonEncodeLimits::<JsonResource, usize>::new()
         .with_max_output_bytes(1)
         .with_max_depth(2)
         .with_max_nodes(3)
@@ -44,7 +44,8 @@ fn test_standard_builder_configures_encode_dimensions() {
 /// Verifies that nested value limits may be borrowed or explicitly consumed.
 #[test]
 fn test_value_limits_expresses_borrowing_and_ownership() {
-    let limits = JsonEncodeLimits::empty().with_max_depth(2);
+    let limits =
+        JsonEncodeLimits::<JsonResource, usize>::new().with_max_depth(2);
     let _: &JsonValueLimits = limits.value_limits();
     assert_eq!(limits.value_limits().max_depth(), Some(2));
     assert_eq!(limits.into_value_limits().max_depth(), Some(2));
@@ -52,15 +53,17 @@ fn test_value_limits_expresses_borrowing_and_ownership() {
 
 #[test]
 fn test_empty_encode_limits_report_unconfigured_maximum() {
-    assert_eq!(JsonEncodeLimits::empty().max_output_bytes(), None);
+    assert_eq!(
+        JsonEncodeLimits::<JsonResource, usize>::new().max_output_bytes(),
+        None
+    );
 }
 
 #[test]
 fn test_generic_encode_limits_expose_maximum() {
-    let limits = JsonEncodeLimits::<JsonResource, u8>::unconfigured()
-        .with_output_bytes_limit(ResourceLimit::new(
-            JsonResource::OutputBytes,
-            4,
-        ));
+    let limits =
+        JsonEncodeLimits::<JsonResource, u8>::new().with_output_bytes_limit(
+            ResourceLimit::new(JsonResource::OutputBytes, 4),
+        );
     assert_eq!(limits.max_output_bytes(), Some(4));
 }

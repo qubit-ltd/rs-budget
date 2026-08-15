@@ -19,11 +19,13 @@ fuzz_target!(|data: &[u8]| {
     let input = &data[..data.len().min(MAX_INPUT_LEN)];
     let nodes = u64::from(input.first().copied().unwrap_or_default());
     let payload = u64::from(input.get(1).copied().unwrap_or_default());
-    let limits = JsonValueLimits::<JsonResource, u64>::unconfigured()
+    let limits = JsonValueLimits::<JsonResource, u64>::new()
         .with_structure_limits(
-            qubit_budget::StructureLimits::empty().with_nodes_limit(
-                ResourceLimit::new(JsonResource::Nodes, nodes),
-            ),
+            qubit_budget::StructureLimits::<StructureResource, usize>::new()
+                .with_nodes_limit(ResourceLimit::new(
+                    JsonResource::Nodes,
+                    nodes,
+                )),
         )
         .with_payload_bytes_limit(ResourceLimit::new(
             JsonResource::PayloadBytes,

@@ -19,7 +19,7 @@ use qubit_budget::json::JsonValueLimits;
 #[test]
 fn test_decode_attempt_drop_keeps_input_and_rolls_back_value() {
     let mut session = JsonDecodeSession::owned(
-        JsonDecodeLimits::empty()
+        JsonDecodeLimits::<JsonResource, usize>::new()
             .with_max_input_bytes(8)
             .with_max_normalized_input_bytes(7)
             .with_max_nodes(2),
@@ -48,8 +48,9 @@ fn test_decode_attempt_drop_keeps_input_and_rolls_back_value() {
 /// Verifies that an owned decode session can commit successive value attempts.
 #[test]
 fn test_decode_session_begin_value_commits_and_reuses_value_budget() {
-    let mut session =
-        JsonDecodeSession::owned(JsonDecodeLimits::empty().with_max_nodes(2));
+    let mut session = JsonDecodeSession::owned(
+        JsonDecodeLimits::<JsonResource, usize>::new().with_max_nodes(2),
+    );
 
     let mut first = session.begin_value();
     first
@@ -78,7 +79,8 @@ fn test_decode_session_begin_value_commits_and_reuses_value_budget() {
 #[test]
 fn test_decode_attempt_value_transaction_mut_exposes_working_state() {
     let mut session = JsonDecodeSession::owned(
-        JsonDecodeLimits::empty().with_max_payload_bytes(4),
+        JsonDecodeLimits::<JsonResource, usize>::new()
+            .with_max_payload_bytes(4),
     );
     let mut attempt = session.begin_value();
     attempt
@@ -95,7 +97,9 @@ fn test_decode_attempt_value_transaction_mut_exposes_working_state() {
 /// committed attempts and ignores unconfigured input accounting.
 #[test]
 fn test_decode_session_borrowing_value_reuses_committed_budget() {
-    let mut value = JsonValueLimits::empty().with_max_nodes(2).budget();
+    let mut value = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(2)
+        .budget();
     {
         let mut session = JsonDecodeSession::borrowing_value(&mut value);
         let mut attempt = session.begin_value();
@@ -115,7 +119,9 @@ fn test_decode_session_borrowing_value_reuses_committed_budget() {
 #[test]
 fn test_decode_session_borrowing_input_keeps_charge_after_attempt_drop() {
     let mut input = ResourceBudget::new(JsonResource::InputBytes, 3_usize);
-    let mut value = JsonValueLimits::empty().with_max_nodes(2).budget();
+    let mut value = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(2)
+        .budget();
     {
         let mut session =
             JsonDecodeSession::borrowing_input(&mut input, &mut value);
@@ -136,7 +142,9 @@ fn test_decode_session_borrowing_all_commits_io_and_value() {
     let mut input = ResourceBudget::new(JsonResource::InputBytes, 3_usize);
     let mut normalized =
         ResourceBudget::new(JsonResource::NormalizedInputBytes, 4_usize);
-    let mut value = JsonValueLimits::empty().with_max_nodes(2).budget();
+    let mut value = JsonValueLimits::<JsonResource, usize>::new()
+        .with_max_nodes(2)
+        .budget();
     {
         let mut session = JsonDecodeSession::borrowing_all(
             &mut input,
@@ -163,7 +171,7 @@ fn test_decode_session_borrowing_all_commits_io_and_value() {
 #[test]
 fn test_decode_attempt_panic_keeps_input_and_rolls_back_value() {
     let mut session = JsonDecodeSession::owned(
-        JsonDecodeLimits::empty()
+        JsonDecodeLimits::<JsonResource, usize>::new()
             .with_max_input_bytes(3)
             .with_max_nodes(1),
     );

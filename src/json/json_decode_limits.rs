@@ -31,7 +31,7 @@ where
     Q: ResourceQuantity,
 {
     fn default() -> Self {
-        Self::unconfigured()
+        Self::new()
     }
 }
 impl<R, Q> JsonDecodeLimits<R, Q>
@@ -39,12 +39,15 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an unconfigured generic decoding limit set.
-    pub const fn unconfigured() -> Self {
+    pub const fn new() -> Self {
         Self {
             input: None,
             normalized_input: None,
-            value: JsonValueLimits::unconfigured(),
+            value: JsonValueLimits::new(),
         }
+    }
+    pub const fn unconfigured() -> Self {
+        Self::new()
     }
     /// Configures the cumulative raw input-byte budget.
     pub fn with_input_bytes_limit(
@@ -101,11 +104,9 @@ where
     }
 }
 impl JsonDecodeLimits<JsonResource, usize> {
-    /// Creates an unconfigured JSON decoding limit set.
     pub const fn empty() -> Self {
-        Self::unconfigured()
+        Self::new()
     }
-
     /// Configures the cumulative raw input-byte maximum.
     pub fn with_max_input_bytes(mut self, maximum: usize) -> Self {
         self.input =
