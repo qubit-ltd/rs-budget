@@ -176,7 +176,7 @@ qubit-budget = { version = "0.4", features = ["time"] }
 
 ## 场景五：`qubit-json` 让一个已解码 JSON value 具备事务性
 
-`qubit-json` 通过 `LenientJsonDecoder::decode_with_session` 规范化并解码不可信 JSON。
+`qubit-json` 通过 `NormalizingJsonDecoder::decode_with_session` 规范化并解码不可信 JSON。
 已执行的 I/O 工作必须保留计费，但如果解析或反序列化随后失败，该 value 的节点数和
 payload 用量不能被消耗。
 

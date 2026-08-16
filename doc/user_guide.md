@@ -192,7 +192,7 @@ qubit-budget = { version = "0.4", features = ["time"] }
 ## Scenario 5: `qubit-json` makes one decoded value transactional
 
 `qubit-json` normalizes and decodes untrusted JSON through
-`LenientJsonDecoder::decode_with_session`. It must retain I/O work that already
+`NormalizingJsonDecoder::decode_with_session`. It must retain I/O work that already
 happened, but must not spend a value’s node and payload allowance if parsing or
 deserialization later fails.
 
