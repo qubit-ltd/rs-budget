@@ -77,6 +77,7 @@ where
     }
 
     /// Converts these limits into a builder for crate-internal composition.
+    #[cfg(feature = "json")]
     #[inline]
     #[must_use]
     pub(crate) const fn into_builder(self) -> StructureLimitsBuilder<R, Q> {

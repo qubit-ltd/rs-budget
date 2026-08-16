@@ -27,12 +27,12 @@
 
 mod resource;
 pub mod string;
+pub mod structure;
+pub mod time;
 mod value;
 
 #[cfg(feature = "json")]
 pub mod json;
-pub mod structure;
-
 pub use resource::BudgetError;
 pub use resource::BudgetGroupError;
 pub use resource::InsufficientBudgetError;
@@ -62,9 +62,6 @@ pub use value::BigIntegerLimits;
 pub use value::BigIntegerLimitsBuilder;
 pub use value::StringLimits;
 pub use value::StringLimitsBuilder;
-
-pub mod time;
-
 pub use time::DurationBudget;
 #[cfg(feature = "time")]
 pub use time::TimeBudget;

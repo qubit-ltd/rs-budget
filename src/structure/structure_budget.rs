@@ -7,11 +7,11 @@
 // =============================================================================
 //! Enforces structural limits during one processing session.
 
-use crate::BudgetError;
-use crate::ResourceBudget;
-use crate::ResourceQuantity;
-use crate::StructureLimits;
-use crate::StructureResource;
+use super::StructureLimits;
+use super::StructureResource;
+use crate::resource::BudgetError;
+use crate::resource::ResourceBudget;
+use crate::resource::ResourceQuantity;
 use crate::resource::check_limit;
 
 /// Mutable structural accounting for one processing session.

@@ -53,6 +53,7 @@ where
     }
 
     /// Creates a builder retaining an existing limit configuration.
+    #[cfg(feature = "json")]
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: StructureLimits<R, Q>) -> Self {
