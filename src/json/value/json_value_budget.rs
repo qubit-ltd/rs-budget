@@ -14,6 +14,28 @@ use crate::json::JsonResource;
 use crate::resource::ResourceQuantity;
 
 /// Committed JSON value accounting with immutable traversal limits.
+///
+/// A budget is normally created with [`JsonValueLimits::budget`]. Start a
+/// [`JsonValueTransaction`] for each complete value and call `commit` only
+/// after every measurement for that value has been admitted.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonMeasurement;
+/// use qubit_budget::json::JsonValueLimits;
+///
+/// let mut budget = JsonValueLimits::builder()
+///     .max_nodes(1_usize)
+///     .build()
+///     .budget();
+/// let mut transaction = budget.transaction();
+/// transaction
+///     .try_admit(JsonMeasurement::Null { depth: 1 })
+///     .expect("the value should fit");
+/// transaction.commit();
+/// assert_eq!(budget.used_nodes(), Some(1));
+/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct JsonValueBudget<R = JsonResource, Q = usize>
 where

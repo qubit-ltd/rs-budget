@@ -16,6 +16,35 @@ use crate::resource::ResourceBudget;
 use crate::resource::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON decoding operation.
+///
+/// Use [`Self::owned`] for a session that owns budgets created from immutable
+/// limits, or one of the `borrowing_*` constructors when the caller owns the
+/// budgets. Create an attempt with [`Self::begin_value`] for each complete
+/// value; input charges are immediate, while value accounting is committed by
+/// [`JsonDecodeAttempt::commit`].
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonDecodeLimits;
+/// use qubit_budget::json::JsonDecodeSession;
+/// use qubit_budget::json::JsonMeasurement;
+///
+/// let limits = JsonDecodeLimits::builder()
+///     .max_input_bytes(4)
+///     .max_nodes(1)
+///     .build();
+/// let mut session = JsonDecodeSession::owned(limits);
+/// let mut attempt = session.begin_value();
+/// attempt
+///     .try_consume_input_bytes(4)
+///     .expect("the input should fit");
+/// attempt
+///     .try_admit(JsonMeasurement::Null { depth: 1 })
+///     .expect("the value should fit");
+/// attempt.commit();
+/// assert_eq!(session.input_budget().expect("input budget").used(), 4);
+/// ```
 #[derive(Debug)]
 pub struct JsonDecodeSession<'a, R = JsonResource, Q = usize>
 where

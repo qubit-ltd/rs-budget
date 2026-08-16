@@ -16,6 +16,34 @@ use crate::resource::ResourceBudget;
 use crate::resource::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON encoding operation.
+///
+/// Use [`Self::owned`] for a session that owns budgets created from immutable
+/// limits, or [`Self::borrowing_output`] when the caller owns the output and
+/// value budgets. Accepted output bytes are charged immediately; value
+/// measurements are staged until [`JsonEncodeAttempt::commit`].
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonEncodeLimits;
+/// use qubit_budget::json::JsonEncodeSession;
+/// use qubit_budget::json::JsonMeasurement;
+///
+/// let limits = JsonEncodeLimits::builder()
+///     .max_output_bytes(4)
+///     .max_nodes(1)
+///     .build();
+/// let mut session = JsonEncodeSession::owned(limits);
+/// let mut attempt = session.begin_value();
+/// attempt
+///     .try_consume_output_bytes(4)
+///     .expect("the output should fit");
+/// attempt
+///     .try_admit(JsonMeasurement::Null { depth: 1 })
+///     .expect("the value should fit");
+/// attempt.commit();
+/// assert_eq!(session.output_budget().expect("output budget").used(), 4);
+/// ```
 #[derive(Debug)]
 pub struct JsonEncodeSession<'a, R = JsonResource, Q = usize>
 where

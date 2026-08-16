@@ -18,6 +18,25 @@ use crate::resource::ResourceQuantity;
 use crate::structure::StructureLimits;
 
 /// Optional limits for one JSON value traversal.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonMeasurement;
+/// use qubit_budget::json::JsonValueLimits;
+///
+/// let mut budget = JsonValueLimits::builder()
+///     .max_nodes(2_usize)
+///     .max_string_bytes(8_usize)
+///     .build()
+///     .budget();
+/// let mut transaction = budget.transaction();
+/// transaction
+///     .try_admit(JsonMeasurement::String { depth: 1, bytes: 5 })
+///     .expect("the string should fit");
+/// transaction.commit();
+/// assert_eq!(budget.used_nodes(), Some(1));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonValueLimits<R = JsonResource, Q = usize>
 where
