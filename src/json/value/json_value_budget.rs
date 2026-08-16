@@ -7,11 +7,11 @@
 // =============================================================================
 //! Stores committed accounting for independent JSON value transactions.
 
-use super::JsonResource;
 use super::JsonValueLimits;
 use super::JsonValueTransaction;
 use super::internal::JsonValueState;
-use crate::ResourceQuantity;
+use crate::json::JsonResource;
+use crate::resource::ResourceQuantity;
 
 /// Committed JSON value accounting with immutable traversal limits.
 #[derive(Debug, PartialEq, Eq)]

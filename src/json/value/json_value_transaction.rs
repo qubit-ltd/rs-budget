@@ -7,14 +7,14 @@
 // =============================================================================
 //! Transactional admission for one complete JSON value.
 
-use super::JsonContainerKind;
-use super::JsonMeasurement;
 use super::JsonValueBudget;
 use super::internal::JsonValueState;
 use super::internal::PreparedJsonAdmission;
-use crate::InsufficientBudgetError;
-use crate::MeasuredBudgetError;
-use crate::ResourceQuantity;
+use crate::json::JsonContainerKind;
+use crate::json::JsonMeasurement;
+use crate::resource::InsufficientBudgetError;
+use crate::resource::MeasuredBudgetError;
+use crate::resource::ResourceQuantity;
 
 /// A transaction that stages JSON-value accounting until explicitly committed.
 ///

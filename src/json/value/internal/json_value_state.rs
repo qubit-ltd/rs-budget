@@ -7,7 +7,7 @@
 // =============================================================================
 //! Fixed-size committed and working state for JSON value accounting.
 
-use crate::ResourceQuantity;
+use crate::resource::ResourceQuantity;
 
 /// Remaining capacity for the cumulative dimensions of one JSON value budget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

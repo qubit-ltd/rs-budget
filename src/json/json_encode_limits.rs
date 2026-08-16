@@ -10,7 +10,6 @@
 
 use super::JsonResource;
 use super::JsonValueLimits;
-use super::JsonValueLimitsBuilder;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
@@ -164,11 +163,7 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_depth(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_depth(maximum)
-        .build();
+        self.limits.value = self.limits.value.into_builder().max_depth(maximum).build();
         self
     }
 
@@ -176,11 +171,7 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_nodes(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_nodes(maximum)
-        .build();
+        self.limits.value = self.limits.value.into_builder().max_nodes(maximum).build();
         self
     }
 
@@ -188,11 +179,12 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_sequence_items(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_sequence_items(maximum)
-        .build();
+        self.limits.value = self
+            .limits
+            .value
+            .into_builder()
+            .max_sequence_items(maximum)
+            .build();
         self
     }
 
@@ -200,11 +192,12 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_map_entries(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_map_entries(maximum)
-        .build();
+        self.limits.value = self
+            .limits
+            .value
+            .into_builder()
+            .max_map_entries(maximum)
+            .build();
         self
     }
 
@@ -212,11 +205,7 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_key_bytes(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_key_bytes(maximum)
-        .build();
+        self.limits.value = self.limits.value.into_builder().max_key_bytes(maximum).build();
         self
     }
 
@@ -224,11 +213,12 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_string_bytes(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_string_bytes(maximum)
-        .build();
+        self.limits.value = self
+            .limits
+            .value
+            .into_builder()
+            .max_string_bytes(maximum)
+            .build();
         self
     }
 
@@ -236,11 +226,12 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_number_bytes(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_number_bytes(maximum)
-        .build();
+        self.limits.value = self
+            .limits
+            .value
+            .into_builder()
+            .max_number_bytes(maximum)
+            .build();
         self
     }
 
@@ -248,11 +239,12 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_payload_bytes(mut self, maximum: usize) -> Self {
-        self.limits.value = JsonValueLimitsBuilder {
-            limits: self.limits.value,
-        }
-        .max_payload_bytes(maximum)
-        .build();
+        self.limits.value = self
+            .limits
+            .value
+            .into_builder()
+            .max_payload_bytes(maximum)
+            .build();
         self
     }
 }

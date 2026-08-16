@@ -7,11 +7,11 @@
 // =============================================================================
 //! Prepares native JSON measurements for deterministic budget admission.
 
-use super::super::JsonMeasurement;
 use super::super::JsonValueLimits;
-use crate::MeasuredBudgetError;
-use crate::ResourceLimit;
-use crate::ResourceQuantity;
+use crate::json::JsonMeasurement;
+use crate::resource::MeasuredBudgetError;
+use crate::resource::ResourceLimit;
+use crate::resource::ResourceQuantity;
 
 /// Native JSON measurement converted for the dimensions configured by limits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
