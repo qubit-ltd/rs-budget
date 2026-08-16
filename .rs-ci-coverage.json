@@ -1,9 +1,9 @@
 {
   "threshold_exempt_files": {
     "qubit-budget": [
-      "src/json/json_decode_session.rs",
-      "src/json/json_encode_session.rs",
-      "src/resource/resource_budget.rs",
+      "src/json/decode/json_decode_session.rs",
+      "src/json/encode/json_encode_session.rs",
+      "src/resource/budget/resource_budget.rs",
       "src/time/time_budget.rs",
       "src/value/big_integer_limits.rs"
     ]
