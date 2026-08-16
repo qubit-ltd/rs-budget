@@ -246,6 +246,8 @@ where
 }
 
 impl JsonValueLimits<JsonResource, usize> {
+    /// Creates an unconfigured value limit set using the standard JSON
+    /// resource types and `usize` measurements.
     pub const fn empty() -> Self {
         Self::new()
     }

@@ -30,6 +30,7 @@ impl<R, Q> Default for JsonDecodeLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates a decoding limit set with every dimension unconfigured.
     fn default() -> Self {
         Self::new()
     }
@@ -46,6 +47,7 @@ where
             value: JsonValueLimits::new(),
         }
     }
+    /// Creates an unconfigured generic decoding limit set.
     pub const fn unconfigured() -> Self {
         Self::new()
     }
@@ -104,6 +106,8 @@ where
     }
 }
 impl JsonDecodeLimits<JsonResource, usize> {
+    /// Creates an unconfigured decoding limit set using the standard JSON
+    /// resource types and `usize` measurements.
     pub const fn empty() -> Self {
         Self::new()
     }
