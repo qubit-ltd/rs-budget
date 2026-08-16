@@ -76,7 +76,7 @@ where
     /// # Returns
     ///
     /// `Ok(())` when `actual <= maximum`; otherwise returns
-    /// [`BudgetError::LimitExceeded`] containing the resource, observed value,
+    /// [`LimitExceededError`] containing the resource, observed value,
     /// and maximum. This method does not mutate the limit.
     ///
     /// # Errors

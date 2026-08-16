@@ -140,12 +140,14 @@ impl<R, C> TimeBudget<R, C> {
     }
 
     /// Returns the instant sampled at construction.
+    #[must_use = "inspect the construction instant"]
     #[inline(always)]
     pub const fn started_at(&self) -> MonotonicInstant {
         self.started_at
     }
 
     /// Returns the fixed deadline.
+    #[must_use = "inspect the deadline instant"]
     #[inline(always)]
     pub const fn deadline(&self) -> MonotonicInstant {
         self.deadline
