@@ -95,6 +95,21 @@ fn test_measured_budget_error_exposes_both_optional_sources() {
     assert!(quantity.quantity_error().is_some());
 }
 
+/// Verifies measured budget failures can be cloned for error propagation.
+#[test]
+fn test_measured_budget_error_is_cloneable() {
+    let error = MeasuredBudgetError::from(InsufficientBudgetError {
+        resource: TestResource::Depth,
+        limit: 3_usize,
+        remaining: 1,
+        requested: 2,
+    });
+    let cloned = error.clone();
+
+    assert_eq!(cloned.resource(), error.resource());
+    assert_eq!(cloned.budget_error(), error.budget_error());
+}
+
 #[test]
 fn test_budget_error_aggregates_both_precise_budget_failures() {
     let point = BudgetError::from(LimitExceededError {

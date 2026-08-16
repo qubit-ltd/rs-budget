@@ -18,7 +18,7 @@ use crate::LimitExceededError;
 use crate::QuantityConversionError;
 
 /// Error returned when native measurement or budget validation rejects a value.
-#[derive(Debug, Error)]
+#[derive(Clone, Debug, Error)]
 pub enum MeasuredBudgetError<R, Q = u64>
 where
     Q: Copy + Debug,
