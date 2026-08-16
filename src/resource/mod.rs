@@ -22,9 +22,9 @@ mod resource_quantity;
 mod resource_release_error;
 
 pub use budget_error::BudgetError;
+pub use budget_group_error::BudgetGroupError;
 pub use insufficient_budget_error::InsufficientBudgetError;
 pub use limit_exceeded_error::LimitExceededError;
-pub use budget_group_error::BudgetGroupError;
 pub use measured_budget_error::MeasuredBudgetError;
 pub use observation::Observation;
 pub use quantity_conversion_error::QuantityConversionError;
