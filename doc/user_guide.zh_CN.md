@@ -3,130 +3,187 @@
 [English user guide](user_guide.md) · [中文 README](../README.zh_CN.md) ·
 [API 文档](https://docs.rs/qubit-budget)
 
-本手册适用于 `qubit-budget` 0.4.x 和 Rust 1.94 或更高版本。它面向需要约束不可信
-输入或高成本操作的库作者、服务开发者；crate 不绑定具体解析器、序列化器或运行时。
+本手册适用于 `qubit-budget` 0.4.x 和 Rust 1.94 或更高版本。文中的例子提炼自
+Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 
-## 先分清：上限、预算还是资源池？
+## 这个 crate 解决什么问题？
 
-每项约束由资源名称 `R` 和精确的无符号数量 `Q` 组成。资源名称会出现在错误中；
-`Q` 可为 `u8`、`u16`、`u32`、`u64`、`u128` 或 `usize`。某个维度为 `None` 只表示
-没有为它配置限制，并不代表 crate 创建了隐藏的“无限预算”。
+在一个边界上，“太大”可能有完全不同的含义：HTTP 响应的字节数过多，配置树层级过深，
+目录遍历同时打开的句柄过多，或者重试次数和耗时过长。只有一个计数器并不足够：一次
+失败是否改变了状态？究竟是哪一项限制拒绝了操作？
 
-| 你的需求 | 使用的类型 | 关键规则 |
-| --- | --- | --- |
-| 校验一次测量 | `ResourceLimit` | 从不修改状态。 |
-| 消耗一份有限额度 | `ResourceBudget` | `try_*` 失败时预算不变。 |
-| 使用后归还容量 | `ResourcePool` | 集成层必须显式归还。 |
+`qubit-budget` 提供的是小而独立的记账原语。调用方仍需决定测量什么、边界在哪里，
+以及如何把类型化错误转换为应用错误。
 
-`ResourceBudget` 不实现 `Clone`，以免有限额度被复制。`ResourcePool` 不是信号量：
-它没有锁、等待、公平性、所有权跟踪或 RAII permit。
+## Qubit crate 中的实际用法
 
-## 场景：接收一份不可信 JSON 文档
+| crate | 受保护的工作 | 使用的原语 | 为什么适合 |
+| --- | --- | --- | --- |
+| `qubit-http` | 从流式 HTTP 响应收集的字节 | `ResourceBudget` | 每个已接受的分块都会永久消耗响应体额度。 |
+| `qubit-config` | 配置源的字节、属性、节点和包含的子源 | `ResourceBudget`、`ResourceLimit`、预算组 | 子源必须同时满足自身和所有父源的限制。 |
+| `qubit-local-files` | 复制或遍历时打开的目录读取器 | `ResourcePool` | 读取器打开时占用容量，关闭后显式归还。 |
+| `qubit-retry` | 重试次数、单次操作耗时和总耗时 | `ResourceBudget`、`DurationBudget`、`TimeBudget` | 三者的生命周期不同，必须分别记账。 |
+| `qubit-json` | 原始输入、规范化输入和一个 JSON value | JSON session 与 transaction | 已接受的 I/O 必须保留计费；失败的 value 不能占用结构容量。 |
 
-假设网关只接受满足以下条件的一份 JSON 文档：
+## 五种记账模式
 
-- 原始输入和规范化输入各不超过 64 字节；
-- 根节点算第 1 层，最大深度为 3；
-- 总节点数不超过 8；
-- 单个字符串不超过 16 个 UTF-8 字节，累计 payload 不超过 32 字节；
-- 只有完整文档成功后，JSON value 用量才正式入账。
+| 需求 | 类型 | 成功后 | 失败后 |
+| --- | --- | --- | --- |
+| 校验一个事实，不消耗容量 | `ResourceLimit` | 不修改状态 | 不修改状态；错误包含测量值和上限。 |
+| 消耗不会归还的容量 | `ResourceBudget` | `used` 增加，`remaining` 减少 | 预算不变。 |
+| 多项限制必须作为一次决策 | `ResourceBudget::try_consume_group` | 所有预算一起扣减 | 所有预算都不扣减。 |
+| 容量有真实的归还事件 | `ResourcePool` | 获取或释放会改变占用量 | 资源池不变。 |
+| 限制时间 | `DurationBudget` 或 `TimeBudget` | 记录已消耗时长或检查时钟截止时间 | 被拒绝的检查不改变状态。 |
 
-`qubit-budget` 不会替你解析 JSON。解析器或适配层应在接受输入时报告字节数，并在
-遍历每个 value 或对象键时发出一个 `JsonMeasurement`。
+资源标识 `R` 应当能直接用于错误和指标，例如 `"response body"` 或业务枚举。
+数量 `Q` 是精确的无符号整数（`u8` 到 `u128`，或 `usize`）。可选限制为 `None`
+时，表示该维度没有配置，而不是存在一份隐藏的无限预算。
 
-## 安装与配置
+## 场景一：`qubit-http` 读取有上限的响应体
 
-核心类型不需要 feature：
+`qubit-http` 若发现 `Content-Length` 明显超限，会先拒绝该响应；但服务器可能没有这个
+头，也可能谎报，所以读取分块时仍需要一份预算。下面是
+`HttpResponse::read_body` 的核心逻辑，省略了网络和错误映射：
+
+```rust
+use qubit_budget::ResourceBudget;
+
+let body_limit = 1_048_576_usize;
+let mut body = Vec::new();
+let mut body_budget = ResourceBudget::new("response body", body_limit);
+
+for chunk in response_chunks {
+    body_budget.try_consume(chunk.len())?;
+    body.extend_from_slice(&chunk);
+}
+# Ok::<(), qubit_budget::InsufficientBudgetError<&str, usize>>(())
+```
+
+顺序非常重要：先执行 `try_consume`，再把分块追加到响应体。如果一个分块会越过上限，
+这一分块既不会改变预算，也不会进入已收集的响应体。`qubit-http` 会使用
+`used() + requested()` 报告触发拒绝时观察到的总大小。
+
+这是**累计预算**。不能改用 `ResourceLimit`：每个分块都可能很小，但它们的总和仍可能
+过大。
+
+## 场景二：`qubit-config` 同时执行本地和父级限制
+
+配置源可以包含其他配置源。`qubit-config` 为每个源维护字节数、属性数、节点数和子源数
+预算，同时借用全部祖先的对应预算。子源新增一个属性时，所有处于生效范围内的预算都
+必须接受，否则一个都不能扣减：
+
+```rust
+use qubit_budget::ResourceBudget;
+
+let mut root_properties = ResourceBudget::new("root properties", 100_usize);
+let mut child_properties = ResourceBudget::new("child properties", 10_usize);
+
+ResourceBudget::try_consume_group(
+    &mut [&mut root_properties, &mut child_properties],
+    1,
+)?;
+# Ok::<(), qubit_budget::BudgetGroupError<&str, usize>>(())
+```
+
+如果子源没有余额，根源预算不会被误扣。错误可通过 `index()` 找到第一个拒绝者，再通过
+`source_error()` 获取原始的 `InsufficientBudgetError`。
+
+同一会话还用 `ResourceLimit` 检查嵌套深度。深度是当前节点的属性，不是每处理一个
+后续节点都要消耗的资源：
+
+```rust
+use qubit_budget::ResourceLimit;
+
+let depth = ResourceLimit::new("nesting depth", 16_usize);
+depth.check(current_depth)?;
+# Ok::<(), qubit_budget::LimitExceededError<&str, usize>>(())
+```
+
+## 场景三：`qubit-local-files` 复用目录句柄容量
+
+复制目录树时可能同时打开多个目录读取器。`qubit-local-files` 用 `ResourcePool` 管理它们：
+读取器打开时获取一个名额，关闭时准确归还一个名额。其 `CopyBudget` 的核心模式如下：
+
+```rust
+use qubit_budget::ResourcePool;
+
+let mut directories = ResourcePool::new("open directory", 32_usize);
+directories.try_acquire(1)?;
+
+// Read this directory and possibly descend into it.
+
+directories.release(1)?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+与 `ResourceBudget` 不同，`release` 后容量会回来。归还量大于已获取量时，操作会被
+拒绝，资源池保持不变。目录遍历器还可以选择 `Reopen` 策略：资源池满时先关闭保留的
+读取器、归还名额，再重试获取。
+
+只有业务中存在可信、明确的归还事件时才使用资源池。它不提供锁或 RAII permit；需要
+这些能力时，应由你的同步或所有权模型在外层提供。
+
+## 场景四：`qubit-retry` 同时维护三种不同的限制
+
+`qubit-retry` 的 `RetryBudget` 组合了三种原语：
+
+1. `ResourceBudget<RetryResource, u32>` 用于接纳有限次数的尝试。
+2. `DurationBudget` 记录每次已完成操作实际消耗的时间。
+3. `TimeBudget` 通过 `qubit-clock` 执行一个端到端的单调时钟截止时间，其中包括退避和
+   观察器工作。
+
+这种拆分是有意的。一项操作即使耗时过长，也可能已经完成；该事实需要被记录下来，
+超出的时间会耗尽后续操作的时长额度，因此之后的 `begin_attempt()` 会拒绝重试。另一边，
+`check_retry_after(delay)` 会拒绝任何会达到总截止时间的延迟。由此可见，时长额度与
+时钟截止时间不能互相替代。
+
+使用 `TimeBudget` 需开启 `time` feature：
 
 ```toml
 [dependencies]
-qubit-budget = "0.4"
+qubit-budget = { version = "0.4", features = ["time"] }
 ```
 
-本场景需要开启 `json`：
+## 场景五：`qubit-json` 让一个已解码 JSON value 具备事务性
 
-```toml
-[dependencies]
-qubit-budget = { version = "0.4", features = ["json"] }
-```
+`qubit-json` 通过 `LenientJsonDecoder::decode_with_session` 规范化并解码不可信 JSON。
+已执行的 I/O 工作必须保留计费，但如果解析或反序列化随后失败，该 value 的节点数和
+payload 用量不能被消耗。
 
-其他可选 feature 是 `big-integer`、`big-decimal`（会启用 `big-integer`）和 `time`。
-
-## 核心流程
-
-### 1. 为自己负责的边界创建 session
-
-一次独立的解码操作可使用自持有 session：
+decoder 会创建 attempt，在规范化前计原始输入，在规范化期间计规范化输入，扫描时接纳
+JSON 测量，只有反序列化成功后才调用 `commit()`。简化后的 session 配置如下：
 
 ```rust
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
-use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 
 let mut session = JsonDecodeSession::owned(
     JsonDecodeLimits::<JsonResource, usize>::new()
-        .with_max_input_bytes(64)
-        .with_max_normalized_input_bytes(64)
-        .with_max_depth(3)
-        .with_max_nodes(8)
-        .with_max_string_bytes(16)
-        .with_max_payload_bytes(32),
+        .with_max_input_bytes(64 * 1024)
+        .with_max_normalized_input_bytes(64 * 1024)
+        .with_max_depth(32)
+        .with_max_nodes(10_000),
 );
+```
+
+对于自行上报测量的适配层，value 部分的核心是：
+
+```rust
+use qubit_budget::json::JsonMeasurement;
 
 let mut attempt = session.begin_value();
-attempt.try_consume_input_bytes(7)?;
-attempt.try_consume_normalized_input_bytes(7)?;
+attempt.try_consume_input_bytes(raw.len())?;
+attempt.try_consume_normalized_input_bytes(normalized.len())?;
 attempt.try_admit(JsonMeasurement::String {
     depth: 1,
     bytes: 5,
 })?;
 
-assert_eq!(attempt.used_nodes(), Some(1));
+// Parse, normalize, and deserialize the complete value here.
 attempt.commit();
-assert_eq!(session.input_budget().expect("configured input").used(), 7);
-assert_eq!(session.value_budget().used_nodes(), Some(1));
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
-
-`new()` 不会预设任何限制；只添加当前边界真正要执行的维度。深度包含根节点；字符串
-和对象键按 UTF-8 字节数计算；payload 由对象键、字符串和数字的字节数累计而成。
-
-### 2. 把解析器观察到的事件交给 attempt
-
-按解析顺序调用 `try_admit`：
-
-| 解析器观察到的内容 | 对应测量 |
-| --- | --- |
-| `null` | `JsonMeasurement::Null { depth }` |
-| 布尔值 | `JsonMeasurement::Boolean { depth }` |
-| 字符串 | `JsonMeasurement::String { depth, bytes }` |
-| 数字 | `JsonMeasurement::Number { depth, bytes }` |
-| 数组 | `JsonMeasurement::Array { depth, items }` |
-| 对象 | `JsonMeasurement::Object { depth, entries }` |
-| 对象键 | `JsonMeasurement::Key { bytes }` |
-
-一次接纳会先检查数量转换和点上限，再检查累计节点数与 payload 容量。失败时，这次
-接纳不会改变 attempt。流式解析器若想在进入下一个子节点前预检，可在 value transaction
-上调用 `check_container_count`；该调用不会修改状态。
-
-### 3. 只在完整 value 成功后提交
-
-解析、规范化、校验和当前 value 边界内的其他工作全部成功后，再调用 `commit()`。如果
-attempt 因 `?`、作用域结束或 panic unwind 被丢弃，只有暂存的 value 用量会回滚。
-
-输入规则不同：decoder 一旦接受了原始或规范化字节，它们会立即入账。处理 stream 时，
-通常为每个顶层 value 新建一个 attempt。这样后续 value 失败时，只会回滚自身的结构和
-payload 用量，不会影响之前已提交的 value 或已接受的输入。
-
-| 记账对象 | 何时正式入账 |
-| --- | --- |
-| 解码时接受的原始和规范化输入 | 接受时立即入账 |
-| 增量 writer 已接受的输出 | 每个已接受前缀立即入账 |
-| value 节点和 payload | 仅在 `commit()` 成功时入账 |
-
-attempt 是记账边界，并不是通用的副作用回滚机制。它无法撤销已写出的内容、回调、
-Hasher 更新或其他对象修改。
 
 ### 完整原子性矩阵
 
@@ -145,98 +202,28 @@ callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可�
 transaction 覆盖更宽的业务边界，但暂存 value 用量只有 `commit` 才会发布。
 调用者通过 `begin_value()` 显式创建每个 attempt。
 
-## 直接使用核心类型
+## 专用辅助类型
 
-对于一次独立测量，使用点上限：
+- `StructureLimits` 和 `StructureBudget` 将深度、序列元素数、映射条目数、键字节数等
+  点上限与累计节点预算组合起来。
+- `StringLimits` 检查一个字符串的 UTF-8 字节长度。
+- `BigIntegerLimits` 与 `BigDecimalLimits` 是受 feature 控制的数值表示限制。
+- `ResourceBudget::try_write_string` 会先缓冲生成的文本，只有渲染成功且 UTF-8 校验通过
+  后才扣减字节预算。
 
-```rust
-use qubit_budget::ResourceLimit;
+## 错误、限制与一个实用判断法
 
-let depth = ResourceLimit::new("message-depth", 3_usize);
-depth.check(3).expect("the inclusive maximum fits");
+请使用类型化 accessor，不要解析 `Display` 文本。`LimitExceededError` 提供测量值和
+包含式上限；`InsufficientBudgetError` 提供 `limit`、`remaining`、`requested`；
+`ResourceReleaseError` 表示不合法的资源池归还。原生 `usize` 和 `u64` 测量 API 在
+无法精确转换到 `Q` 时返回 `MeasuredBudgetError`，不要先强制转换并截断。
 
-let error = depth.check(4).expect_err("depth four is rejected");
-assert_eq!(error.exact_observed(), Some(4));
-assert_eq!(error.maximum(), 3);
-```
-
-不能归还的容量使用预算；预算组的计费是全有或全无：
-
-```rust
-use qubit_budget::ResourceBudget;
-
-let mut request = ResourceBudget::new("request-bytes", 5_u64);
-let mut tenant = ResourceBudget::new("tenant-bytes", 2_u64);
-
-let error = ResourceBudget::try_consume_group(&mut [&mut request, &mut tenant], 3)
-    .expect_err("the tenant limit rejects the charge");
-
-assert_eq!(error.index(), 1);
-assert_eq!(request.remaining(), 5);
-assert_eq!(tenant.remaining(), 2);
-```
-
-只有会显式归还的容量才使用资源池：
-
-```rust
-use qubit_budget::ResourcePool;
-
-let mut files = ResourcePool::new("open-files", 2_u64);
-files.try_acquire(2).expect("both slots are available");
-files.release(1).expect("one slot is returned");
-
-assert_eq!(files.available(), 1);
-assert_eq!(files.in_use(), 1);
-```
-
-`consume_available` 是刻意提供的部分消费操作：它会消耗请求量和剩余额度中较小的值，
-并返回实际消耗量。务必使用该返回值。
-
-## 进阶选择
-
-- 多个适配器要共享调用方拥有的预算时，使用 `JsonDecodeSession::borrowing_value`、
-  `borrowing_input` 或 `borrowing_all`。
-- 编码得到完整 `Vec<u8>` 时，先序列化成功再为输出计费；增量 writer 则为每段已接受
-  的前缀立即计费。
-- `ResourceBudget::try_write_string` 会先缓冲输出，渲染成功且 UTF-8 校验通过后才扣减
-  字节预算。
-- `StructureLimits`、`StructureBudget` 可限制非 JSON 的深度、节点、容器大小和键字节数；
-  `StringLimits`、数值限制、`DurationBudget`、`TimeBudget` 覆盖相应场景。
-
-## 错误与诊断
-
-请使用类型化 accessor，不要解析错误文本：
-
-| 错误 | 含义 | 拒绝后的状态 |
-| --- | --- | --- |
-| `LimitExceededError` | 单次测量超过包含式上限 | 不变 |
-| `InsufficientBudgetError` | 预算计费或资源池获取量超出容量 | 不变 |
-| `BudgetGroupError` | 预算组成员拒绝了计费 | 所有成员均不扣减 |
-| `QuantityConversionError` | 原生测量值无法精确表示为 `Q` | 不变 |
-| `MeasuredBudgetError` | 测量 API 返回的转换或记账错误 | 本次接纳不变 |
-| `ResourceReleaseError` | 释放量超过 `in_use` | 不变 |
-
-`Observation::Exact` 表示精确测量值。若集成层只能证明“已经超过上限”，
-`Observation::AtLeast` 则提供一个安全下界。
-
-## 排障与限制
-
-| 现象 | 先检查什么 |
-| --- | --- |
-| 限制看起来没有生效 | 是否配置了该维度，适配层是否发出了对应测量？ |
-| JSON value 用量一直为零 | 先检查 attempt，再在完整 value 成功后调用 `commit()`。 |
-| 出错后输入或输出仍被计费 | 已接受的 I/O 本就不会回滚；只有暂存的 value 用量会回滚。 |
-| 出现 `MeasuredBudgetError::Quantity` | 选择更宽的无符号 `Q`，不要先强制转换截断。 |
-| 资源池释放失败 | 比较 `requested()` 与 `in_use()`，并为每次成功获取配对释放。 |
-
-具体限额必须由应用层选择，crate 没有适用于所有业务的安全默认值。在不可信边界应
-配置所有关键维度；仅限制原始输入无法限制规范化膨胀、嵌套、节点、payload 或输出。
-跨线程共享可变预算时必须由外部同步。crate 的记账状态是固定大小，但不会限制解析器、
-序列化器或应用自身产生的分配和副作用。
+具体限额必须在应用层决定，crate 不提供通用的安全默认值。一个简单的判断法是：校验
+事实用 limit；不可返还的工作用 budget；多个范围必须一起接受时用预算组；容量确实会
+归还时用 pool；只有完整工作单元成功才能占用 value 容量时用 transaction。
 
 ## 延伸阅读
 
 - [中文 README](../README.zh_CN.md)
 - [English user guide](user_guide.md)
 - [API 文档](https://docs.rs/qubit-budget)
-- [crates.io 上的 `qubit-json`](https://crates.io/crates/qubit-json)

@@ -3,140 +3,204 @@
 [中文用户手册](user_guide.zh_CN.md) · [README](../README.md) ·
 [API documentation](https://docs.rs/qubit-budget)
 
-This guide applies to `qubit-budget` 0.4.x and Rust 1.94 or newer. It is for
-library authors and service developers who must bound untrusted or expensive
-work without tying their policy to one parser, serializer, or runtime.
+This guide applies to `qubit-budget` 0.4.x and Rust 1.94 or newer. Its examples
+distill real uses in Qubit crates while leaving out unrelated application code.
 
-## The model: limit, budget, or pool?
+## What problem does this crate solve?
 
-Every constraint has a resource label `R` and an exact unsigned quantity `Q`.
-The label appears in errors; `Q` can be `u8`, `u16`, `u32`, `u64`, `u128`, or
-`usize`. `None` means that one optional dimension is not configured—it does
-not mean that the crate has created a hidden unlimited budget.
+At a boundary, “too large” can mean different things. A HTTP response can be
+too many bytes; a configuration tree can be too deep; a directory walk can
+hold too many handles; a retry flow can have spent too many attempts or too
+much time. A counter alone does not answer the important follow-up questions:
+did this failed operation change state, and which limit rejected it?
 
-| If you need to… | Use | Key rule |
-| --- | --- | --- |
-| Check one observation | `ResourceLimit` | It never changes state. |
-| Spend a finite allowance | `ResourceBudget` | A failed `try_*` charge leaves it unchanged. |
-| Reuse returned capacity | `ResourcePool` | The integration must release capacity explicitly. |
+`qubit-budget` provides small accounting primitives. The caller still decides
+what to measure, where the boundary is, and how to turn a typed failure into an
+application error.
 
-`ResourceBudget` deliberately is not `Clone`, because cloning would duplicate
-an allowance. `ResourcePool` is not a semaphore: it has no locking, waiting,
-fairness, ownership tracking, or RAII permits.
+## Real Qubit crate use cases
 
-## Scenario: accept one untrusted JSON document
+| Crate | Protected work | Primitive used | Why it fits |
+| --- | --- | --- | --- |
+| `qubit-http` | Bytes collected from a streaming HTTP response | `ResourceBudget` | Each accepted chunk permanently consumes response-body capacity. |
+| `qubit-config` | Source bytes, properties, nodes, and included sources | `ResourceBudget`, `ResourceLimit`, grouped charge | A child source must satisfy both its own and every ancestor’s limit. |
+| `qubit-local-files` | Open directory readers during a copy or walk | `ResourcePool` | A reader occupies capacity while open, then explicitly returns it. |
+| `qubit-retry` | Retry count, per-operation time, and total elapsed time | `ResourceBudget`, `DurationBudget`, `TimeBudget` | These are three different lifetimes, so they are accounted separately. |
+| `qubit-json` | Raw input, normalized input, and one decoded JSON value | JSON sessions and transactions | I/O already accepted must remain charged; a failed value must not consume structural capacity. |
 
-Imagine a gateway that accepts one JSON document only when all of these rules
-hold:
+## The five accounting models
 
-- no more than 64 raw-input bytes and 64 normalized-input bytes;
-- root-inclusive depth no greater than 3;
-- at most 8 nodes in total;
-- a string no longer than 16 UTF-8 bytes, and no more than 32 payload bytes in
-  total;
-- JSON value usage becomes permanent only after the complete document succeeds.
+| Need | Type | Success | Failure |
+| --- | --- | --- | --- |
+| Check one fact without spending capacity | `ResourceLimit` | No mutation | No mutation; error carries the observed value and maximum. |
+| Spend capacity that cannot return | `ResourceBudget` | `used` rises and `remaining` falls | The budget is unchanged. |
+| Charge several limits as one decision | `ResourceBudget::try_consume_group` | Every budget is charged | No budget is charged. |
+| Reuse capacity that has a real release event | `ResourcePool` | Acquire or release changes occupancy | The pool is unchanged. |
+| Bound time | `DurationBudget` or `TimeBudget` | Records consumed duration or checks a clock deadline | Does not change a rejected check. |
 
-`qubit-budget` does not parse JSON for you. Your parser or adapter reports the
-input it accepted and emits one `JsonMeasurement` for each value or object key.
+Use a resource identity `R` that your application can show in errors and
+metrics. Quantities `Q` are exact unsigned integers (`u8` through `u128`, or
+`usize`). An optional limit set to `None` is unconfigured; it is not a hidden
+unlimited budget.
 
-## Install and configure
+## Scenario 1: `qubit-http` reads a bounded response body
 
-The core types need no feature:
+`qubit-http` first rejects an oversized `Content-Length` hint when one is present.
+It still needs a budget while reading chunks, because a server can omit or lie
+about that header. The following is the central pattern from
+`HttpResponse::read_body`, with networking and error mapping removed:
+
+```rust
+use qubit_budget::ResourceBudget;
+
+let body_limit = 1_048_576_usize;
+let mut body = Vec::new();
+let mut body_budget = ResourceBudget::new("response body", body_limit);
+
+for chunk in response_chunks {
+    body_budget.try_consume(chunk.len())?;
+    body.extend_from_slice(&chunk);
+}
+# Ok::<(), qubit_budget::InsufficientBudgetError<&str, usize>>(())
+```
+
+The order matters: `try_consume` runs before the chunk is appended. If a
+chunk would cross the limit, neither the budget nor the accumulated body is
+changed by that chunk. `qubit-http` uses `used() + requested()` to
+report the size that was observed at the rejection.
+
+This is a **cumulative budget**. Do not use `ResourceLimit` here: each chunk
+may be individually small while their sum is too large.
+
+## Scenario 2: `qubit-config` enforces local and parent limits together
+
+Configuration sources may include other sources. `qubit-config` gives every source
+its own byte, property, node, and source-count budgets, while also borrowing
+the corresponding budgets of all ancestors. When a child emits a property,
+every active scope must accept it or none may be charged:
+
+```rust
+use qubit_budget::ResourceBudget;
+
+let mut root_properties = ResourceBudget::new("root properties", 100_usize);
+let mut child_properties = ResourceBudget::new("child properties", 10_usize);
+
+ResourceBudget::try_consume_group(
+    &mut [&mut root_properties, &mut child_properties],
+    1,
+)?;
+# Ok::<(), qubit_budget::BudgetGroupError<&str, usize>>(())
+```
+
+If the child has no capacity, the root is not charged accidentally. The error
+identifies the first rejecting budget with `index()` and exposes its original
+`InsufficientBudgetError` with `source_error()`.
+
+The same downstream session uses `ResourceLimit` for nesting depth. Depth is a
+property of the current node, not a resource consumed by every later node:
+
+```rust
+use qubit_budget::ResourceLimit;
+
+let depth = ResourceLimit::new("nesting depth", 16_usize);
+depth.check(current_depth)?;
+# Ok::<(), qubit_budget::LimitExceededError<&str, usize>>(())
+```
+
+## Scenario 3: `qubit-local-files` reuses directory-handle capacity
+
+Copying a directory tree can require several directory readers at once.
+`qubit-local-files` uses a `ResourcePool` for open readers: acquire once a reader
+opens, then release exactly once it closes. Its `CopyBudget` follows this
+pattern:
+
+```rust
+use qubit_budget::ResourcePool;
+
+let mut directories = ResourcePool::new("open directory", 32_usize);
+directories.try_acquire(1)?;
+
+// Read this directory and possibly descend into it.
+
+directories.release(1)?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+Unlike a `ResourceBudget`, capacity returns after `release`. Releasing more
+than was acquired is rejected and does not change the pool. The downstream
+directory walker can also apply a `Reopen` policy: when the pool is full, it
+closes retained readers, releases their slots, and retries acquisition.
+
+Use a pool only when the application has a trustworthy, explicit release event.
+It does not provide locking or RAII permits; wrap it in your own synchronization
+or ownership model when those are required.
+
+## Scenario 4: `qubit-retry` keeps three independent limits
+
+`qubit-retry` composes three primitives in `RetryBudget`:
+
+1. `ResourceBudget<RetryResource, u32>` admits a finite number of attempts.
+2. `DurationBudget` tracks actual time spent inside completed operations.
+3. `TimeBudget` uses `qubit-clock` to enforce one end-to-end monotonic deadline,
+   including backoff and observer work.
+
+This separation is deliberate. A request can finish an attempt that took too
+long; that completed attempt is an observed fact. The overrun consumes the
+operation-duration allowance, so `begin_attempt()` rejects a later retry.
+Separately, `check_retry_after(delay)` rejects a delay that would reach the
+total deadline. This is why a duration allowance is not interchangeable with a
+clock deadline.
+
+Enable the `time` feature to use `TimeBudget`:
 
 ```toml
 [dependencies]
-qubit-budget = "0.4"
+qubit-budget = { version = "0.4", features = ["time"] }
 ```
 
-Enable `json` for the scenario:
+## Scenario 5: `qubit-json` makes one decoded value transactional
 
-```toml
-[dependencies]
-qubit-budget = { version = "0.4", features = ["json"] }
-```
+`qubit-json` normalizes and decodes untrusted JSON through
+`LenientJsonDecoder::decode_with_session`. It must retain I/O work that already
+happened, but must not spend a value’s node and payload allowance if parsing or
+deserialization later fails.
 
-The other optional features are `big-integer`, `big-decimal` (which enables
-`big-integer`), and `time`.
-
-## Core workflow
-
-### 1. Create one session for the boundary you own
-
-Start with an owned session when its budgets belong to one decode operation:
+The decoder starts an attempt, charges raw input before normalization, charges
+normalized input during normalization, admits JSON measurements while scanning,
+and calls `commit()` only after deserialization succeeds. The simplified
+session setup is:
 
 ```rust
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
-use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 
 let mut session = JsonDecodeSession::owned(
     JsonDecodeLimits::<JsonResource, usize>::new()
-        .with_max_input_bytes(64)
-        .with_max_normalized_input_bytes(64)
-        .with_max_depth(3)
-        .with_max_nodes(8)
-        .with_max_string_bytes(16)
-        .with_max_payload_bytes(32),
+        .with_max_input_bytes(64 * 1024)
+        .with_max_normalized_input_bytes(64 * 1024)
+        .with_max_depth(32)
+        .with_max_nodes(10_000),
 );
+```
+
+For an adapter that reports measurements itself, the value part looks like this:
+
+```rust
+use qubit_budget::json::JsonMeasurement;
 
 let mut attempt = session.begin_value();
-attempt.try_consume_input_bytes(7)?;
-attempt.try_consume_normalized_input_bytes(7)?;
+attempt.try_consume_input_bytes(raw.len())?;
+attempt.try_consume_normalized_input_bytes(normalized.len())?;
 attempt.try_admit(JsonMeasurement::String {
     depth: 1,
     bytes: 5,
 })?;
 
-assert_eq!(attempt.used_nodes(), Some(1));
+// Parse, normalize, and deserialize the complete value here.
 attempt.commit();
-assert_eq!(session.input_budget().expect("configured input").used(), 7);
-assert_eq!(session.value_budget().used_nodes(), Some(1));
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
-
-`new()` leaves every limit absent. Add only the dimensions enforced at this
-boundary. Depth includes the root; string and key lengths are UTF-8 byte
-lengths; payload counts key, string, and number bytes.
-
-### 2. Tell the attempt what the parser observed
-
-Call `try_admit` in parser order:
-
-| Parser observation | Measurement |
-| --- | --- |
-| `null` | `JsonMeasurement::Null { depth }` |
-| Boolean | `JsonMeasurement::Boolean { depth }` |
-| String | `JsonMeasurement::String { depth, bytes }` |
-| Number | `JsonMeasurement::Number { depth, bytes }` |
-| Array | `JsonMeasurement::Array { depth, items }` |
-| Object | `JsonMeasurement::Object { depth, entries }` |
-| Object key | `JsonMeasurement::Key { bytes }` |
-
-One admission validates conversion and point limits before cumulative node and
-payload capacity. If it fails, that admission does not alter the attempt. A
-streaming parser can non-mutatingly preflight a prospective child with
-`check_container_count` on the value transaction.
-
-### 3. Commit only after the whole value succeeds
-
-Call `commit()` after parsing, normalization, validation, and all other work
-inside your chosen value boundary have succeeded. Dropping the attempt—through
-`?`, ordinary scope exit, or panic unwinding—rolls back only staged value use.
-
-Input is different: raw and normalized bytes are charged as soon as the decoder
-accepts them. For a stream, usually create one attempt per top-level value, so
-a bad later value rolls back its own structural and payload usage but not earlier
-commits or accepted input.
-
-| Accounted work | When it becomes permanent |
-| --- | --- |
-| Raw and normalized decode input | Immediately when accepted |
-| Output accepted by an incremental writer | Immediately per accepted prefix |
-| Value nodes and payload | Only when `commit()` succeeds |
-
-An attempt is an accounting boundary, not a general side-effect rollback. It
-cannot undo writer output, callbacks, hasher updates, or mutations elsewhere.
 
 ### Complete atomicity matrix
 
@@ -156,104 +220,33 @@ mutation. A higher-level operation may intentionally choose one transaction for
 a wider business boundary, while only `commit` publishes staged value usage.
 Callers create each attempt explicitly with `begin_value()`.
 
-## Use the core types directly
+## Specialized helpers
 
-Use a point limit for one independent value:
+- `StructureLimits` and `StructureBudget` combine point limits for depth,
+  sequence items, map entries, and key bytes with a cumulative node budget.
+- `StringLimits` checks the UTF-8 byte length of one string.
+- `BigIntegerLimits` and `BigDecimalLimits` are feature-gated limits for their
+  numeric representations.
+- `ResourceBudget::try_write_string` buffers rendered text and charges its
+  bytes only after rendering and UTF-8 validation both succeed.
 
-```rust
-use qubit_budget::ResourceLimit;
+## Errors, limits, and a practical rule of thumb
 
-let depth = ResourceLimit::new("message-depth", 3_usize);
-depth.check(3).expect("the inclusive maximum fits");
+Prefer typed error accessors to parsing `Display` text. `LimitExceededError`
+reports an observed value and inclusive maximum; `InsufficientBudgetError`
+reports `limit`, `remaining`, and `requested`; `ResourceReleaseError` reports
+an invalid pool release. Native `usize` and `u64` measurement APIs return
+`MeasuredBudgetError` when conversion to `Q` is not exact—do not cast and
+truncate first.
 
-let error = depth.check(4).expect_err("depth four is rejected");
-assert_eq!(error.exact_observed(), Some(4));
-assert_eq!(error.maximum(), 3);
-```
-
-Use a budget when capacity cannot return. Grouped charges are all-or-nothing:
-
-```rust
-use qubit_budget::ResourceBudget;
-
-let mut request = ResourceBudget::new("request-bytes", 5_u64);
-let mut tenant = ResourceBudget::new("tenant-bytes", 2_u64);
-
-let error = ResourceBudget::try_consume_group(&mut [&mut request, &mut tenant], 3)
-    .expect_err("the tenant limit rejects the charge");
-
-assert_eq!(error.index(), 1);
-assert_eq!(request.remaining(), 5);
-assert_eq!(tenant.remaining(), 2);
-```
-
-Use a pool only for capacity that your code will explicitly return:
-
-```rust
-use qubit_budget::ResourcePool;
-
-let mut files = ResourcePool::new("open-files", 2_u64);
-files.try_acquire(2).expect("both slots are available");
-files.release(1).expect("one slot is returned");
-
-assert_eq!(files.available(), 1);
-assert_eq!(files.in_use(), 1);
-```
-
-`consume_available` is intentionally partial: it consumes the smaller of the
-request and remaining capacity, then returns the amount consumed. Always use
-that result.
-
-## Further options
-
-- Use `JsonDecodeSession::borrowing_value`, `borrowing_input`, or
-  `borrowing_all` when several adapters must share caller-owned budgets.
-- For encoding a complete `Vec<u8>`, serialize first and charge output only
-  after success. For an incremental writer, charge every accepted prefix.
-- `ResourceBudget::try_write_string` renders to a buffer and charges bytes only
-  after successful rendering and UTF-8 validation.
-- `StructureLimits` and `StructureBudget` provide non-JSON depth, node,
-  container-size, and key-byte limits. `StringLimits`, numeric limits,
-  `DurationBudget`, and `TimeBudget` cover the corresponding domains.
-
-## Errors and diagnostics
-
-Prefer typed accessors over parsing an error message:
-
-| Error | Meaning | State after rejection |
-| --- | --- | --- |
-| `LimitExceededError` | One observation exceeded its inclusive maximum | Unchanged |
-| `InsufficientBudgetError` | A budget charge or pool acquisition exceeded capacity | Unchanged |
-| `BudgetGroupError` | One member rejected a grouped charge | No member is charged |
-| `QuantityConversionError` | A native measurement cannot fit `Q` exactly | Unchanged |
-| `MeasuredBudgetError` | Conversion or accounting failure from a measured API | Rejected admission is unchanged |
-| `ResourceReleaseError` | A release exceeds `in_use` | Unchanged |
-
-`Observation::Exact` carries an exact observed value. `Observation::AtLeast`
-is a safe lower bound for integrations that can prove only that the maximum was
-crossed.
-
-## Troubleshooting and limits
-
-| Symptom | Check first |
-| --- | --- |
-| A limit has no effect | Was the dimension configured, and does the adapter emit its measurement? |
-| JSON value usage stays zero | Inspect the attempt, then call `commit()` after a successful value. |
-| Input or output remains charged after an error | This is expected for accepted I/O; only staged value use rolls back. |
-| `MeasuredBudgetError::Quantity` | Select a wider unsigned `Q`; do not truncate with a cast. |
-| A pool release fails | Compare `requested()` with `in_use()` and pair successful acquisitions with releases. |
-
-Choose actual limits in the application layer—there is no safe universal
-default. Configure every relevant dimension at an untrusted boundary; a raw
-input limit alone does not constrain normalized expansion, nesting, nodes,
-payload, or output. Do not share mutable budgets between threads without
-external synchronization. The crate has fixed-size accounting state, but it
-cannot bound allocations or side effects performed by your parser, serializer,
-or application.
+Choose limits in the application layer; this crate has no universal safe
+defaults. Use a limit for a fact, a budget for irreversible work, a grouped
+budget when several scopes must agree, a pool when capacity genuinely returns,
+and a transaction when only a complete unit of work may consume its value
+allowance.
 
 ## Further reading
 
 - [README](../README.md)
 - [中文用户手册](user_guide.zh_CN.md)
 - [API documentation](https://docs.rs/qubit-budget)
-- [`qubit-json` on crates.io](https://crates.io/crates/qubit-json)
