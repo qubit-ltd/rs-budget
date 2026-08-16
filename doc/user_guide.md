@@ -3,7 +3,7 @@
 [中文用户手册](user_guide.zh_CN.md) · [README](../README.md) ·
 [API documentation](https://docs.rs/qubit-budget)
 
-This guide applies to `qubit-budget` 0.4.x and Rust 1.94 or newer. Its examples
+This guide applies to `qubit-budget` 0.3.x and Rust 1.94 or newer. Its examples
 distill real uses in Qubit crates while leaving out unrelated application code.
 
 ## What problem does this crate solve?
@@ -186,7 +186,7 @@ Enable the `time` feature to use `TimeBudget`:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.4", features = ["time"] }
+qubit-budget = { version = "0.3", features = ["time"] }
 ```
 
 ## Scenario 5: `qubit-json` makes one decoded value transactional
