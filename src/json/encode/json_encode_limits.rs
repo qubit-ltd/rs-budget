@@ -36,6 +36,7 @@ impl<R, Q> JsonEncodeLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates an unconfigured generic encoding limit set.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -45,30 +46,35 @@ where
         }
     }
 
+    /// Creates a builder for JSON encoding limits.
     #[inline]
     #[must_use]
     pub const fn builder() -> JsonEncodeLimitsBuilder<R, Q> {
         JsonEncodeLimitsBuilder::new()
     }
 
+    /// Returns the complete output-byte limit, when configured.
     #[must_use]
     #[inline(always)]
     pub const fn output_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.output.as_ref()
     }
 
+    /// Borrows the JSON value limits used for encoding.
     #[must_use]
     #[inline(always)]
     pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
         &self.value
     }
 
+    /// Consumes these encoding limits and returns their JSON value limits.
     #[must_use]
     #[inline]
     pub fn into_value_limits(self) -> JsonValueLimits<R, Q> {
         self.value
     }
 
+    /// Returns the configured output-byte maximum.
     #[must_use]
     #[inline(always)]
     pub const fn max_output_bytes(&self) -> Option<Q> {
@@ -91,6 +97,7 @@ where
 }
 
 impl JsonEncodeLimits<JsonResource, usize> {
+    /// Creates an unconfigured encoding limit set using standard JSON types.
     #[must_use]
     pub const fn empty() -> Self {
         Self::new()

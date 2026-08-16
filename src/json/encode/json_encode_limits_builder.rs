@@ -35,6 +35,7 @@ impl<R, Q> JsonEncodeLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates an empty JSON encoding-limits builder.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -43,6 +44,7 @@ where
         }
     }
 
+    /// Sets the output-byte limit.
     #[inline]
     #[must_use]
     pub fn output_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -50,6 +52,7 @@ where
         self
     }
 
+    /// Sets the JSON value limits.
     #[inline]
     #[must_use]
     pub fn value_limits(mut self, limits: JsonValueLimits<R, Q>) -> Self {
@@ -57,6 +60,7 @@ where
         self
     }
 
+    /// Builds the configured JSON encoding limits.
     #[inline]
     #[must_use]
     pub fn build(self) -> JsonEncodeLimits<R, Q> {
@@ -65,11 +69,13 @@ where
 }
 
 impl JsonEncodeLimitsBuilder<JsonResource, usize> {
+    /// Creates an unconfigured encoding limit set using standard JSON types.
     #[must_use]
     pub const fn empty() -> Self {
         Self::new()
     }
 
+    /// Sets the maximum output-byte count.
     #[inline]
     #[must_use]
     pub fn max_output_bytes(mut self, maximum: usize) -> Self {
@@ -80,48 +86,56 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
         self
     }
 
+    /// Sets the maximum nesting depth.
     #[inline]
     #[must_use]
     pub fn max_depth(self, maximum: usize) -> Self {
         self.map_value(|limits| limits.max_depth(maximum).build())
     }
 
+    /// Configures the cumulative maximum number of JSON nodes.
     #[inline]
     #[must_use]
     pub fn max_nodes(self, maximum: usize) -> Self {
         self.map_value(|limits| limits.max_nodes(maximum).build())
     }
 
+    /// Configures the maximum number of items in one JSON array.
     #[inline]
     #[must_use]
     pub fn max_sequence_items(self, maximum: usize) -> Self {
         self.map_value(|limits| limits.max_sequence_items(maximum).build())
     }
 
+    /// Configures the maximum number of entries in one JSON object.
     #[inline]
     #[must_use]
     pub fn max_map_entries(self, maximum: usize) -> Self {
         self.map_value(|limits| limits.max_map_entries(maximum).build())
     }
 
+    /// Configures the maximum UTF-8 byte length of one JSON object key.
     #[inline]
     #[must_use]
     pub fn max_key_bytes(self, maximum: usize) -> Self {
         self.map_value(|limits| limits.max_key_bytes(maximum).build())
     }
 
+    /// Configures the maximum UTF-8 byte length of one JSON string.
     #[inline]
     #[must_use]
     pub fn max_string_bytes(self, maximum: usize) -> Self {
         self.map_value(|limits| limits.max_string_bytes(maximum).build())
     }
 
+    /// Configures the maximum byte length of one JSON number representation.
     #[inline]
     #[must_use]
     pub fn max_number_bytes(self, maximum: usize) -> Self {
         self.map_value(|limits| limits.max_number_bytes(maximum).build())
     }
 
+    /// Configures the cumulative payload-byte maximum.
     #[inline]
     #[must_use]
     pub fn max_payload_bytes(self, maximum: usize) -> Self {
