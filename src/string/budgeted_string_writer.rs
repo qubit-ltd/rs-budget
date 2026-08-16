@@ -23,9 +23,9 @@ use crate::resource::ResourceQuantity;
 /// [`ResourceBudget::try_write_string`]. A failed render drops the buffered
 /// prefix and leaves the budget unchanged.
 ///
-/// Use [`Self::as_fmt`] for formatting APIs or [`Self::as_io`] for byte-oriented
-/// I/O. The returned adapter borrows this writer, so the render callback must
-/// finish using it before returning.
+/// Use [`Self::as_fmt`] for formatting APIs or [`Self::as_io`] for
+/// byte-oriented I/O. The returned adapter borrows this writer, so the render
+/// callback must finish using it before returning.
 ///
 /// # Examples
 ///
