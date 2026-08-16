@@ -21,7 +21,7 @@
 `ResourceBudget` 不实现 `Clone`，以免有限额度被复制。`ResourcePool` 不是信号量：
 它没有锁、等待、公平性、所有权跟踪或 RAII permit。
 
-## 贯穿场景：接收一份不可信 JSON 文档
+## 场景：接收一份不可信 JSON 文档
 
 假设网关只接受满足以下条件的一份 JSON 文档：
 
@@ -127,6 +127,23 @@ payload 用量，不会影响之前已提交的 value 或已接受的输入。
 
 attempt 是记账边界，并不是通用的副作用回滚机制。它无法撤销已写出的内容、回调、
 Hasher 更新或其他对象修改。
+
+### 完整原子性矩阵
+
+| 场景 | input | normalized input | value | output |
+| --- | --- | --- | --- | --- |
+| strict decode 成功 | 保留 | 不适用 | 提交 | 不适用 |
+| strict decode 失败 | 保留 | 不适用 | 回滚 | 不适用 |
+| lenient decode 失败 | 保留 | 保留 | 回滚 | 不适用 |
+| 缓冲的 `Vec<u8>` output 失败 | 不适用 | 不适用 | 回滚 | 只在成功时计费；没有 `Vec` 就不计 output |
+| buffered writer 部分失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
+| incremental writer 失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
+| stream 中单个 value 失败 | 跨 value 累计 | 跨 value 累计 | 仅当前 value 回滚 | 之前接受的 output 继续保留 |
+
+raw input 和 normalized input 会立即入账。丢弃 transaction 无法撤销 accepted prefix、
+callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可以有意让一个
+transaction 覆盖更宽的业务边界，但暂存 value 用量只有 `commit` 才会发布。
+调用者通过 `begin_value()` 显式创建每个 attempt。
 
 ## 直接使用核心类型
 

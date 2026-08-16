@@ -79,6 +79,44 @@ assert_eq!(response.used(), 5);
 输入和 writer 输出仍会保留；暂存的 JSON value 用量只有调用 `commit` 才会生效。完整
 过程见用户手册中的 JSON 解码场景。
 
+## JSON transaction 边界
+
+transaction 会暂存一个完整 value 的测量结果，只有外围操作成功才正式发布：
+
+```rust
+use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueLimits;
+
+let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+    .with_max_nodes(8)
+    .with_max_string_bytes(16)
+    .budget();
+let mut transaction = budget.transaction();
+transaction.try_admit(JsonMeasurement::String {
+    depth: 1,
+    bytes: 5,
+})?;
+transaction.commit();
+# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
+```
+
+完整规则有意区分不同类型的记账：
+
+| 场景 | input | normalized input | value | output |
+| --- | --- | --- | --- | --- |
+| strict decode 成功 | 保留 | 不适用 | 提交 | 不适用 |
+| strict decode 失败 | 保留 | 不适用 | 回滚 | 不适用 |
+| lenient decode 失败 | 保留 | 保留 | 回滚 | 不适用 |
+| 缓冲的 `Vec<u8>` output 失败 | 不适用 | 不适用 | 回滚 | 只在成功时计费；没有 `Vec` 就不计 output |
+| buffered writer 部分失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
+| incremental writer 失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
+| stream 中单个 value 失败 | 跨 value 累计 | 跨 value 累计 | 仅当前 value 回滚 | 之前接受的 output 继续保留 |
+
+raw input 和 normalized input 会立即入账。丢弃 transaction 无法撤销 accepted prefix、
+callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可以选择更宽的
+transaction 边界，但暂存的 value 用量只有 `commit` 才会发布。
+
 ## 不负责什么
 
 本 crate 不解析 JSON，不执行 I/O，不替应用选择限额，不分配 permit，不等待资源池

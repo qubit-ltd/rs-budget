@@ -85,6 +85,46 @@ transactional value accounting. Accepted input and writer output remain
 charged; staged JSON value usage is published only by `commit`. The user guide
 explains this boundary with a complete decode scenario.
 
+## JSON transaction boundary
+
+Use a transaction to stage measurements for one complete value. It publishes
+them only after the surrounding operation succeeds:
+
+```rust
+use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueLimits;
+
+let mut budget = JsonValueLimits::<JsonResource, usize>::new()
+    .with_max_nodes(8)
+    .with_max_string_bytes(16)
+    .budget();
+let mut transaction = budget.transaction();
+transaction.try_admit(JsonMeasurement::String {
+    depth: 1,
+    bytes: 5,
+})?;
+transaction.commit();
+# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
+```
+
+The complete contract is intentionally asymmetric:
+
+| Scenario | Input | Normalized input | Value | Output |
+| --- | --- | --- | --- | --- |
+| Strict decode succeeds | retained | not applicable | committed | not applicable |
+| Strict decode fails | retained | not applicable | rolled back | not applicable |
+| Lenient decode fails | retained | retained | rolled back | not applicable |
+| Buffered `Vec<u8>` output fails | not applicable | not applicable | rolled back | success-only; no `Vec` means no output charge |
+| Buffered writer partially fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
+| Incremental writer fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
+| One value in a stream fails | retained across values | retained across values | only the current value rolls back | previously accepted output remains retained |
+
+Raw input and normalized input are charged immediately. Dropping a transaction
+cannot undo an accepted prefix, callback effect, `Hasher` update, or object
+mutation. A higher-level operation may select a wider transaction boundary, but
+only `commit` publishes staged value accounting.
+
 ## What it does not do
 
 This crate does not parse JSON, perform I/O, choose application limit values,

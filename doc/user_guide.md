@@ -138,6 +138,24 @@ commits or accepted input.
 An attempt is an accounting boundary, not a general side-effect rollback. It
 cannot undo writer output, callbacks, hasher updates, or mutations elsewhere.
 
+### Complete atomicity matrix
+
+| Scenario | Input | Normalized input | Value | Output |
+| --- | --- | --- | --- | --- |
+| Strict decode succeeds | retained | not applicable | committed | not applicable |
+| Strict decode fails | retained | not applicable | rolled back | not applicable |
+| Lenient decode fails | retained | retained | rolled back | not applicable |
+| Buffered `Vec<u8>` output fails | not applicable | not applicable | rolled back | success-only; no `Vec` means no output charge |
+| Buffered writer partially fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
+| Incremental writer fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
+| One value in a stream fails | retained across values | retained across values | only the current value rolls back | previously accepted output remains retained |
+
+Raw input and normalized input are immediate charges. Dropping a transaction
+cannot undo an accepted prefix, callback effect, `Hasher` update, or object
+mutation. A higher-level operation may intentionally choose one transaction for
+a wider business boundary, while only `commit` publishes staged value usage.
+Callers create each attempt explicitly with `begin_value()`.
+
 ## Use the core types directly
 
 Use a point limit for one independent value:
