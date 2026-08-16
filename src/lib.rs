@@ -25,7 +25,6 @@
 //! document succeeds. These are separate guarantees; output transactionality
 //! does not imply whole-operation rollback for input or structure accounting.
 
-mod internal;
 mod resource;
 pub mod string;
 mod value;

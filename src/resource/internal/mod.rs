@@ -5,7 +5,7 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Private implementation details shared by the crate root.
+//! Private implementation details for the resource module.
 
 mod resource_quantity_sealed;
 

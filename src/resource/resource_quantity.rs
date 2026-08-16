@@ -14,7 +14,7 @@ use std::ops::Sub;
 
 use crate::QuantityConversionError;
 use crate::QuantityMeasurement;
-use crate::internal::ResourceQuantitySealed;
+use super::internal::ResourceQuantitySealed;
 
 /// An exact, non-negative quantity accepted by resource budgets and pools.
 ///

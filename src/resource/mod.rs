@@ -7,6 +7,8 @@
 // =============================================================================
 //! Core resource limits, budgets, pools, quantities, and accounting errors.
 
+mod internal;
+
 mod budget_error;
 mod budget_group_error;
 mod insufficient_budget_error;
