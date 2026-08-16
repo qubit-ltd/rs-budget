@@ -35,7 +35,6 @@ use crate::ResourceQuantity;
 /// let budget = ResourceBudget::new("bytes", 8_u64);
 /// let _copy = budget.clone();
 /// ```
-#[must_use]
 #[derive(Debug, PartialEq, Eq)]
 pub struct ResourceBudget<R, Q = u64>
 where
@@ -74,6 +73,7 @@ where
     /// assert_eq!(budget.remaining(), 5);
     /// ```
     #[inline]
+    #[must_use]
     pub const fn new(resource: R, limit: Q) -> Self {
         Self {
             limit: ResourceLimit::new(resource, limit),
@@ -91,6 +91,7 @@ where
     ///
     /// A budget whose remaining capacity equals the limit maximum.
     #[inline]
+    #[must_use]
     pub fn from_limit(limit: ResourceLimit<R, Q>) -> Self {
         Self {
             remaining: limit.maximum(),
@@ -114,7 +115,10 @@ where
     ///
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity.
-    pub fn check_available(&self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
+    pub fn check_available(
+        &self,
+        amount: Q,
+    ) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -146,7 +150,10 @@ where
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity. The budget remains unchanged in that case.
     #[inline]
-    pub fn try_consume(&mut self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
+    pub fn try_consume(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -171,12 +178,16 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn check_available_usize(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_available_usize(
+        &self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_usize(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
         self.check_available(amount)
             .map_err(MeasuredBudgetError::from)
     }
@@ -197,12 +208,16 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn check_available_u64(&self, amount: u64) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_available_u64(
+        &self,
+        amount: u64,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_u64(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
+        let amount = Q::try_from_u64(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
         self.check_available(amount)
             .map_err(MeasuredBudgetError::from)
     }
@@ -223,12 +238,16 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn try_consume_usize(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn try_consume_usize(
+        &mut self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_usize(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
         self.try_consume(amount).map_err(MeasuredBudgetError::from)
     }
 
@@ -248,12 +267,16 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn try_consume_u64(&mut self, amount: u64) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn try_consume_u64(
+        &mut self,
+        amount: u64,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_u64(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
+        let amount = Q::try_from_u64(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource().clone(), source)
+        })?;
         self.try_consume(amount).map_err(MeasuredBudgetError::from)
     }
 
@@ -307,7 +330,7 @@ where
     /// The exact consumed quantity, equal to `min(requested, remaining)`.
     /// This operation always succeeds and never increases the balance.
     #[inline]
-    #[must_use = "the resource limit configures this budget"]
+    #[must_use]
     pub fn consume_available(&mut self, requested: Q) -> Q {
         let consumed = requested.min(self.remaining);
         self.remaining = self.remaining - consumed;
@@ -322,7 +345,7 @@ where
     }
 
     /// Returns the immutable resource limit that configures this budget.
-    #[must_use = "the resource limit configures this budget"]
+    #[must_use]
     #[inline(always)]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
         &self.limit

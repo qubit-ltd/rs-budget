@@ -7,29 +7,29 @@
 // =============================================================================
 //! Core resource limits, budgets, pools, quantities, and accounting errors.
 
-mod budget;
 mod budget_error;
 mod budget_group_error;
-mod limit;
 mod measured_budget_error;
 mod observation;
-mod pool;
-mod quantity;
 mod quantity_conversion_error;
 mod quantity_measurement;
-mod release_error;
+mod resource_budget;
+mod resource_limit;
+mod resource_pool;
+mod resource_quantity;
+mod resource_release_error;
 
-pub use budget::ResourceBudget;
 pub use budget_error::BudgetError;
 pub use budget_error::InsufficientBudgetError;
 pub use budget_error::LimitExceededError;
 pub use budget_group_error::BudgetGroupError;
-pub use limit::ResourceLimit;
-pub(crate) use limit::check_limit;
 pub use measured_budget_error::MeasuredBudgetError;
 pub use observation::Observation;
-pub use pool::ResourcePool;
-pub use quantity::ResourceQuantity;
 pub use quantity_conversion_error::QuantityConversionError;
 pub use quantity_measurement::QuantityMeasurement;
-pub use release_error::ResourceReleaseError;
+pub use resource_budget::ResourceBudget;
+pub use resource_limit::ResourceLimit;
+pub(crate) use resource_limit::check_limit;
+pub use resource_pool::ResourcePool;
+pub use resource_quantity::ResourceQuantity;
+pub use resource_release_error::ResourceReleaseError;

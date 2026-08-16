@@ -21,7 +21,6 @@ use crate::ResourceQuantity;
 ///
 /// * `R` - Caller-defined resource value retained in limit failures.
 /// * `Q` - Copyable measurement value used by the maximum and checks.
-#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResourceLimit<R, Q = u64>
 where
@@ -49,6 +48,7 @@ where
     ///
     /// A limit that accepts measurements less than or equal to `maximum`.
     #[inline]
+    #[must_use]
     pub const fn new(resource: R, maximum: Q) -> Self {
         Self { resource, maximum }
     }
@@ -121,12 +121,16 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
     /// converted value exceeds this limit.
     #[inline]
-    pub fn check_usize(&self, actual: usize) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_usize(
+        &self,
+        actual: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let actual = Q::try_from_usize(actual)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
+        let actual = Q::try_from_usize(actual).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource.clone(), source)
+        })?;
         self.check(actual).map_err(MeasuredBudgetError::from)
     }
 
@@ -146,12 +150,16 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
     /// converted value exceeds this limit.
     #[inline]
-    pub fn check_u64(&self, actual: u64) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_u64(
+        &self,
+        actual: u64,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let actual = Q::try_from_u64(actual)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
+        let actual = Q::try_from_u64(actual).map_err(|source| {
+            MeasuredBudgetError::quantity(self.resource.clone(), source)
+        })?;
         self.check(actual).map_err(MeasuredBudgetError::from)
     }
 }

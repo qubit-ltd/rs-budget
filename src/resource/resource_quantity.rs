@@ -22,7 +22,14 @@ use crate::internal::ResourceQuantitySealed;
 /// signed values, floating-point `NaN`/infinity, and rounding-based arithmetic
 /// from the accounting invariants.
 pub trait ResourceQuantity:
-    ResourceQuantitySealed + Copy + Debug + Display + Eq + Ord + Add<Output = Self> + Sub<Output = Self>
+    ResourceQuantitySealed
+    + Copy
+    + Debug
+    + Display
+    + Eq
+    + Ord
+    + Add<Output = Self>
+    + Sub<Output = Self>
 {
     /// The additive identity for this quantity type.
     const ZERO: Self;
@@ -57,7 +64,6 @@ pub trait ResourceQuantity:
     ///
     /// Returns [`QuantityConversionError`] when `value` cannot be represented
     /// without truncation.
-    #[must_use = "the conversion result reports whether the measurement fits"]
     fn try_from_usize(value: usize) -> Result<Self, QuantityConversionError>;
 
     /// Converts one stable 64-bit measurement into this resource quantity.
@@ -74,7 +80,6 @@ pub trait ResourceQuantity:
     ///
     /// Returns [`QuantityConversionError`] when `value` cannot be represented
     /// without truncation.
-    #[must_use = "the conversion result reports whether the measurement fits"]
     fn try_from_u64(value: u64) -> Result<Self, QuantityConversionError>;
 }
 

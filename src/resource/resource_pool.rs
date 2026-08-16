@@ -23,7 +23,6 @@ use crate::ResourceReleaseError;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `Q` - Exact unsigned quantity used for the capacity and accounting.
-#[must_use]
 #[derive(Debug, PartialEq, Eq)]
 pub struct ResourcePool<R, Q = u64>
 where
@@ -62,6 +61,7 @@ where
     /// assert_eq!(pool.in_use(), 0);
     /// ```
     #[inline]
+    #[must_use]
     pub const fn new(resource: R, limit: Q) -> Self {
         Self {
             limit: ResourceLimit::new(resource, limit),
@@ -79,6 +79,7 @@ where
     ///
     /// A pool whose available capacity equals the limit maximum.
     #[inline]
+    #[must_use]
     pub fn from_limit(limit: ResourceLimit<R, Q>) -> Self {
         let available = limit.maximum();
         Self { limit, available }
@@ -100,7 +101,10 @@ where
     ///
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds current
     /// availability. The pool remains unchanged in that case.
-    pub fn try_acquire(&mut self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
+    pub fn try_acquire(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -132,7 +136,10 @@ where
     ///
     /// Returns [`ResourceReleaseError`] when `amount` exceeds
     /// current occupancy. The pool remains unchanged in that case.
-    pub fn release(&mut self, amount: Q) -> Result<(), ResourceReleaseError<R, Q>>
+    pub fn release(
+        &mut self,
+        amount: Q,
+    ) -> Result<(), ResourceReleaseError<R, Q>>
     where
         R: Clone,
     {
@@ -150,14 +157,14 @@ where
     }
 
     /// Returns the associated resource.
-    #[must_use = "the resource limit configures this pool"]
+    #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
 
     /// Returns the immutable resource limit that configures this pool.
-    #[must_use = "the resource limit configures this pool"]
+    #[must_use]
     #[inline(always)]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
         &self.limit
