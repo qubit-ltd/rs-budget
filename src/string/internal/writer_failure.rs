@@ -10,9 +10,9 @@
 
 use std::collections::TryReserveError;
 
-use crate::InsufficientBudgetError;
-use crate::QuantityConversionError;
-use crate::ResourceQuantity;
+use crate::resource::InsufficientBudgetError;
+use crate::resource::QuantityConversionError;
+use crate::resource::ResourceQuantity;
 
 /// Failure state retained until the string transaction is finalized.
 pub(crate) enum WriterFailure<R, Q>

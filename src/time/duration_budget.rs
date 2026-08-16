@@ -9,8 +9,8 @@
 
 use std::time::Duration;
 
-use crate::InsufficientBudgetError;
-use crate::ResourceLimit;
+use crate::resource::InsufficientBudgetError;
+use crate::resource::ResourceLimit;
 
 /// A finite, monotonic budget for durations explicitly submitted by callers.
 ///

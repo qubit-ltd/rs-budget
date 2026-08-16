@@ -10,7 +10,7 @@
 
 use std::fmt;
 
-use crate::ResourceQuantity;
+use crate::resource::ResourceQuantity;
 use crate::string::BudgetedStringWriter;
 
 /// Formatting adapter that appends through a budgeted string writer.

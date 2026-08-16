@@ -14,8 +14,8 @@ use super::BudgetedStringError;
 use super::internal::FmtWriter;
 use super::internal::IoWriter;
 use super::internal::WriterFailure;
-use crate::ResourceBudget;
-use crate::ResourceQuantity;
+use crate::resource::ResourceBudget;
+use crate::resource::ResourceQuantity;
 
 /// Collects a UTF-8 string while checking a finite byte budget incrementally.
 ///

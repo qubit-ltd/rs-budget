@@ -10,7 +10,7 @@
 
 use std::io;
 
-use crate::ResourceQuantity;
+use crate::resource::ResourceQuantity;
 use crate::string::BudgetedStringWriter;
 
 /// I/O adapter that appends through a budgeted string writer.

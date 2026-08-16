@@ -14,8 +14,8 @@ use std::string::FromUtf8Error;
 
 use thiserror::Error;
 
-use crate::InsufficientBudgetError;
-use crate::QuantityConversionError;
+use crate::resource::InsufficientBudgetError;
+use crate::resource::QuantityConversionError;
 
 /// Describes why a budgeted string rendering transaction failed.
 #[derive(Debug, Error)]
