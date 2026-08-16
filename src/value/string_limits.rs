@@ -13,6 +13,19 @@ use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
 
 /// Optional point limit for one UTF-8 string's byte length.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourceLimit;
+/// use qubit_budget::StringLimits;
+///
+/// let limits = StringLimits::builder()
+///     .utf8_bytes_limit(ResourceLimit::new("name bytes", 5_u64))
+///     .build();
+/// limits.check("hello").expect("five UTF-8 bytes should fit");
+/// assert!(limits.check("hello!").is_err());
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StringLimits<R, Q = u64>
 where

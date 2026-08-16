@@ -18,6 +18,22 @@ use crate::resource::check_limit;
 ///
 /// `R` and `Q` mirror [`StructureLimits`]. Point limits do not accumulate
 /// between calls; node charges consume the session's finite node budget.
+///
+/// Obtain a `StructureBudget` from [`StructureLimits::budget`] after building
+/// the limits. The budget is intended to be kept for one processing session.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::StructureLimits;
+///
+/// let limits = StructureLimits::builder().max_nodes(2).build();
+/// let mut budget = limits.budget();
+/// budget.charge_node().expect("first node should fit");
+/// budget.charge_node().expect("second node should fit");
+/// assert_eq!(budget.used_nodes(), 2);
+/// assert!(budget.charge_node().is_err());
+/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct StructureBudget<R = StructureResource, Q = usize>
 where

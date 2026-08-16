@@ -22,6 +22,28 @@ use crate::resource::ResourceQuantity;
 /// The writer is constructed and committed by
 /// [`ResourceBudget::try_write_string`]. A failed render drops the buffered
 /// prefix and leaves the budget unchanged.
+///
+/// Use [`Self::as_fmt`] for formatting APIs or [`Self::as_io`] for byte-oriented
+/// I/O. The returned adapter borrows this writer, so the render callback must
+/// finish using it before returning.
+///
+/// # Examples
+///
+/// ```
+/// use std::fmt::Write as _;
+/// use qubit_budget::ResourceBudget;
+///
+/// let mut budget = ResourceBudget::new("response bytes", 16_u64);
+/// let output = budget
+///     .try_write_string(|writer| {
+///         let mut formatted = writer.as_fmt();
+///         write!(&mut formatted, "status={}", 200)
+///     })
+///     .expect("the rendered response should fit");
+///
+/// assert_eq!(output, "status=200");
+/// assert_eq!(budget.used(), 10);
+/// ```
 pub struct BudgetedStringWriter<'a, R, Q = u64>
 where
     Q: ResourceQuantity,

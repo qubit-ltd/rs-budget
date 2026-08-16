@@ -30,6 +30,17 @@ use crate::resource::ResourceQuantity;
 /// A budget is intentionally not cloneable because cloning would create a
 /// second independently consumable copy of the same finite allowance.
 ///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourceBudget;
+///
+/// let mut budget = ResourceBudget::new("response bytes", 8_u64);
+/// budget.try_consume(3).expect("three bytes should fit");
+/// assert_eq!(budget.used(), 3);
+/// assert_eq!(budget.remaining(), 5);
+/// ```
+///
 /// ```compile_fail
 /// use qubit_budget::ResourceBudget;
 /// let budget = ResourceBudget::new("bytes", 8_u64);

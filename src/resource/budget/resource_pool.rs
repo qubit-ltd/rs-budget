@@ -23,6 +23,18 @@ use crate::resource::ResourceReleaseError;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `Q` - Exact unsigned quantity used for the capacity and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourcePool;
+///
+/// let mut pool = ResourcePool::new("workers", 2_u64);
+/// pool.try_acquire(1).expect("one worker should fit");
+/// assert_eq!(pool.in_use(), 1);
+/// pool.release(1).expect("the worker is returned");
+/// assert_eq!(pool.available(), 2);
+/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct ResourcePool<R, Q = u64>
 where

@@ -18,6 +18,22 @@ use crate::resource::ResourceQuantity;
 /// `R` identifies the resource values reported in [`crate::BudgetError`], and
 /// `Q` is the exact unsigned quantity used for all measurements. The default
 /// configuration uses [`StructureResource`] and [`usize`].
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::StructureLimits;
+///
+/// let limits = StructureLimits::builder()
+///     .max_depth(4)
+///     .max_nodes(16)
+///     .build();
+/// let mut budget = limits.budget();
+///
+/// budget.check_depth(4).expect("the inclusive depth limit should fit");
+/// budget.charge_node().expect("the first node should fit");
+/// assert_eq!(budget.used_nodes(), 1);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StructureLimits<R = StructureResource, Q = usize>
 where

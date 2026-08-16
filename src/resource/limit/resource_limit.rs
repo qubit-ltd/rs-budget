@@ -21,6 +21,16 @@ use crate::resource::ResourceQuantity;
 ///
 /// * `R` - Caller-defined resource value retained in limit failures.
 /// * `Q` - Copyable measurement value used by the maximum and checks.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourceLimit;
+///
+/// let limit = ResourceLimit::new("payload bytes", 8_u64);
+/// limit.check(8).expect("the inclusive maximum should fit");
+/// assert!(limit.check(9).is_err());
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResourceLimit<R, Q = u64>
 where
