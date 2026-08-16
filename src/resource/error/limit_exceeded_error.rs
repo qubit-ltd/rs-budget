@@ -11,7 +11,7 @@ use std::fmt::Debug;
 
 use thiserror::Error;
 
-use crate::Observation;
+use crate::resource::Observation;
 
 /// Structured facts for a point measurement that exceeded its maximum.
 ///

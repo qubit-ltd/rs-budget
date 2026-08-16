@@ -5,9 +5,7 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Tests for core resource limits, budgets, quantities, and errors.
+//! Tests for point limits and observations.
 
-mod budget;
-mod error;
-mod limit;
-mod quantity;
+mod observation_tests;
+mod resource_limit_tests;

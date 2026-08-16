@@ -13,7 +13,7 @@ use thiserror::Error;
 
 use super::InsufficientBudgetError;
 use super::LimitExceededError;
-use crate::Observation;
+use crate::resource::Observation;
 
 /// Aggregate error for APIs that can perform both point and cumulative checks.
 ///

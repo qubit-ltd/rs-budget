@@ -12,10 +12,10 @@ use std::fmt::Debug;
 
 use thiserror::Error;
 
-use crate::BudgetError;
-use crate::InsufficientBudgetError;
-use crate::LimitExceededError;
-use crate::QuantityConversionError;
+use crate::resource::BudgetError;
+use crate::resource::InsufficientBudgetError;
+use crate::resource::LimitExceededError;
+use crate::resource::QuantityConversionError;
 
 /// Error returned when native measurement or budget validation rejects a value.
 #[derive(Clone, Debug, Error)]

@@ -5,9 +5,8 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Tests for core resource limits, budgets, quantities, and errors.
+//! Tests for resource accounting errors.
 
-mod budget;
-mod error;
-mod limit;
-mod quantity;
+mod budget_error_tests;
+mod budget_group_error_tests;
+mod resource_release_error_tests;

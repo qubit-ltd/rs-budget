@@ -8,7 +8,7 @@
 //! Defines failures converting native measurements into resource quantities.
 // qubit-style: allow source-test-pair
 
-use crate::QuantityMeasurement;
+use crate::resource::QuantityMeasurement;
 
 /// Error returned when a native measurement cannot fit the selected quantity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]

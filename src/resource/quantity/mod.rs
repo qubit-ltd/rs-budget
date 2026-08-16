@@ -5,9 +5,11 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Tests for core resource limits, budgets, quantities, and errors.
+//! Exact resource quantities and native measurement kinds.
 
-mod budget;
-mod error;
-mod limit;
-mod quantity;
+mod internal;
+mod quantity_measurement;
+mod resource_quantity;
+
+pub use quantity_measurement::QuantityMeasurement;
+pub use resource_quantity::ResourceQuantity;

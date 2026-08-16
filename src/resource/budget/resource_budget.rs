@@ -7,11 +7,11 @@
 // =============================================================================
 //! Defines monotonic finite resource budgets.
 
-use crate::BudgetGroupError;
-use crate::InsufficientBudgetError;
-use crate::MeasuredBudgetError;
-use crate::ResourceLimit;
-use crate::ResourceQuantity;
+use crate::resource::BudgetGroupError;
+use crate::resource::InsufficientBudgetError;
+use crate::resource::MeasuredBudgetError;
+use crate::resource::ResourceLimit;
+use crate::resource::ResourceQuantity;
 
 /// A finite, non-releasable resource budget.
 ///

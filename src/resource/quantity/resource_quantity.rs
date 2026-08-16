@@ -12,8 +12,8 @@ use std::fmt::Display;
 use std::ops::Add;
 use std::ops::Sub;
 
-use crate::QuantityConversionError;
-use crate::QuantityMeasurement;
+use crate::resource::QuantityConversionError;
+use crate::resource::QuantityMeasurement;
 use super::internal::ResourceQuantitySealed;
 
 /// An exact, non-negative quantity accepted by resource budgets and pools.

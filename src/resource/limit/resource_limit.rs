@@ -9,11 +9,11 @@
 
 use std::fmt::Debug;
 
-use crate::BudgetError;
-use crate::LimitExceededError;
-use crate::MeasuredBudgetError;
-use crate::Observation;
-use crate::ResourceQuantity;
+use crate::resource::BudgetError;
+use crate::resource::LimitExceededError;
+use crate::resource::MeasuredBudgetError;
+use crate::resource::Observation;
+use crate::resource::ResourceQuantity;
 
 /// An inclusive immutable maximum for one resource measurement.
 ///

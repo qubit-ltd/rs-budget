@@ -11,7 +11,7 @@ use std::fmt::Debug;
 
 use thiserror::Error;
 
-use crate::InsufficientBudgetError;
+use crate::resource::InsufficientBudgetError;
 
 /// Failure returned by an atomic grouped budget consumption.
 ///

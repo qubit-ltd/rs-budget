@@ -7,10 +7,10 @@
 // =============================================================================
 //! Defines finite releasable resource pools.
 
-use crate::InsufficientBudgetError;
-use crate::ResourceLimit;
-use crate::ResourceQuantity;
-use crate::ResourceReleaseError;
+use crate::resource::InsufficientBudgetError;
+use crate::resource::ResourceLimit;
+use crate::resource::ResourceQuantity;
+use crate::resource::ResourceReleaseError;
 
 /// A finite, non-synchronizing pool of releasable resource capacity.
 ///

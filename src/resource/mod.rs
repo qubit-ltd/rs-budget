@@ -7,33 +7,22 @@
 // =============================================================================
 //! Core resource limits, budgets, pools, quantities, and accounting errors.
 
-mod internal;
+mod budget;
+mod error;
+mod limit;
+mod quantity;
 
-mod budget_error;
-mod budget_group_error;
-mod insufficient_budget_error;
-mod limit_exceeded_error;
-mod measured_budget_error;
-mod observation;
-mod quantity_conversion_error;
-mod quantity_measurement;
-mod resource_budget;
-mod resource_limit;
-mod resource_pool;
-mod resource_quantity;
-mod resource_release_error;
-
-pub use budget_error::BudgetError;
-pub use budget_group_error::BudgetGroupError;
-pub use insufficient_budget_error::InsufficientBudgetError;
-pub use limit_exceeded_error::LimitExceededError;
-pub use measured_budget_error::MeasuredBudgetError;
-pub use observation::Observation;
-pub use quantity_conversion_error::QuantityConversionError;
-pub use quantity_measurement::QuantityMeasurement;
-pub use resource_budget::ResourceBudget;
-pub use resource_limit::ResourceLimit;
-pub(crate) use resource_limit::check_limit;
-pub use resource_pool::ResourcePool;
-pub use resource_quantity::ResourceQuantity;
-pub use resource_release_error::ResourceReleaseError;
+pub use budget::ResourceBudget;
+pub use budget::ResourcePool;
+pub use error::BudgetError;
+pub use error::BudgetGroupError;
+pub use error::InsufficientBudgetError;
+pub use error::LimitExceededError;
+pub use error::MeasuredBudgetError;
+pub use error::QuantityConversionError;
+pub use error::ResourceReleaseError;
+pub use limit::Observation;
+pub use limit::ResourceLimit;
+pub(crate) use limit::check_limit;
+pub use quantity::QuantityMeasurement;
+pub use quantity::ResourceQuantity;

@@ -5,9 +5,11 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Tests for core resource limits, budgets, quantities, and errors.
+//! Immutable point limits and their observations.
 
-mod budget;
-mod error;
-mod limit;
-mod quantity;
+mod observation;
+mod resource_limit;
+
+pub use observation::Observation;
+pub use resource_limit::ResourceLimit;
+pub(crate) use resource_limit::check_limit;
