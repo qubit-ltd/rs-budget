@@ -20,9 +20,7 @@ use crate::resource::Observation;
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `Q` - Copyable measurement value used by the failed constraint.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
-#[error(
-    "resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}"
-)]
+#[error("resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}")]
 pub struct LimitExceededError<R, Q = u64>
 where
     Q: Copy + Debug,

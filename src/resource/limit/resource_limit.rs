@@ -121,16 +121,12 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
     /// converted value exceeds this limit.
     #[inline]
-    pub fn check_usize(
-        &self,
-        actual: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_usize(&self, actual: usize) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let actual = Q::try_from_usize(actual).map_err(|source| {
-            MeasuredBudgetError::quantity(self.resource.clone(), source)
-        })?;
+        let actual = Q::try_from_usize(actual)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
         self.check(actual).map_err(MeasuredBudgetError::from)
     }
 
@@ -150,16 +146,12 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
     /// converted value exceeds this limit.
     #[inline]
-    pub fn check_u64(
-        &self,
-        actual: u64,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_u64(&self, actual: u64) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let actual = Q::try_from_u64(actual).map_err(|source| {
-            MeasuredBudgetError::quantity(self.resource.clone(), source)
-        })?;
+        let actual = Q::try_from_u64(actual)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
         self.check(actual).map_err(MeasuredBudgetError::from)
     }
 }

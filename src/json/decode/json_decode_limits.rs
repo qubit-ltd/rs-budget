@@ -65,9 +65,7 @@ where
     /// Returns the complete normalized input-byte limit, when configured.
     #[must_use]
     #[inline(always)]
-    pub const fn normalized_input_bytes_limit(
-        &self,
-    ) -> Option<&ResourceLimit<R, Q>> {
+    pub const fn normalized_input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
     }
 
@@ -103,10 +101,7 @@ where
         self.input = Some(limit);
     }
 
-    pub(super) fn set_normalized_input_bytes_limit(
-        &mut self,
-        limit: ResourceLimit<R, Q>,
-    ) {
+    pub(super) fn set_normalized_input_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.normalized_input = Some(limit);
     }
 

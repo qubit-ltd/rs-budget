@@ -58,8 +58,7 @@ where
         if self.failure.is_some() {
             return false;
         }
-        let Some(next_len) = checked_output_len(self.output.len(), bytes.len())
-        else {
+        let Some(next_len) = checked_output_len(self.output.len(), bytes.len()) else {
             self.failure = Some(WriterFailure::LengthOverflow);
             return false;
         };
@@ -107,10 +106,7 @@ where
 }
 
 /// Adds two output lengths while detecting `usize` overflow.
-const fn checked_output_len(
-    current: usize,
-    additional: usize,
-) -> Option<usize> {
+const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
     current.checked_add(additional)
 }
 
@@ -149,14 +145,11 @@ where
         if let Err(error) = rendered {
             return Err(BudgetedStringError::Render(error));
         }
-        let output = String::from_utf8(bytes)
-            .map_err(BudgetedStringError::InvalidUtf8)?;
+        let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
         let output_length =
-            Q::try_from_usize(output.len()).map_err(|source| {
-                BudgetedStringError::Quantity {
-                    resource: self.resource().clone(),
-                    source,
-                }
+            Q::try_from_usize(output.len()).map_err(|source| BudgetedStringError::Quantity {
+                resource: self.resource().clone(),
+                source,
             })?;
         self.try_consume(output_length)
             .map_err(BudgetedStringError::Budget)?;

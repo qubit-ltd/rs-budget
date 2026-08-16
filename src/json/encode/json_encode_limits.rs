@@ -84,10 +84,7 @@ where
         }
     }
 
-    pub(super) fn set_output_bytes_limit(
-        &mut self,
-        limit: ResourceLimit<R, Q>,
-    ) {
+    pub(super) fn set_output_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.output = Some(limit);
     }
 

@@ -130,9 +130,7 @@ where
     /// Returns the mutable transaction that holds this attempt's value state.
     #[must_use]
     #[inline]
-    pub fn value_transaction_mut(
-        &mut self,
-    ) -> &mut JsonValueTransaction<'a, R, Q> {
+    pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {
         &mut self.value
     }
 

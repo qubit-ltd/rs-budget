@@ -151,8 +151,7 @@ fn test_encode_session_borrowing_output_keeps_charge_after_attempt_drop() {
         .build()
         .budget();
     {
-        let mut session =
-            JsonEncodeSession::borrowing_output(&mut output, &mut value);
+        let mut session = JsonEncodeSession::borrowing_output(&mut output, &mut value);
         let mut attempt = session.begin_value();
         attempt.try_consume_output_bytes(3).expect("output fits");
         attempt

@@ -24,10 +24,7 @@ enum TestResource {
 fn test_minimum_scale_reports_exact_unsigned_magnitude() {
     let value = BigDecimal::new(BigInt::from(1), i64::MIN);
     let limits = BigDecimalLimits::builder()
-        .scale_magnitude_limit(ResourceLimit::new(
-            TestResource::Scale,
-            150_000_u64,
-        ))
+        .scale_magnitude_limit(ResourceLimit::new(TestResource::Scale, 150_000_u64))
         .build();
     let error = limits.check(&value).expect_err("minimum scale must fail");
     assert_eq!(
@@ -42,16 +39,10 @@ fn test_minimum_scale_reports_exact_unsigned_magnitude() {
 fn test_scale_is_checked_before_coefficient() {
     let value = BigDecimal::new(BigInt::from(10).pow(1000), 200_000);
     let limits = BigDecimalLimits::builder()
-        .scale_magnitude_limit(ResourceLimit::new(
-            TestResource::Scale,
-            150_000_u64,
-        ))
+        .scale_magnitude_limit(ResourceLimit::new(TestResource::Scale, 150_000_u64))
         .coefficient_limits(
             BigIntegerLimits::builder()
-                .significant_decimal_digits_limit(ResourceLimit::new(
-                    TestResource::Digits,
-                    1_u64,
-                ))
+                .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 1_u64))
                 .build(),
         )
         .build();

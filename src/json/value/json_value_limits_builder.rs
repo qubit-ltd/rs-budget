@@ -142,10 +142,7 @@ where
             .limits
             .structure_limits()
             .into_builder()
-            .sequence_items_limit(ResourceLimit::new(
-                JsonResource::SequenceItems,
-                maximum,
-            ))
+            .sequence_items_limit(ResourceLimit::new(JsonResource::SequenceItems, maximum))
             .build();
         self.limits.set_structure_limits(structure);
         self
@@ -159,10 +156,7 @@ where
             .limits
             .structure_limits()
             .into_builder()
-            .map_entries_limit(ResourceLimit::new(
-                JsonResource::MapEntries,
-                maximum,
-            ))
+            .map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, maximum))
             .build();
         self.limits.set_structure_limits(structure);
         self
@@ -176,10 +170,7 @@ where
             .limits
             .structure_limits()
             .into_builder()
-            .key_bytes_limit(ResourceLimit::new(
-                JsonResource::KeyBytes,
-                maximum,
-            ))
+            .key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, maximum))
             .build();
         self.limits.set_structure_limits(structure);
         self
@@ -189,10 +180,8 @@ where
     #[inline]
     #[must_use]
     pub fn max_string_bytes(mut self, maximum: Q) -> Self {
-        self.limits.set_string_bytes_limit(ResourceLimit::new(
-            JsonResource::StringBytes,
-            maximum,
-        ));
+        self.limits
+            .set_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, maximum));
         self
     }
 
@@ -200,10 +189,8 @@ where
     #[inline]
     #[must_use]
     pub fn max_number_bytes(mut self, maximum: Q) -> Self {
-        self.limits.set_number_bytes_limit(ResourceLimit::new(
-            JsonResource::NumberBytes,
-            maximum,
-        ));
+        self.limits
+            .set_number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, maximum));
         self
     }
 
@@ -211,10 +198,8 @@ where
     #[inline]
     #[must_use]
     pub fn max_payload_bytes(mut self, maximum: Q) -> Self {
-        self.limits.set_payload_bytes_limit(ResourceLimit::new(
-            JsonResource::PayloadBytes,
-            maximum,
-        ));
+        self.limits
+            .set_payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, maximum));
         self
     }
 }

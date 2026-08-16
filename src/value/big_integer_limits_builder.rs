@@ -53,10 +53,7 @@ where
     /// Sets the significant decimal digit limit.
     #[inline]
     #[must_use]
-    pub fn significant_decimal_digits_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn significant_decimal_digits_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_significant_decimal_digits_limit(limit);
         self
     }

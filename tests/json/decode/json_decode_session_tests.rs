@@ -129,8 +129,7 @@ fn test_decode_session_borrowing_input_keeps_charge_after_attempt_drop() {
         .build()
         .budget();
     {
-        let mut session =
-            JsonDecodeSession::borrowing_input(&mut input, &mut value);
+        let mut session = JsonDecodeSession::borrowing_input(&mut input, &mut value);
         let mut attempt = session.begin_value();
         attempt.try_consume_input_bytes(3).expect("input fits");
         attempt
@@ -146,18 +145,13 @@ fn test_decode_session_borrowing_input_keeps_charge_after_attempt_drop() {
 #[test]
 fn test_decode_session_borrowing_all_commits_io_and_value() {
     let mut input = ResourceBudget::new(JsonResource::InputBytes, 3_usize);
-    let mut normalized =
-        ResourceBudget::new(JsonResource::NormalizedInputBytes, 4_usize);
+    let mut normalized = ResourceBudget::new(JsonResource::NormalizedInputBytes, 4_usize);
     let mut value = JsonValueLimits::<JsonResource, usize>::builder()
         .max_nodes(2)
         .build()
         .budget();
     {
-        let mut session = JsonDecodeSession::borrowing_all(
-            &mut input,
-            &mut normalized,
-            &mut value,
-        );
+        let mut session = JsonDecodeSession::borrowing_all(&mut input, &mut normalized, &mut value);
         let mut attempt = session.begin_value();
         attempt.try_consume_input_bytes(3).expect("input fits");
         attempt

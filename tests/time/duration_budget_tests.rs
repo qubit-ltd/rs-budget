@@ -19,8 +19,7 @@ enum TestResource {
 #[test]
 fn test_try_consume_uses_remaining_duration_and_is_atomic_on_failure() {
     let limit = Duration::from_secs(5);
-    let mut budget =
-        DurationBudget::new(TestResource::OperationDuration, limit);
+    let mut budget = DurationBudget::new(TestResource::OperationDuration, limit);
     budget
         .try_consume(Duration::from_secs(2))
         .expect("two seconds should fit");
@@ -41,10 +40,7 @@ fn test_try_consume_uses_remaining_duration_and_is_atomic_on_failure() {
 
 #[test]
 fn test_consume_available_returns_the_exact_consumed_duration() {
-    let mut budget = DurationBudget::new(
-        TestResource::OperationDuration,
-        Duration::from_secs(3),
-    );
+    let mut budget = DurationBudget::new(TestResource::OperationDuration, Duration::from_secs(3));
     assert_eq!(
         budget.consume_available(Duration::from_secs(5)),
         Duration::from_secs(3)
@@ -69,10 +65,7 @@ fn test_duration_budget_accessors_preserve_resource_and_limit() {
 
 #[test]
 fn test_from_limit_preserves_the_resource_limit() {
-    let limit = ResourceLimit::new(
-        TestResource::OperationDuration,
-        Duration::from_secs(3),
-    );
+    let limit = ResourceLimit::new(TestResource::OperationDuration, Duration::from_secs(3));
     let budget = DurationBudget::from_limit(limit);
     assert_eq!(budget.resource_limit(), &limit);
 }

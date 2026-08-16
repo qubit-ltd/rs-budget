@@ -66,10 +66,7 @@ fn test_empty_decode_limits_report_unconfigured_maxima() {
 fn test_generic_decode_limits_expose_maxima() {
     let limits = JsonDecodeLimits::<JsonResource, u8>::builder()
         .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 4))
-        .normalized_input_bytes_limit(ResourceLimit::new(
-            JsonResource::NormalizedInputBytes,
-            5,
-        ))
+        .normalized_input_bytes_limit(ResourceLimit::new(JsonResource::NormalizedInputBytes, 5))
         .build();
     assert_eq!(limits.max_input_bytes(), Some(4));
     assert_eq!(limits.max_normalized_input_bytes(), Some(5));

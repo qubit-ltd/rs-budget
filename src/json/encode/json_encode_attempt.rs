@@ -47,10 +47,7 @@ where
     /// Returns a quantity-conversion or budget error without changing the
     /// configured output budget. An absent output budget is ignored.
     #[inline]
-    pub fn check_output_bytes(
-        &self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn check_output_bytes(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref() {
             Some(budget) => budget.check_available_usize(amount),
             None => Ok(()),
@@ -139,9 +136,7 @@ where
     /// Returns the mutable transaction that holds this attempt's value state.
     #[must_use]
     #[inline]
-    pub fn value_transaction_mut(
-        &mut self,
-    ) -> &mut JsonValueTransaction<'a, R, Q> {
+    pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {
         &mut self.value
     }
 

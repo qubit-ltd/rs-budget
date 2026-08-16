@@ -79,10 +79,8 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_output_bytes(mut self, maximum: usize) -> Self {
-        self.limits.set_output_bytes_limit(ResourceLimit::new(
-            JsonResource::OutputBytes,
-            maximum,
-        ));
+        self.limits
+            .set_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, maximum));
         self
     }
 
