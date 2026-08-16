@@ -5,15 +5,15 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-// qubit-style: allow multiple-public-types
 //! Bounded coefficient and scale checks for `BigDecimal`.
 
 use bigdecimal::BigDecimal;
 
+use super::BigDecimalLimitsBuilder;
 use super::BigIntegerLimits;
-use crate::MeasuredBudgetError;
-use crate::ResourceLimit;
-use crate::ResourceQuantity;
+use crate::resource::MeasuredBudgetError;
+use crate::resource::ResourceLimit;
+use crate::resource::ResourceQuantity;
 
 /// Composes coefficient limits with an absolute scale limit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -82,63 +82,20 @@ where
         }
         self.coefficient.check(coefficient.as_ref())
     }
-}
 
-/// Builder for [`BigDecimalLimits`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BigDecimalLimitsBuilder<R, Q = u64>
-where
-    Q: ResourceQuantity,
-{
-    limits: BigDecimalLimits<R, Q>,
-}
-
-impl<R, Q> Default for BigDecimalLimitsBuilder<R, Q>
-where
-    Q: ResourceQuantity,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<R, Q> BigDecimalLimitsBuilder<R, Q>
-where
-    Q: ResourceQuantity,
-{
-    /// Creates an empty decimal-limits builder.
-    #[inline]
-    #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            limits: BigDecimalLimits::new(),
-        }
+    /// Replaces coefficient limits during builder composition.
+    #[inline(always)]
+    pub(super) fn set_coefficient_limits(&mut self, limits: BigIntegerLimits<R, Q>) {
+        self.coefficient = limits;
     }
 
-    /// Sets the coefficient limits.
-    #[inline]
-    #[must_use]
-    pub fn coefficient_limits(
-        mut self,
-        limits: BigIntegerLimits<R, Q>,
-    ) -> Self {
-        self.limits.coefficient = limits;
-        self
-    }
-
-    /// Sets the absolute scale-magnitude limit.
-    #[inline]
-    #[must_use]
-    pub fn scale_magnitude_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
-        self.limits.max_scale_magnitude = Some(limit);
-        self
-    }
-
-    /// Builds the configured decimal limits.
-    #[inline]
-    #[must_use]
-    pub fn build(self) -> BigDecimalLimits<R, Q> {
-        self.limits
+    /// Replaces the scale-magnitude limit during builder composition.
+    #[inline(always)]
+    pub(super) fn set_scale_magnitude_limit(
+        &mut self,
+        limit: ResourceLimit<R, Q>,
+    ) {
+        self.max_scale_magnitude = Some(limit);
     }
 }
 

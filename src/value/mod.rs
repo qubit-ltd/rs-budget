@@ -9,17 +9,22 @@
 
 #[cfg(feature = "big-decimal")]
 mod big_decimal_limits;
+#[cfg(feature = "big-decimal")]
+mod big_decimal_limits_builder;
 #[cfg(feature = "big-integer")]
 mod big_integer_limits;
+#[cfg(feature = "big-integer")]
+mod big_integer_limits_builder;
 mod string_limits;
+mod string_limits_builder;
 
 #[cfg(feature = "big-decimal")]
 pub use big_decimal_limits::BigDecimalLimits;
 #[cfg(feature = "big-decimal")]
-pub use big_decimal_limits::BigDecimalLimitsBuilder;
+pub use big_decimal_limits_builder::BigDecimalLimitsBuilder;
 #[cfg(feature = "big-integer")]
 pub use big_integer_limits::BigIntegerLimits;
 #[cfg(feature = "big-integer")]
-pub use big_integer_limits::BigIntegerLimitsBuilder;
+pub use big_integer_limits_builder::BigIntegerLimitsBuilder;
 pub use string_limits::StringLimits;
-pub use string_limits::StringLimitsBuilder;
+pub use string_limits_builder::StringLimitsBuilder;

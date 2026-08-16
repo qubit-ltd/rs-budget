@@ -5,16 +5,16 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-// qubit-style: allow multiple-public-types
 //! Bounded magnitude and significant decimal digit checks for `BigInt`.
 
 use num_bigint::BigInt;
 
-use crate::LimitExceededError;
-use crate::MeasuredBudgetError;
-use crate::Observation;
-use crate::ResourceLimit;
-use crate::ResourceQuantity;
+use super::BigIntegerLimitsBuilder;
+use crate::resource::LimitExceededError;
+use crate::resource::MeasuredBudgetError;
+use crate::resource::Observation;
+use crate::resource::ResourceLimit;
+use crate::resource::ResourceQuantity;
 
 /// Optional point limits for one arbitrary-precision integer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -84,63 +84,23 @@ where
         }
         Ok(())
     }
-}
 
-/// Builder for [`BigIntegerLimits`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BigIntegerLimitsBuilder<R, Q = u64>
-where
-    Q: ResourceQuantity,
-{
-    limits: BigIntegerLimits<R, Q>,
-}
-
-impl<R, Q> Default for BigIntegerLimitsBuilder<R, Q>
-where
-    Q: ResourceQuantity,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<R, Q> BigIntegerLimitsBuilder<R, Q>
-where
-    Q: ResourceQuantity,
-{
-    /// Creates an empty integer-limits builder.
-    #[inline]
-    #[must_use]
-    pub const fn new() -> Self {
-        Self {
-            limits: BigIntegerLimits::new(),
-        }
-    }
-
-    /// Sets the magnitude bit-length limit.
-    #[inline]
-    #[must_use]
-    pub fn magnitude_bits_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
-        self.limits.max_magnitude_bits = Some(limit);
-        self
-    }
-
-    /// Sets the significant decimal digit limit.
-    #[inline]
-    #[must_use]
-    pub fn significant_decimal_digits_limit(
-        mut self,
+    /// Replaces the magnitude-bit limit during builder composition.
+    #[inline(always)]
+    pub(super) fn set_magnitude_bits_limit(
+        &mut self,
         limit: ResourceLimit<R, Q>,
-    ) -> Self {
-        self.limits.max_significant_decimal_digits = Some(limit);
-        self
+    ) {
+        self.max_magnitude_bits = Some(limit);
     }
 
-    /// Builds the configured integer limits.
-    #[inline]
-    #[must_use]
-    pub fn build(self) -> BigIntegerLimits<R, Q> {
-        self.limits
+    /// Replaces the decimal-digit limit during builder composition.
+    #[inline(always)]
+    pub(super) fn set_significant_decimal_digits_limit(
+        &mut self,
+        limit: ResourceLimit<R, Q>,
+    ) {
+        self.max_significant_decimal_digits = Some(limit);
     }
 }
 

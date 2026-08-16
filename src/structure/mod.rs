@@ -9,9 +9,10 @@
 
 mod structure_budget;
 mod structure_limits;
+mod structure_limits_builder;
 mod structure_resource;
 
 pub use structure_budget::StructureBudget;
 pub use structure_limits::StructureLimits;
-pub use structure_limits::StructureLimitsBuilder;
+pub use structure_limits_builder::StructureLimitsBuilder;
 pub use structure_resource::StructureResource;
