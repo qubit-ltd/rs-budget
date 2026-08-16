@@ -9,6 +9,8 @@
 
 mod budget_error;
 mod budget_group_error;
+mod insufficient_budget_error;
+mod limit_exceeded_error;
 mod measured_budget_error;
 mod observation;
 mod quantity_conversion_error;
@@ -20,8 +22,8 @@ mod resource_quantity;
 mod resource_release_error;
 
 pub use budget_error::BudgetError;
-pub use budget_error::InsufficientBudgetError;
-pub use budget_error::LimitExceededError;
+pub use insufficient_budget_error::InsufficientBudgetError;
+pub use limit_exceeded_error::LimitExceededError;
 pub use budget_group_error::BudgetGroupError;
 pub use measured_budget_error::MeasuredBudgetError;
 pub use observation::Observation;

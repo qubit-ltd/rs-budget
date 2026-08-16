@@ -1,2 +1,1 @@
-# Precise point and cumulative errors share one aggregate compatibility carrier.
-multiple-public-types | src/resource/budget_error.rs | Exact error types and BudgetError are intentionally colocated.
+# Project-level reviewed style exceptions.
