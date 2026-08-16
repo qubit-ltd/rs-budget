@@ -62,15 +62,22 @@ where
 
     /// Checks scale before checking the borrowed coefficient.
     #[inline]
-    pub fn check(&self, value: &BigDecimal) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check(
+        &self,
+        value: &BigDecimal,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
         let (coefficient, scale) = value.as_bigint_and_scale();
         if let Some(limit) = self.max_scale_magnitude.as_ref() {
-            let magnitude = Q::try_from_u64(scale.unsigned_abs()).map_err(|source| {
-                MeasuredBudgetError::quantity(limit.resource().clone(), source)
-            })?;
+            let magnitude =
+                Q::try_from_u64(scale.unsigned_abs()).map_err(|source| {
+                    MeasuredBudgetError::quantity(
+                        limit.resource().clone(),
+                        source,
+                    )
+                })?;
             limit.check(magnitude).map_err(MeasuredBudgetError::from)?;
         }
         self.coefficient.check(coefficient.as_ref())
@@ -78,13 +85,19 @@ where
 
     /// Replaces coefficient limits during builder composition.
     #[inline(always)]
-    pub(super) fn set_coefficient_limits(&mut self, limits: BigIntegerLimits<R, Q>) {
+    pub(super) fn set_coefficient_limits(
+        &mut self,
+        limits: BigIntegerLimits<R, Q>,
+    ) {
         self.coefficient = limits;
     }
 
     /// Replaces the scale-magnitude limit during builder composition.
     #[inline(always)]
-    pub(super) fn set_scale_magnitude_limit(&mut self, limit: ResourceLimit<R, Q>) {
+    pub(super) fn set_scale_magnitude_limit(
+        &mut self,
+        limit: ResourceLimit<R, Q>,
+    ) {
         self.max_scale_magnitude = Some(limit);
     }
 }

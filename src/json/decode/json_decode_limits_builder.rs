@@ -55,7 +55,10 @@ where
     /// Sets the normalized input-byte limit.
     #[inline]
     #[must_use]
-    pub fn normalized_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn normalized_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.limits.set_normalized_input_bytes_limit(limit);
         self
     }
@@ -81,8 +84,10 @@ impl JsonDecodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_input_bytes(mut self, maximum: usize) -> Self {
-        self.limits
-            .set_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        self.limits.set_input_bytes_limit(ResourceLimit::new(
+            JsonResource::InputBytes,
+            maximum,
+        ));
         self
     }
 

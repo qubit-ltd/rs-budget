@@ -193,7 +193,10 @@ where
 
     /// Replaces the sequence-item limit during builder composition.
     #[inline(always)]
-    pub(super) fn set_sequence_items_limit(&mut self, limit: ResourceLimit<R, Q>) {
+    pub(super) fn set_sequence_items_limit(
+        &mut self,
+        limit: ResourceLimit<R, Q>,
+    ) {
         self.max_sequence_items = Some(limit);
     }
 
@@ -214,13 +217,15 @@ impl StructureLimits<StructureResource, usize> {
     /// Replaces the standard depth limit in a const builder operation.
     #[inline(always)]
     pub(super) const fn set_max_depth(&mut self, maximum: usize) {
-        self.max_depth = Some(ResourceLimit::new(StructureResource::Depth, maximum));
+        self.max_depth =
+            Some(ResourceLimit::new(StructureResource::Depth, maximum));
     }
 
     /// Replaces the standard node limit in a const builder operation.
     #[inline(always)]
     pub(super) const fn set_max_nodes(&mut self, maximum: usize) {
-        self.max_nodes = Some(ResourceLimit::new(StructureResource::Nodes, maximum));
+        self.max_nodes =
+            Some(ResourceLimit::new(StructureResource::Nodes, maximum));
     }
 
     /// Replaces the standard sequence-item limit in a const builder operation.
@@ -235,12 +240,14 @@ impl StructureLimits<StructureResource, usize> {
     /// Replaces the standard map-entry limit in a const builder operation.
     #[inline(always)]
     pub(super) const fn set_max_map_entries(&mut self, maximum: usize) {
-        self.max_map_entries = Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
+        self.max_map_entries =
+            Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
     }
 
     /// Replaces the standard key-byte limit in a const builder operation.
     #[inline(always)]
     pub(super) const fn set_max_key_bytes(&mut self, maximum: usize) {
-        self.max_key_bytes = Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
+        self.max_key_bytes =
+            Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
     }
 }

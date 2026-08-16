@@ -124,7 +124,9 @@ where
                 check_limit(structure.depth_limit(), *depth)?;
                 check_limit(structure.map_entries_limit(), *entries)
             }
-            Self::Key { bytes } => check_limit(structure.key_bytes_limit(), *bytes),
+            Self::Key { bytes } => {
+                check_limit(structure.key_bytes_limit(), *bytes)
+            }
         }
     }
 }
@@ -144,8 +146,9 @@ where
     let Some(limit) = limit else {
         return Ok(Q::ZERO);
     };
-    Q::try_from_usize(amount)
-        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))
+    Q::try_from_usize(amount).map_err(|source| {
+        MeasuredBudgetError::quantity(limit.resource().clone(), source)
+    })
 }
 
 /// Converts a native payload quantity when either point or cumulative limits
@@ -163,8 +166,9 @@ where
     Q: ResourceQuantity,
 {
     if let Some(limit) = point_limit {
-        return Q::try_from_usize(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source));
+        return Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(limit.resource().clone(), source)
+        });
     }
     convert(amount, payload_limit)
 }

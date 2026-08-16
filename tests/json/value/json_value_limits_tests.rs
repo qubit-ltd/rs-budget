@@ -245,7 +245,10 @@ fn test_check_point_prioritizes_conversion_before_depth_and_point_limits() {
                 .depth_limit(ResourceLimit::new(JsonResource::Depth, u8::MAX))
                 .build(),
         )
-        .string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, u8::MAX))
+        .string_bytes_limit(ResourceLimit::new(
+            JsonResource::StringBytes,
+            u8::MAX,
+        ))
         .build();
 
     let error = limits
@@ -283,7 +286,10 @@ fn test_check_prioritizes_depth_before_variant_point_limit() {
 #[test]
 fn test_check_payload_only_conversion_reports_payload_resource() {
     let limits = JsonValueLimits::<JsonResource, u8>::builder()
-        .payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, u8::MAX))
+        .payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            u8::MAX,
+        ))
         .build();
 
     let error = limits
@@ -291,7 +297,9 @@ fn test_check_payload_only_conversion_reports_payload_resource() {
             depth: 0,
             bytes: usize::from(u8::MAX) + 1,
         })
-        .expect_err("configured payload conversion must reject oversized bytes");
+        .expect_err(
+            "configured payload conversion must reject oversized bytes",
+        );
 
     assert!(matches!(
         error,
@@ -307,8 +315,14 @@ fn test_check_payload_only_conversion_reports_payload_resource() {
 #[test]
 fn test_check_prefers_point_resource_when_payload_limit_is_also_configured() {
     let limits = JsonValueLimits::<JsonResource, u8>::builder()
-        .string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, u8::MAX))
-        .payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, u8::MAX))
+        .string_bytes_limit(ResourceLimit::new(
+            JsonResource::StringBytes,
+            u8::MAX,
+        ))
+        .payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            u8::MAX,
+        ))
         .build();
 
     let error = limits
@@ -333,12 +347,24 @@ fn test_check_conversion_failures_report_each_point_resource() {
     let limits = JsonValueLimits::<JsonResource, u8>::builder()
         .structure_limits(
             StructureLimits::<JsonResource, u8>::builder()
-                .sequence_items_limit(ResourceLimit::new(JsonResource::SequenceItems, u8::MAX))
-                .map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, u8::MAX))
-                .key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, u8::MAX))
+                .sequence_items_limit(ResourceLimit::new(
+                    JsonResource::SequenceItems,
+                    u8::MAX,
+                ))
+                .map_entries_limit(ResourceLimit::new(
+                    JsonResource::MapEntries,
+                    u8::MAX,
+                ))
+                .key_bytes_limit(ResourceLimit::new(
+                    JsonResource::KeyBytes,
+                    u8::MAX,
+                ))
                 .build(),
         )
-        .number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, u8::MAX))
+        .number_bytes_limit(ResourceLimit::new(
+            JsonResource::NumberBytes,
+            u8::MAX,
+        ))
         .build();
     let overflow = usize::from(u8::MAX) + 1;
     let measurements = [

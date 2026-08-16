@@ -46,7 +46,10 @@ where
     /// Sets the coefficient limits.
     #[inline]
     #[must_use]
-    pub fn coefficient_limits(mut self, limits: BigIntegerLimits<R, Q>) -> Self {
+    pub fn coefficient_limits(
+        mut self,
+        limits: BigIntegerLimits<R, Q>,
+    ) -> Self {
         self.limits.set_coefficient_limits(limits);
         self
     }

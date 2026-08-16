@@ -25,7 +25,10 @@ enum TestResource {
 #[test]
 fn test_zero_has_no_significant_decimal_digits() {
     let limits = BigIntegerLimits::builder()
-        .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 0_u64))
+        .significant_decimal_digits_limit(ResourceLimit::new(
+            TestResource::Digits,
+            0_u64,
+        ))
         .build();
     limits
         .check(&BigInt::from(0))
@@ -36,7 +39,10 @@ fn test_zero_has_no_significant_decimal_digits() {
 fn test_obvious_digit_overflow_reports_lower_bound() {
     let huge = BigInt::from(1_u8) << 1_000_000_u32;
     let limits = BigIntegerLimits::builder()
-        .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 16_u64))
+        .significant_decimal_digits_limit(ResourceLimit::new(
+            TestResource::Digits,
+            16_u64,
+        ))
         .build();
     assert!(matches!(
         limits.check(&huge),
@@ -53,7 +59,10 @@ fn test_magnitude_bits_limit_is_checked_before_digits() {
     let value = BigInt::from(1_u8) << 10;
     let limits = BigIntegerLimits::builder()
         .magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8_u64))
-        .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 1_u64))
+        .significant_decimal_digits_limit(ResourceLimit::new(
+            TestResource::Digits,
+            1_u64,
+        ))
         .build();
     assert!(matches!(
         limits.check(&value),
@@ -88,7 +97,10 @@ fn test_big_integer_limits_support_usize_quantities() {
 fn test_big_integer_accessors_and_unconfigured_limits() {
     let limits = BigIntegerLimits::builder()
         .magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8_u64))
-        .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 3_u64))
+        .significant_decimal_digits_limit(ResourceLimit::new(
+            TestResource::Digits,
+            3_u64,
+        ))
         .build();
     assert_eq!(limits.magnitude_bits_limit().unwrap().maximum(), 8);
     assert_eq!(
