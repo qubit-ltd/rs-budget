@@ -24,9 +24,8 @@ enum TestResource {
 
 #[test]
 fn test_zero_has_no_significant_decimal_digits() {
-    let limits = BigIntegerLimits::new().with_significant_decimal_digits_limit(
-        ResourceLimit::new(TestResource::Digits, 0_u64),
-    );
+    let limits = BigIntegerLimits::new()
+        .with_significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 0_u64));
     limits
         .check(&BigInt::from(0))
         .expect("zero has no significant decimal digits");
@@ -35,9 +34,8 @@ fn test_zero_has_no_significant_decimal_digits() {
 #[test]
 fn test_obvious_digit_overflow_reports_lower_bound() {
     let huge = BigInt::from(1_u8) << 1_000_000_u32;
-    let limits = BigIntegerLimits::new().with_significant_decimal_digits_limit(
-        ResourceLimit::new(TestResource::Digits, 16_u64),
-    );
+    let limits = BigIntegerLimits::new()
+        .with_significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 16_u64));
     assert!(matches!(
         limits.check(&huge),
         Err(MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -52,14 +50,8 @@ fn test_obvious_digit_overflow_reports_lower_bound() {
 fn test_magnitude_bits_limit_is_checked_before_digits() {
     let value = BigInt::from(1_u8) << 10;
     let limits = BigIntegerLimits::new()
-        .with_magnitude_bits_limit(ResourceLimit::new(
-            TestResource::Bits,
-            8_u64,
-        ))
-        .with_significant_decimal_digits_limit(ResourceLimit::new(
-            TestResource::Digits,
-            1_u64,
-        ));
+        .with_magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8_u64))
+        .with_significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 1_u64));
     assert!(matches!(
         limits.check(&value),
         Err(MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -91,14 +83,8 @@ fn test_big_integer_limits_support_usize_quantities() {
 #[test]
 fn test_big_integer_accessors_and_unconfigured_limits() {
     let limits = BigIntegerLimits::new()
-        .with_magnitude_bits_limit(ResourceLimit::new(
-            TestResource::Bits,
-            8_u64,
-        ))
-        .with_significant_decimal_digits_limit(ResourceLimit::new(
-            TestResource::Digits,
-            3_u64,
-        ));
+        .with_magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8_u64))
+        .with_significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 3_u64));
     assert_eq!(limits.magnitude_bits_limit().unwrap().maximum(), 8);
     assert_eq!(
         limits.significant_decimal_digits_limit().unwrap().maximum(),

@@ -41,6 +41,7 @@ where
     }
 
     /// Returns the configured UTF-8 byte limit, if any.
+    #[must_use]
     #[inline(always)]
     pub const fn utf8_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_utf8_bytes.as_ref()
@@ -58,9 +59,8 @@ where
         let Some(limit) = self.max_utf8_bytes.as_ref() else {
             return Ok(());
         };
-        let bytes = Q::try_from_usize(value.len()).map_err(|source| {
-            MeasuredBudgetError::quantity(limit.resource().clone(), source)
-        })?;
+        let bytes = Q::try_from_usize(value.len())
+            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
         limit.check(bytes).map_err(MeasuredBudgetError::from)
     }
 }

@@ -334,10 +334,10 @@ an integration can prove only that the maximum was crossed.
 
 ### A limit appears to do nothing
 
-Confirm that the dimension was configured. `empty()` and `unconfigured()`
-create sets with every optional limit absent. Also confirm that the integration
-emits the corresponding measurement; the crate cannot observe parser or writer
-activity by itself.
+Confirm that the dimension was configured. `empty()` and `new()` create sets with
+every optional limit absent. Also confirm that the integration emits the
+corresponding measurement; the crate cannot observe parser or writer activity by
+itself.
 
 ### JSON value usage stays at zero
 

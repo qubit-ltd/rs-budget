@@ -34,6 +34,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an attempt from the budgets split out of an encode session.
+    #[inline(always)]
     pub(crate) const fn new(
         output: Option<&'a mut ResourceBudget<R, Q>>,
         value: JsonValueTransaction<'a, R, Q>,
@@ -45,10 +46,8 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured output budget. An absent output budget is ignored.
-    pub fn check_output_bytes(
-        &self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    #[inline]
+    pub fn check_output_bytes(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref() {
             Some(budget) => budget.check_available_usize(amount),
             None => Ok(()),
@@ -59,6 +58,7 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured output budget on failure. An absent budget is ignored.
+    #[inline]
     pub fn try_consume_output_bytes(
         &mut self,
         amount: usize,
@@ -73,6 +73,7 @@ where
     ///
     /// Returns the transaction's conversion or value-limit error. A failure
     /// leaves this attempt's working value state and output charges unchanged.
+    #[inline]
     pub fn try_admit(
         &mut self,
         measurement: JsonMeasurement,
@@ -82,6 +83,7 @@ where
 
     /// Returns the output budget while the attempt exclusively owns it.
     #[must_use = "the output budget reports immediately charged bytes"]
+    #[inline(always)]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.output.as_deref()
     }
@@ -93,6 +95,7 @@ where
     /// attempt is committed. Dropping the attempt rolls back only that value
     /// state.
     #[must_use = "the returned output budget and value transaction perform the encode accounting"]
+    #[inline]
     pub fn split_mut(
         &mut self,
     ) -> (
@@ -104,33 +107,36 @@ where
 
     /// Returns staged node usage when the node limit is configured.
     #[must_use]
+    #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.value.used_nodes()
     }
 
     /// Returns staged remaining node capacity when the node limit is set.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.value.remaining_nodes()
     }
 
     /// Returns staged payload usage when the payload limit is configured.
     #[must_use]
+    #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.value.used_payload_bytes()
     }
 
     /// Returns staged remaining payload capacity when the payload limit is set.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.value.remaining_payload_bytes()
     }
 
     /// Returns the mutable transaction that holds this attempt's value state.
     #[must_use = "the returned transaction must be used for JSON value admission"]
-    pub fn value_transaction_mut(
-        &mut self,
-    ) -> &mut JsonValueTransaction<'a, R, Q> {
+    #[inline]
+    pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {
         &mut self.value
     }
 

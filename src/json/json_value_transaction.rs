@@ -37,6 +37,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates a transaction using a snapshot of `target`'s committed state.
+    #[inline(always)]
     pub(super) const fn new(target: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             working: target.state,
@@ -56,8 +57,7 @@ where
         &mut self,
         measurement: JsonMeasurement,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let prepared =
-            PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
+        let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
         prepared.check_point(self.target.limits())?;
         self.check_cumulative(prepared)?;
         self.apply(prepared);
@@ -75,12 +75,8 @@ where
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let measurement = match kind {
-            JsonContainerKind::Sequence => {
-                JsonMeasurement::Array { depth, items: 0 }
-            }
-            JsonContainerKind::Map => {
-                JsonMeasurement::Object { depth, entries: 0 }
-            }
+            JsonContainerKind::Sequence => JsonMeasurement::Array { depth, items: 0 },
+            JsonContainerKind::Map => JsonMeasurement::Object { depth, entries: 0 },
         };
         self.try_admit(measurement)
     }
@@ -109,9 +105,7 @@ where
                 .limits()
                 .structure_limits()
                 .sequence_items_limit(),
-            JsonContainerKind::Map => {
-                self.target.limits().structure_limits().map_entries_limit()
-            }
+            JsonContainerKind::Map => self.target.limits().structure_limits().map_entries_limit(),
         };
         self.check_container_items(prospective, limit)
     }
@@ -126,6 +120,7 @@ where
 
     /// Returns staged node usage when the cumulative node limit is configured.
     #[must_use]
+    #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.working.remaining_nodes().map(|remaining| {
             self.target
@@ -139,12 +134,14 @@ where
     /// Returns staged remaining node capacity when the node limit is
     /// configured.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.working.remaining_nodes()
     }
 
     /// Returns staged payload usage when the payload limit is configured.
     #[must_use]
+    #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.working.remaining_payload_bytes().map(|remaining| {
             self.target
@@ -157,6 +154,7 @@ where
 
     /// Returns staged remaining payload capacity when that limit is configured.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.working.remaining_payload_bytes()
     }
@@ -182,9 +180,8 @@ where
         let Some(limit) = limit else {
             return Ok(());
         };
-        let amount = Q::try_from_usize(amount).map_err(|source| {
-            MeasuredBudgetError::quantity(limit.resource().clone(), source)
-        })?;
+        let amount = Q::try_from_usize(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
         limit.check(amount).map_err(MeasuredBudgetError::from)
     }
 
@@ -212,10 +209,7 @@ where
     }
 
     /// Checks the configured payload budget for one event without mutation.
-    fn check_payload(
-        &self,
-        payload_bytes: Q,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    fn check_payload(&self, payload_bytes: Q) -> Result<(), MeasuredBudgetError<R, Q>> {
         let Some(remaining) = self.working.remaining_payload_bytes() else {
             return Ok(());
         };

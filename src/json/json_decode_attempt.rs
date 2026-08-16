@@ -36,6 +36,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an attempt from the budgets split out of a decode session.
+    #[inline(always)]
     pub(crate) const fn new(
         input: Option<&'a mut ResourceBudget<R, Q>>,
         normalized_input: Option<&'a mut ResourceBudget<R, Q>>,
@@ -52,6 +53,7 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured input budget on failure. An absent input budget is ignored.
+    #[inline]
     pub fn try_consume_input_bytes(
         &mut self,
         amount: usize,
@@ -63,6 +65,7 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured normalized budget on failure. An absent budget is ignored.
+    #[inline]
     pub fn try_consume_normalized_input_bytes(
         &mut self,
         amount: usize,
@@ -74,6 +77,7 @@ where
     ///
     /// Returns the transaction's conversion or value-limit error. A failure
     /// leaves this attempt's working value state and all I/O charges unchanged.
+    #[inline]
     pub fn try_admit(
         &mut self,
         measurement: JsonMeasurement,
@@ -83,45 +87,50 @@ where
 
     /// Returns the raw input budget while the attempt exclusively owns it.
     #[must_use = "the raw input budget reports immediately charged bytes"]
+    #[inline(always)]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.input.as_deref()
     }
 
     /// Returns the normalized input budget while the attempt owns it.
     #[must_use = "the normalized budget reports immediately charged bytes"]
+    #[inline(always)]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.normalized_input.as_deref()
     }
 
     /// Returns staged node usage when the node limit is configured.
     #[must_use]
+    #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.value.used_nodes()
     }
 
     /// Returns staged remaining node capacity when the node limit is set.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.value.remaining_nodes()
     }
 
     /// Returns staged payload usage when the payload limit is configured.
     #[must_use]
+    #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.value.used_payload_bytes()
     }
 
     /// Returns staged remaining payload capacity when the payload limit is set.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.value.remaining_payload_bytes()
     }
 
     /// Returns the mutable transaction that holds this attempt's value state.
     #[must_use = "the returned transaction must be used for JSON value admission"]
-    pub fn value_transaction_mut(
-        &mut self,
-    ) -> &mut JsonValueTransaction<'a, R, Q> {
+    #[inline]
+    pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {
         &mut self.value
     }
 
@@ -132,6 +141,7 @@ where
 }
 
 /// Converts and immediately consumes native bytes when a budget is present.
+#[inline]
 fn consume_bytes<R, Q>(
     budget: Option<&mut ResourceBudget<R, Q>>,
     amount: usize,

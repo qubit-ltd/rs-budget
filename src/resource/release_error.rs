@@ -20,9 +20,7 @@ where
     Q: Copy + Debug,
 {
     /// A release request exceeded the amount currently in use.
-    #[error(
-        "resource {resource:?} has {in_use:?} in use, but {requested:?} was released"
-    )]
+    #[error("resource {resource:?} has {in_use:?} in use, but {requested:?} was released")]
     InvalidRelease {
         /// Resource associated with the failed release request.
         resource: R,
@@ -40,6 +38,7 @@ where
     Q: Copy + Debug,
 {
     /// Returns the resource associated with this failure.
+    #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
@@ -57,6 +56,7 @@ where
     }
 
     /// Returns the finite pool limit.
+    #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Q {
         match self {
@@ -65,6 +65,7 @@ where
     }
 
     /// Returns the amount in use before the invalid release.
+    #[must_use]
     #[inline(always)]
     pub const fn in_use(&self) -> Q {
         match self {
@@ -73,6 +74,7 @@ where
     }
 
     /// Returns the requested release amount.
+    #[must_use]
     #[inline(always)]
     pub const fn requested(&self) -> Q {
         match self {

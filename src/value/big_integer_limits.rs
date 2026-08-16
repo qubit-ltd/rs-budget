@@ -41,35 +41,29 @@ where
 
     /// Adds an inclusive magnitude bit-length limit.
     #[inline]
-    pub fn with_magnitude_bits_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_magnitude_bits_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_magnitude_bits = Some(limit);
         self
     }
 
     /// Adds an inclusive significant decimal digit limit.
     #[inline]
-    pub fn with_significant_decimal_digits_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_significant_decimal_digits_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_significant_decimal_digits = Some(limit);
         self
     }
 
     /// Returns the configured magnitude bit-length limit, if any.
+    #[must_use]
     #[inline(always)]
     pub const fn magnitude_bits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_magnitude_bits.as_ref()
     }
 
     /// Returns the configured significant decimal digit limit, if any.
+    #[must_use]
     #[inline(always)]
-    pub const fn significant_decimal_digits_limit(
-        &self,
-    ) -> Option<&ResourceLimit<R, Q>> {
+    pub const fn significant_decimal_digits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_significant_decimal_digits.as_ref()
     }
 
@@ -121,9 +115,8 @@ where
     }
 
     let maximum = limit.maximum();
-    let bits = Q::try_from_u64(bits).map_err(|source| {
-        MeasuredBudgetError::quantity(limit.resource().clone(), source)
-    })?;
+    let bits = Q::try_from_u64(bits)
+        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
     let low_bits = maximum
         .checked_add(maximum)
         .and_then(|value| value.checked_add(maximum));
@@ -145,9 +138,8 @@ where
 
     let text = value.to_str_radix(10);
     let digits = text.strip_prefix('-').unwrap_or(&text).len();
-    let digits = Q::try_from_usize(digits).map_err(|source| {
-        MeasuredBudgetError::quantity(limit.resource().clone(), source)
-    })?;
+    let digits = Q::try_from_usize(digits)
+        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
     if digits > maximum {
         Err(LimitExceededError {
             resource: limit.resource().clone(),

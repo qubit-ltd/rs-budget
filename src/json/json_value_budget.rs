@@ -38,14 +38,16 @@ where
 
     /// Returns committed node usage when the cumulative node limit is set.
     #[must_use]
+    #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
-        self.state.remaining_nodes().map(|remaining| {
-            self.limits.max_nodes().expect("configured nodes limit") - remaining
-        })
+        self.state
+            .remaining_nodes()
+            .map(|remaining| self.limits.max_nodes().expect("configured nodes limit") - remaining)
     }
 
     /// Returns committed remaining node capacity when that limit is set.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.state.remaining_nodes()
     }
@@ -53,6 +55,7 @@ where
     /// Returns committed payload usage when the cumulative payload limit is
     /// set.
     #[must_use]
+    #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.state.remaining_payload_bytes().map(|remaining| {
             self.limits
@@ -64,6 +67,7 @@ where
 
     /// Returns committed remaining payload capacity when that limit is set.
     #[must_use]
+    #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.state.remaining_payload_bytes()
     }
@@ -74,22 +78,20 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an empty committed ledger for `limits`.
+    #[inline]
     pub fn new(limits: JsonValueLimits<R, Q>) -> Self {
-        let state =
-            JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
+        let state = JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
         Self { limits, state }
     }
 
     /// Restores the ledger to its original zero-used committed state.
     pub fn reset(&mut self) {
-        self.state = JsonValueState::new(
-            self.limits.max_nodes(),
-            self.limits.max_payload_bytes(),
-        );
+        self.state = JsonValueState::new(self.limits.max_nodes(), self.limits.max_payload_bytes());
     }
 
     /// Returns the immutable limits shared by all transactions.
     #[must_use = "the limits determine which transactions can be committed"]
+    #[inline(always)]
     pub const fn limits(&self) -> &JsonValueLimits<R, Q> {
         &self.limits
     }

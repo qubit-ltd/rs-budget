@@ -40,31 +40,27 @@ where
 
     /// Replaces the coefficient limits.
     #[inline]
-    pub fn with_coefficient_limits(
-        mut self,
-        limits: BigIntegerLimits<R, Q>,
-    ) -> Self {
+    pub fn with_coefficient_limits(mut self, limits: BigIntegerLimits<R, Q>) -> Self {
         self.coefficient = limits;
         self
     }
 
     /// Adds an inclusive absolute scale-magnitude limit.
     #[inline]
-    pub fn with_scale_magnitude_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn with_scale_magnitude_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_scale_magnitude = Some(limit);
         self
     }
 
     /// Returns the coefficient limits.
+    #[must_use]
     #[inline(always)]
     pub const fn coefficient_limits(&self) -> &BigIntegerLimits<R, Q> {
         &self.coefficient
     }
 
     /// Returns the configured scale-magnitude limit, if any.
+    #[must_use]
     #[inline(always)]
     pub const fn scale_magnitude_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_scale_magnitude.as_ref()
@@ -72,22 +68,15 @@ where
 
     /// Checks scale before checking the borrowed coefficient.
     #[inline]
-    pub fn check(
-        &self,
-        value: &BigDecimal,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check(&self, value: &BigDecimal) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
         let (coefficient, scale) = value.as_bigint_and_scale();
         if let Some(limit) = self.max_scale_magnitude.as_ref() {
-            let magnitude =
-                Q::try_from_u64(scale.unsigned_abs()).map_err(|source| {
-                    MeasuredBudgetError::quantity(
-                        limit.resource().clone(),
-                        source,
-                    )
-                })?;
+            let magnitude = Q::try_from_u64(scale.unsigned_abs()).map_err(|source| {
+                MeasuredBudgetError::quantity(limit.resource().clone(), source)
+            })?;
             limit.check(magnitude).map_err(MeasuredBudgetError::from)?;
         }
         self.coefficient.check(coefficient.as_ref())

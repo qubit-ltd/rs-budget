@@ -5,12 +5,12 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-#[cfg(feature = "json")]
-mod json;
-mod resource;
-mod string;
-mod value;
-
-mod structure;
-
-mod time;
+mod budget_error_tests;
+mod budget_group_error_tests;
+mod observation_tests;
+mod quantity_measurement_tests;
+mod resource_budget_tests;
+mod resource_limit_tests;
+mod resource_pool_tests;
+mod resource_quantity_tests;
+mod resource_release_error_tests;

@@ -39,6 +39,7 @@ where
     Q: ResourceQuantity,
 {
     /// Splits storage into the budgets borrowed by one encode attempt.
+    #[inline]
     pub(crate) fn split(
         &mut self,
     ) -> (

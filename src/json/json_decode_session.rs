@@ -32,6 +32,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates a session borrowing only a caller-owned value budget.
+    #[inline]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             storage: DecodeStorage::Borrowed {
@@ -43,6 +44,7 @@ where
     }
 
     /// Creates a session borrowing caller-owned raw-input and value budgets.
+    #[inline]
     pub fn borrowing_input(
         input: &'a mut ResourceBudget<R, Q>,
         value: &'a mut JsonValueBudget<R, Q>,
@@ -57,6 +59,7 @@ where
     }
 
     /// Creates a session borrowing all caller-owned decode budgets.
+    #[inline]
     pub fn borrowing_all(
         input: &'a mut ResourceBudget<R, Q>,
         normalized_input: &'a mut ResourceBudget<R, Q>,
@@ -84,6 +87,7 @@ where
 
     /// Returns the raw input budget when configured.
     #[must_use = "the raw input budget reports consumed input bytes"]
+    #[inline(always)]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             DecodeStorage::Owned { input, .. } => input.as_ref(),
@@ -93,18 +97,21 @@ where
 
     /// Returns the configured raw input-byte maximum.
     #[must_use]
+    #[inline(always)]
     pub fn max_input_bytes(&self) -> Option<Q> {
         self.input_budget().map(ResourceBudget::limit)
     }
 
     /// Returns the configured normalized input-byte maximum.
     #[must_use]
+    #[inline(always)]
     pub fn max_normalized_input_bytes(&self) -> Option<Q> {
         self.normalized_input_budget().map(ResourceBudget::limit)
     }
 
     /// Returns the normalized input budget when configured.
     #[must_use = "the normalized budget reports consumed normalized bytes"]
+    #[inline(always)]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             DecodeStorage::Owned {
@@ -118,6 +125,7 @@ where
 
     /// Returns the value budget for read-only inspection.
     #[must_use = "the value budget reports accepted JSON traversal"]
+    #[inline(always)]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
             DecodeStorage::Owned { value, .. } => value,
@@ -132,6 +140,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an owned session from immutable limits.
+    #[inline]
     pub fn owned(limits: JsonDecodeLimits<R, Q>) -> Self {
         let input = limits
             .input_bytes_limit()

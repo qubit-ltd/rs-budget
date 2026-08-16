@@ -50,6 +50,7 @@ where
     Q: ResourceQuantity,
 {
     /// Splits storage into the budgets borrowed by one decode attempt.
+    #[inline]
     pub(crate) fn split(&mut self) -> DecodeStorageSplit<'_, R, Q> {
         match self {
             Self::Owned {

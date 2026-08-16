@@ -84,8 +84,7 @@ fn test_standard_builder_creates_budget() {
 /// Verifies that structural limits may be borrowed or explicitly consumed.
 #[test]
 fn test_structure_limits_expresses_borrowing_and_ownership() {
-    let limits =
-        JsonValueLimits::<JsonResource, usize>::new().with_max_depth(4);
+    let limits = JsonValueLimits::<JsonResource, usize>::new().with_max_depth(4);
     let _: &StructureLimits<JsonResource, usize> = limits.structure_limits();
     assert_eq!(limits.structure_limits().max_depth(), Some(4));
     assert_eq!(limits.into_structure_limits().max_depth(), Some(4));
@@ -139,11 +138,10 @@ fn test_custom_resources_remain_attached_to_value_limits() {
 
 /// Verifies point checks reject an oversized array without creating a budget.
 #[test]
-fn test_check_array_measurement_rejects_items_without_mutable_budget() {
-    let limits = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_sequence_items(1);
+fn test_check_point_array_measurement_rejects_items_without_mutable_budget() {
+    let limits = JsonValueLimits::<JsonResource, usize>::new().with_max_sequence_items(1);
     let error = limits
-        .check(JsonMeasurement::Array { depth: 1, items: 2 })
+        .check_point(JsonMeasurement::Array { depth: 1, items: 2 })
         .expect_err("two items must exceed the point limit");
     assert_eq!(error.resource(), &JsonResource::SequenceItems);
 }
@@ -153,7 +151,7 @@ fn test_check_array_measurement_rejects_items_without_mutable_budget() {
 fn test_unconfigured_payload_skips_unrepresentable_conversion() {
     let limits = JsonValueLimits::<JsonResource, u8>::new();
     limits
-        .check(JsonMeasurement::String {
+        .check_point(JsonMeasurement::String {
             depth: usize::MAX,
             bytes: usize::MAX,
         })
@@ -162,7 +160,7 @@ fn test_unconfigured_payload_skips_unrepresentable_conversion() {
 
 /// Verifies every measurement variant checks its matching point dimension.
 #[test]
-fn test_check_rejects_each_json_measurement_variant_at_point_limit() {
+fn test_check_point_rejects_each_json_measurement_variant_at_point_limit() {
     let limits = JsonValueLimits::<JsonResource, usize>::new()
         .with_max_depth(1)
         .with_max_sequence_items(1)
@@ -197,7 +195,7 @@ fn test_check_rejects_each_json_measurement_variant_at_point_limit() {
 
     for (measurement, resource) in measurements {
         let error = limits
-            .check(measurement)
+            .check_point(measurement)
             .expect_err("each measured dimension exceeds its point limit");
         assert!(matches!(error, MeasuredBudgetError::Budget(_)));
         assert_eq!(error.resource(), &resource);
@@ -206,20 +204,16 @@ fn test_check_rejects_each_json_measurement_variant_at_point_limit() {
 
 /// Verifies conversion failures precede depth and variant point checks.
 #[test]
-fn test_check_prioritizes_conversion_before_depth_and_point_limits() {
+fn test_check_point_prioritizes_conversion_before_depth_and_point_limits() {
     let limits = JsonValueLimits::<JsonResource, u8>::new()
         .with_structure_limits(
-            StructureLimits::<JsonResource, u8>::new().with_depth_limit(
-                ResourceLimit::new(JsonResource::Depth, u8::MAX),
-            ),
+            StructureLimits::<JsonResource, u8>::new()
+                .with_depth_limit(ResourceLimit::new(JsonResource::Depth, u8::MAX)),
         )
-        .with_string_bytes_limit(ResourceLimit::new(
-            JsonResource::StringBytes,
-            u8::MAX,
-        ));
+        .with_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, u8::MAX));
 
     let error = limits
-        .check(JsonMeasurement::String {
+        .check_point(JsonMeasurement::String {
             depth: usize::from(u8::MAX) + 1,
             bytes: usize::from(u8::MAX) + 1,
         })
@@ -242,7 +236,7 @@ fn test_check_prioritizes_depth_before_variant_point_limit() {
         .with_max_string_bytes(1);
 
     let error = limits
-        .check(JsonMeasurement::String { depth: 2, bytes: 2 })
+        .check_point(JsonMeasurement::String { depth: 2, bytes: 2 })
         .expect_err("depth must reject before string bytes");
 
     assert_eq!(error.resource(), &JsonResource::Depth);
@@ -251,19 +245,15 @@ fn test_check_prioritizes_depth_before_variant_point_limit() {
 /// Verifies a payload-only conversion error identifies the cumulative limit.
 #[test]
 fn test_check_payload_only_conversion_reports_payload_resource() {
-    let limits =
-        JsonValueLimits::<JsonResource, u8>::new().with_payload_bytes_limit(
-            ResourceLimit::new(JsonResource::PayloadBytes, u8::MAX),
-        );
+    let limits = JsonValueLimits::<JsonResource, u8>::new()
+        .with_payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, u8::MAX));
 
     let error = limits
-        .check(JsonMeasurement::String {
+        .check_point(JsonMeasurement::String {
             depth: 0,
             bytes: usize::from(u8::MAX) + 1,
         })
-        .expect_err(
-            "configured payload conversion must reject oversized bytes",
-        );
+        .expect_err("configured payload conversion must reject oversized bytes");
 
     assert!(matches!(
         error,
@@ -279,17 +269,11 @@ fn test_check_payload_only_conversion_reports_payload_resource() {
 #[test]
 fn test_check_prefers_point_resource_when_payload_limit_is_also_configured() {
     let limits = JsonValueLimits::<JsonResource, u8>::new()
-        .with_string_bytes_limit(ResourceLimit::new(
-            JsonResource::StringBytes,
-            u8::MAX,
-        ))
-        .with_payload_bytes_limit(ResourceLimit::new(
-            JsonResource::PayloadBytes,
-            u8::MAX,
-        ));
+        .with_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, u8::MAX))
+        .with_payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, u8::MAX));
 
     let error = limits
-        .check(JsonMeasurement::String {
+        .check_point(JsonMeasurement::String {
             depth: 0,
             bytes: usize::from(u8::MAX) + 1,
         })
@@ -310,23 +294,11 @@ fn test_check_conversion_failures_report_each_point_resource() {
     let limits = JsonValueLimits::<JsonResource, u8>::new()
         .with_structure_limits(
             StructureLimits::<JsonResource, u8>::new()
-                .with_sequence_items_limit(ResourceLimit::new(
-                    JsonResource::SequenceItems,
-                    u8::MAX,
-                ))
-                .with_map_entries_limit(ResourceLimit::new(
-                    JsonResource::MapEntries,
-                    u8::MAX,
-                ))
-                .with_key_bytes_limit(ResourceLimit::new(
-                    JsonResource::KeyBytes,
-                    u8::MAX,
-                )),
+                .with_sequence_items_limit(ResourceLimit::new(JsonResource::SequenceItems, u8::MAX))
+                .with_map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, u8::MAX))
+                .with_key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, u8::MAX)),
         )
-        .with_number_bytes_limit(ResourceLimit::new(
-            JsonResource::NumberBytes,
-            u8::MAX,
-        ));
+        .with_number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, u8::MAX));
     let overflow = usize::from(u8::MAX) + 1;
     let measurements = [
         (
@@ -358,7 +330,7 @@ fn test_check_conversion_failures_report_each_point_resource() {
 
     for (measurement, resource) in measurements {
         let error = limits
-            .check(measurement)
+            .check_point(measurement)
             .expect_err("configured native measurement must fit u8");
         assert!(matches!(
             error,

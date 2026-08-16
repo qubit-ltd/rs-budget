@@ -19,23 +19,14 @@
 //! [`ResourceBudget::try_consume_group`] checks every member before charging
 //! any member. Higher-level sessions may deliberately retain charges for work
 //! already attempted: JSON input bytes and accepted structural traversal are
-//! consumed as they are admitted, while JSON output uses a temporary budget
-//! snapshot and commits only after the complete document succeeds. These are
-//! separate guarantees; output transactionality does not imply whole-operation
-//! rollback for input or structure accounting.
+//! consumed as they are admitted. JSON value accounting is transactional and
+//! commits only after the complete value succeeds. JSON output charges accepted
+//! prefixes immediately; buffered output commits only after the complete
+//! document succeeds. These are separate guarantees; output transactionality
+//! does not imply whole-operation rollback for input or structure accounting.
 
-mod budget_error;
-mod budget_group_error;
 mod internal;
-mod measured_budget_error;
-mod observation;
-mod quantity_conversion_error;
-mod quantity_measurement;
-mod resource_budget;
-mod resource_limit;
-mod resource_pool;
-mod resource_quantity;
-mod resource_release_error;
+mod resource;
 pub mod string;
 mod value;
 
@@ -43,19 +34,19 @@ mod value;
 pub mod json;
 pub mod structure;
 
-pub use budget_error::BudgetError;
-pub use budget_error::InsufficientBudgetError;
-pub use budget_error::LimitExceededError;
-pub use budget_group_error::BudgetGroupError;
-pub use measured_budget_error::MeasuredBudgetError;
-pub use observation::Observation;
-pub use quantity_conversion_error::QuantityConversionError;
-pub use quantity_measurement::QuantityMeasurement;
-pub use resource_budget::ResourceBudget;
-pub use resource_limit::ResourceLimit;
-pub use resource_pool::ResourcePool;
-pub use resource_quantity::ResourceQuantity;
-pub use resource_release_error::ResourceReleaseError;
+pub use resource::BudgetError;
+pub use resource::BudgetGroupError;
+pub use resource::InsufficientBudgetError;
+pub use resource::LimitExceededError;
+pub use resource::MeasuredBudgetError;
+pub use resource::Observation;
+pub use resource::QuantityConversionError;
+pub use resource::QuantityMeasurement;
+pub use resource::ResourceBudget;
+pub use resource::ResourceLimit;
+pub use resource::ResourcePool;
+pub use resource::ResourceQuantity;
+pub use resource::ResourceReleaseError;
 pub use string::BudgetedStringError;
 pub use string::BudgetedStringWriter;
 pub use structure::StructureBudget;

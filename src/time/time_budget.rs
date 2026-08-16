@@ -221,12 +221,12 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
         if now >= self.deadline {
             Ok(Duration::ZERO)
         } else {
-            self.deadline.duration_since(now).map_err(|source| {
-                TimeBudgetError::Clock {
+            self.deadline
+                .duration_since(now)
+                .map_err(|source| TimeBudgetError::Clock {
                     resource: self.resource.clone(),
                     source,
-                }
-            })
+                })
         }
     }
 
@@ -272,10 +272,7 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     /// past its deadline, [`TimeBudgetError::WouldExpire`] when the operation
     /// would reach or pass the deadline, or [`TimeBudgetError::Clock`] when
     /// calculating the prospective end instant overflows.
-    pub fn check_after(
-        &self,
-        duration: Duration,
-    ) -> Result<(), TimeBudgetError<R>> {
+    pub fn check_after(&self, duration: Duration) -> Result<(), TimeBudgetError<R>> {
         let now = self.clock.now();
         if now >= self.deadline {
             return Err(TimeBudgetError::Expired {
@@ -284,12 +281,12 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
                 now,
             });
         }
-        let end = now.checked_add(duration).map_err(|source| {
-            TimeBudgetError::Clock {
+        let end = now
+            .checked_add(duration)
+            .map_err(|source| TimeBudgetError::Clock {
                 resource: self.resource.clone(),
                 source,
-            }
-        })?;
+            })?;
         if end >= self.deadline {
             Err(TimeBudgetError::WouldExpire {
                 resource: self.resource.clone(),

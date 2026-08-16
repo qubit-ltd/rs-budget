@@ -32,6 +32,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates a session borrowing only a caller-owned value budget.
+    #[inline]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             storage: EncodeStorage::Borrowed {
@@ -42,6 +43,7 @@ where
     }
 
     /// Creates a session borrowing caller-owned output and value budgets.
+    #[inline]
     pub fn borrowing_output(
         output: &'a mut ResourceBudget<R, Q>,
         value: &'a mut JsonValueBudget<R, Q>,
@@ -67,6 +69,7 @@ where
 
     /// Returns the output budget when configured.
     #[must_use = "the output budget reports consumed output bytes"]
+    #[inline(always)]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             EncodeStorage::Owned { output, .. } => output.as_ref(),
@@ -76,12 +79,14 @@ where
 
     /// Returns the configured output-byte maximum.
     #[must_use]
+    #[inline(always)]
     pub fn max_output_bytes(&self) -> Option<Q> {
         self.output_budget().map(ResourceBudget::limit)
     }
 
     /// Returns the value budget for read-only inspection.
     #[must_use = "the value budget reports accepted JSON traversal"]
+    #[inline(always)]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
             EncodeStorage::Owned { value, .. } => value,
@@ -96,6 +101,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an owned session from immutable limits.
+    #[inline]
     pub fn owned(limits: JsonEncodeLimits<R, Q>) -> Self {
         let output = limits
             .output_bytes_limit()

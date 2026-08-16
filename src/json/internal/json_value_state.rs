@@ -26,6 +26,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates the initial zero-used state from configured cumulative maxima.
+    #[inline(always)]
     pub(crate) const fn new(
         remaining_nodes: Option<Q>,
         remaining_payload_bytes: Option<Q>,
@@ -37,11 +38,13 @@ where
     }
 
     /// Returns remaining value-node capacity when that limit is configured.
+    #[inline(always)]
     pub(crate) const fn remaining_nodes(&self) -> Option<Q> {
         self.remaining_nodes
     }
 
     /// Returns remaining payload-byte capacity when that limit is configured.
+    #[inline(always)]
     pub(crate) const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.remaining_payload_bytes
     }

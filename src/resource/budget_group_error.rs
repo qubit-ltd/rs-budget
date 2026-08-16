@@ -38,10 +38,7 @@ where
     Q: Copy + Debug,
 {
     /// Creates a grouped failure for the first rejecting budget.
-    pub(crate) const fn new(
-        index: usize,
-        source: InsufficientBudgetError<R, Q>,
-    ) -> Self {
+    pub(crate) const fn new(index: usize, source: InsufficientBudgetError<R, Q>) -> Self {
         Self { index, source }
     }
 

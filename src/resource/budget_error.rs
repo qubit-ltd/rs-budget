@@ -22,9 +22,7 @@ use crate::Observation;
 /// * `Q` - Copyable measurement value used by the failed constraint.
 #[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
-#[error(
-    "resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}"
-)]
+#[error("resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}")]
 pub struct LimitExceededError<R, Q = u64>
 where
     Q: Copy + Debug,
@@ -182,9 +180,7 @@ where
     Q: Copy + Debug,
 {
     /// A point measurement exceeded its configured maximum.
-    #[error(
-        "resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}"
-    )]
+    #[error("resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}")]
     LimitExceeded {
         /// Resource associated with the failed point check.
         resource: R,
@@ -219,8 +215,7 @@ where
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
-            Self::LimitExceeded { resource, .. }
-            | Self::Insufficient { resource, .. } => resource,
+            Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
         }
     }
 
@@ -229,8 +224,7 @@ where
     #[must_use]
     pub fn into_resource(self) -> R {
         match self {
-            Self::LimitExceeded { resource, .. }
-            | Self::Insufficient { resource, .. } => resource,
+            Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
         }
     }
 

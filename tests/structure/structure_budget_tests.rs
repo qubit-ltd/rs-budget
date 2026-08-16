@@ -43,8 +43,7 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
 
 #[test]
 fn test_unconfigured_structure_limits_allow_all_checks() {
-    let mut budget =
-        StructureLimits::<StructureResource, usize>::new().budget();
+    let mut budget = StructureLimits::<StructureResource, usize>::new().budget();
 
     budget
         .check_depth(usize::MAX)
@@ -82,8 +81,7 @@ fn test_charge_node_failure_is_atomic() {
 
 #[test]
 fn test_budget_creates_independent_node_accounting_sessions() {
-    let limits =
-        StructureLimits::<StructureResource, usize>::new().with_max_nodes(1);
+    let limits = StructureLimits::<StructureResource, usize>::new().with_max_nodes(1);
     let mut first_budget = limits.budget();
     let mut second_budget = limits.budget();
 
@@ -134,4 +132,69 @@ fn test_structure_budget_enters_sequences_and_maps() {
         .expect("the sequence entry should fit");
     budget.enter_map(1, 1).expect("the map entry should fit");
     assert_eq!(budget.limits(), &limits);
+}
+
+/// Verifies depth, sequence, and map entry failures do not charge nodes.
+#[test]
+fn test_enter_node_depth_failure_does_not_charge_nodes() {
+    let limits = StructureLimits::<StructureResource, usize>::new()
+        .with_max_depth(1)
+        .with_max_nodes(1);
+    let mut budget = limits.budget();
+
+    assert!(matches!(
+        budget.enter_node(2),
+        Err(BudgetError::LimitExceeded { .. })
+    ));
+    assert_eq!(budget.used_nodes(), 0);
+}
+
+/// Verifies sequence item failures do not charge nodes after depth passes.
+#[test]
+fn test_enter_sequence_items_failure_does_not_charge_nodes() {
+    let limits = StructureLimits::<StructureResource, usize>::new()
+        .with_max_depth(2)
+        .with_max_sequence_items(1)
+        .with_max_nodes(1);
+    let mut budget = limits.budget();
+
+    assert!(matches!(
+        budget.enter_sequence(1, 2),
+        Err(BudgetError::LimitExceeded { .. })
+    ));
+    assert_eq!(budget.used_nodes(), 0);
+}
+
+/// Verifies map entry failures do not charge nodes after depth passes.
+#[test]
+fn test_enter_map_entries_failure_does_not_charge_nodes() {
+    let limits = StructureLimits::<StructureResource, usize>::new()
+        .with_max_depth(2)
+        .with_max_map_entries(1)
+        .with_max_nodes(1);
+    let mut budget = limits.budget();
+
+    assert!(matches!(
+        budget.enter_map(1, 2),
+        Err(BudgetError::LimitExceeded { .. })
+    ));
+    assert_eq!(budget.used_nodes(), 0);
+}
+
+/// Verifies node entry, key checks, and node usage share one budget session.
+#[test]
+fn test_structure_budget_tracks_nodes_and_checks_key_bytes() {
+    let limits = StructureLimits::<StructureResource, usize>::new()
+        .with_max_nodes(1)
+        .with_max_key_bytes(2);
+    let mut budget = limits.budget();
+
+    budget
+        .check_key_bytes(2)
+        .expect("an exact key byte limit should fit");
+    budget
+        .enter_node(1)
+        .expect("the first node should fit the node budget");
+
+    assert_eq!(budget.used_nodes(), 1);
 }

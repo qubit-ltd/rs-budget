@@ -48,6 +48,7 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an unconfigured generic value limit set.
+    #[inline]
     pub const fn new() -> Self {
         Self {
             structure: StructureLimits::new(),
@@ -57,30 +58,25 @@ where
         }
     }
     /// Configures the inclusive byte limit for one string value.
-    pub fn with_string_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    #[inline]
+    pub fn with_string_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_string_bytes = Some(limit);
         self
     }
     /// Configures the inclusive byte limit for one number representation.
-    pub fn with_number_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    #[inline]
+    pub fn with_number_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_number_bytes = Some(limit);
         self
     }
     /// Configures the cumulative byte budget for keys, strings and numbers.
-    pub fn with_payload_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    #[inline]
+    pub fn with_payload_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_payload_bytes = Some(limit);
         self
     }
     /// Replaces the structural limits used while processing JSON values.
+    #[inline]
     pub fn with_structure_limits<S>(mut self, limits: S) -> Self
     where
         S: Into<StructureLimits<R, Q>>,
@@ -90,80 +86,95 @@ where
     }
     /// Borrows the structural limits used by this value configuration.
     #[must_use = "the structural limits determine traversal constraints"]
+    #[inline(always)]
     pub const fn structure_limits(&self) -> &StructureLimits<R, Q> {
         &self.structure
     }
     /// Consumes these value limits and returns their structural limits.
     #[must_use = "the returned structural limits can configure a structure budget"]
+    #[inline]
     pub fn into_structure_limits(self) -> StructureLimits<R, Q> {
         self.structure
     }
     /// Returns the configured root-inclusive nesting-depth maximum.
     #[must_use]
+    #[inline(always)]
     pub const fn max_depth(&self) -> Option<Q> {
         self.structure.max_depth()
     }
     /// Returns the configured cumulative JSON-node maximum.
     #[must_use]
+    #[inline(always)]
     pub const fn max_nodes(&self) -> Option<Q> {
         self.structure.max_nodes()
     }
     /// Returns the configured maximum item count for one JSON array.
     #[must_use]
+    #[inline(always)]
     pub const fn max_sequence_items(&self) -> Option<Q> {
         self.structure.max_sequence_items()
     }
     /// Returns the configured maximum entry count for one JSON object.
     #[must_use]
+    #[inline(always)]
     pub const fn max_map_entries(&self) -> Option<Q> {
         self.structure.max_map_entries()
     }
     /// Returns the configured maximum byte length for one JSON object key.
     #[must_use]
+    #[inline(always)]
     pub const fn max_key_bytes(&self) -> Option<Q> {
         self.structure.max_key_bytes()
     }
     /// Returns the complete string-byte limit, when configured.
     #[must_use]
+    #[inline(always)]
     pub const fn string_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_string_bytes.as_ref()
     }
     /// Returns the complete number-byte limit, when configured.
     #[must_use]
+    #[inline(always)]
     pub const fn number_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_number_bytes.as_ref()
     }
     /// Returns the complete cumulative payload-byte limit, when configured.
     #[must_use]
+    #[inline(always)]
     pub const fn payload_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_payload_bytes.as_ref()
     }
     /// Returns the configured maximum byte length for one string value.
     #[must_use]
+    #[inline(always)]
     pub const fn max_string_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_string_bytes.as_ref())
     }
     /// Returns the configured maximum byte length for one number
     /// representation.
     #[must_use]
+    #[inline(always)]
     pub const fn max_number_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_number_bytes.as_ref())
     }
     /// Returns the configured cumulative payload-byte maximum.
     #[must_use]
+    #[inline(always)]
     pub const fn max_payload_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_payload_bytes.as_ref())
     }
 
-    /// Validates one native JSON measurement without creating a budget.
+    /// Validates one native JSON measurement against point limits only.
     ///
     /// The measurement is converted only for configured dimensions, then
     /// checked in conversion, depth, and variant-specific point-limit order.
-    /// Cumulative limits are not charged or checked by this method.
+    /// Cumulative limits such as `max_nodes` and `max_payload_bytes` are not
+    /// charged or checked by this method.
     ///
     /// Returns conversion or point-limit errors retaining their associated
     /// resource identity.
-    pub fn check(
+    #[inline]
+    pub fn check_point(
         &self,
         measurement: JsonMeasurement,
     ) -> Result<(), MeasuredBudgetError<R, Q>>
@@ -179,6 +190,7 @@ where
     Q: ResourceQuantity,
 {
     /// Configures the inclusive maximum nesting depth.
+    #[inline]
     pub fn with_max_depth(mut self, maximum: Q) -> Self {
         self.structure = self
             .structure
@@ -187,6 +199,7 @@ where
     }
 
     /// Configures the cumulative maximum number of JSON nodes.
+    #[inline]
     pub fn with_max_nodes(mut self, maximum: Q) -> Self {
         self.structure = self
             .structure
@@ -195,51 +208,55 @@ where
     }
 
     /// Configures the maximum number of items in one JSON array.
+    #[inline]
     pub fn with_max_sequence_items(mut self, maximum: Q) -> Self {
-        self.structure = self.structure.with_sequence_items_limit(
-            ResourceLimit::new(JsonResource::SequenceItems, maximum),
-        );
+        self.structure = self
+            .structure
+            .with_sequence_items_limit(ResourceLimit::new(JsonResource::SequenceItems, maximum));
         self
     }
 
     /// Configures the maximum number of entries in one JSON object.
+    #[inline]
     pub fn with_max_map_entries(mut self, maximum: Q) -> Self {
-        self.structure = self.structure.with_map_entries_limit(
-            ResourceLimit::new(JsonResource::MapEntries, maximum),
-        );
+        self.structure = self
+            .structure
+            .with_map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, maximum));
         self
     }
 
     /// Configures the maximum UTF-8 byte length of one JSON object key.
+    #[inline]
     pub fn with_max_key_bytes(mut self, maximum: Q) -> Self {
-        self.structure = self.structure.with_key_bytes_limit(
-            ResourceLimit::new(JsonResource::KeyBytes, maximum),
-        );
+        self.structure = self
+            .structure
+            .with_key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, maximum));
         self
     }
 
     /// Configures the maximum UTF-8 byte length of one JSON string.
+    #[inline]
     pub fn with_max_string_bytes(mut self, maximum: Q) -> Self {
-        self.max_string_bytes =
-            Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
+        self.max_string_bytes = Some(ResourceLimit::new(JsonResource::StringBytes, maximum));
         self
     }
 
     /// Configures the maximum byte length of one JSON number representation.
+    #[inline]
     pub fn with_max_number_bytes(mut self, maximum: Q) -> Self {
-        self.max_number_bytes =
-            Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
+        self.max_number_bytes = Some(ResourceLimit::new(JsonResource::NumberBytes, maximum));
         self
     }
 
     /// Configures the cumulative payload-byte maximum.
+    #[inline]
     pub fn with_max_payload_bytes(mut self, maximum: Q) -> Self {
-        self.max_payload_bytes =
-            Some(ResourceLimit::new(JsonResource::PayloadBytes, maximum));
+        self.max_payload_bytes = Some(ResourceLimit::new(JsonResource::PayloadBytes, maximum));
         self
     }
 
     /// Creates a fresh mutable budget from these JSON value limits.
+    #[inline]
     pub fn budget(self) -> JsonValueBudget<JsonResource, Q> {
         JsonValueBudget::new(self)
     }
@@ -254,6 +271,7 @@ impl JsonValueLimits<JsonResource, usize> {
 }
 
 /// Returns an optional limit maximum without exposing its resource identity.
+#[inline(always)]
 const fn limit_maximum<R, Q>(limit: Option<&ResourceLimit<R, Q>>) -> Option<Q>
 where
     Q: ResourceQuantity,

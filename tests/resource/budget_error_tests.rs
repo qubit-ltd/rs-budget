@@ -112,3 +112,41 @@ fn test_budget_error_aggregates_both_precise_budget_failures() {
     assert_eq!(point.maximum(), Some(3));
     assert_eq!(cumulative.requested(), Some(2));
 }
+
+/// Verifies aggregate error queries distinguish point and cumulative failures.
+#[test]
+fn test_budget_error_exposes_limit_remaining_and_used() {
+    let point = BudgetError::from(LimitExceededError {
+        resource: TestResource::Depth,
+        observed: Observation::Exact(4_usize),
+        maximum: 3,
+    });
+    let cumulative = BudgetError::from(InsufficientBudgetError {
+        resource: TestResource::Depth,
+        limit: 5_usize,
+        remaining: 2,
+        requested: 3,
+    });
+
+    assert_eq!(point.limit(), None);
+    assert_eq!(point.remaining(), None);
+    assert_eq!(point.configured_limit(), 3);
+    assert_eq!(point.used(), None);
+    assert_eq!(cumulative.limit(), Some(5));
+    assert_eq!(cumulative.remaining(), Some(2));
+    assert_eq!(cumulative.configured_limit(), 5);
+    assert_eq!(cumulative.used(), Some(3));
+}
+
+/// Verifies a precise cumulative failure reports prior consumption.
+#[test]
+fn test_insufficient_budget_error_reports_used_capacity() {
+    let error = InsufficientBudgetError {
+        resource: TestResource::Depth,
+        limit: 5_usize,
+        remaining: 2,
+        requested: 3,
+    };
+
+    assert_eq!(error.used(), 3);
+}
