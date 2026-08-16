@@ -1,1 +1,8 @@
 # Project-level reviewed style exceptions.
+multiple-public-types | src/structure/structure_limits.rs | Keep the public limits type and its builder together as one configuration API.
+multiple-public-types | src/json/json_value_limits.rs | Keep the public limits type and its builder together as one configuration API.
+multiple-public-types | src/json/json_decode_limits.rs | Keep the public limits type and its builder together as one configuration API.
+multiple-public-types | src/json/json_encode_limits.rs | Keep the public limits type and its builder together as one configuration API.
+multiple-public-types | src/value/string_limits.rs | Keep the public limits type and its builder together as one configuration API.
+multiple-public-types | src/value/big_integer_limits.rs | Keep the public limits type and its builder together as one configuration API.
+multiple-public-types | src/value/big_decimal_limits.rs | Keep the public limits type and its builder together as one configuration API.

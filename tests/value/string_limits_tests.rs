@@ -17,8 +17,9 @@ enum TestResource {
 
 #[test]
 fn test_check_uses_utf8_bytes_and_check_name() {
-    let limits = StringLimits::new()
-        .with_utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 2_u64));
+    let limits = StringLimits::builder()
+        .utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 2_u64))
+        .build();
     let error = limits.check("中").expect_err("three bytes exceed two");
     assert_eq!(
         error
@@ -30,15 +31,17 @@ fn test_check_uses_utf8_bytes_and_check_name() {
 
 #[test]
 fn test_empty_limits_accept_any_string() {
-    StringLimits::<TestResource>::new()
+    StringLimits::<TestResource>::builder()
+        .build()
         .check("arbitrary")
         .expect("unconfigured string limits must accept the value");
 }
 
 #[test]
 fn test_string_limits_support_usize_quantities() {
-    let limits = StringLimits::<TestResource, usize>::new()
-        .with_utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 3));
+    let limits = StringLimits::<TestResource, usize>::builder()
+        .utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 3))
+        .build();
 
     limits
         .check("abc")
@@ -52,9 +55,9 @@ fn test_string_limits_support_usize_quantities() {
 
 #[test]
 fn test_string_limits_reject_unrepresentable_measurements() {
-    let limits = StringLimits::<TestResource, u8>::new().with_utf8_bytes_limit(
-        ResourceLimit::new(TestResource::Bytes, u8::MAX),
-    );
+    let limits = StringLimits::<TestResource, u8>::builder()
+        .utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, u8::MAX))
+        .build();
     let text = "x".repeat(usize::from(u8::MAX) + 1);
 
     assert!(matches!(

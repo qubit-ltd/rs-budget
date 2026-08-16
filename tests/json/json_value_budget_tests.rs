@@ -17,9 +17,10 @@ use qubit_budget::json::JsonValueLimits;
 /// Verifies a rejected payload event does not change the transaction snapshot.
 #[test]
 fn test_payload_rejection_preserves_working_nodes_and_payload() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
-        .with_max_payload_bytes(2)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .max_payload_bytes(2)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
 
@@ -34,8 +35,9 @@ fn test_payload_rejection_preserves_working_nodes_and_payload() {
 
 #[test]
 fn test_payload_limit_accepts_exact_total_and_rejects_next_byte() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_payload_bytes(3)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_payload_bytes(3)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -49,9 +51,10 @@ fn test_payload_limit_accepts_exact_total_and_rejects_next_byte() {
 
 #[test]
 fn test_rejected_point_measurement_does_not_consume_payload() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_string_bytes(3)
-        .with_max_payload_bytes(4)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_string_bytes(3)
+        .max_payload_bytes(4)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     let error = transaction
@@ -65,8 +68,9 @@ fn test_rejected_point_measurement_does_not_consume_payload() {
 
 #[test]
 fn test_keys_strings_and_numbers_share_payload_budget() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_payload_bytes(6)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_payload_bytes(6)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -87,8 +91,9 @@ fn test_keys_strings_and_numbers_share_payload_budget() {
 /// Verifies dropping a failed transaction rolls back the complete value.
 #[test]
 fn test_drop_after_error_rolls_back_complete_value() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .build()
         .budget();
     {
         let mut transaction = budget.transaction();
@@ -107,9 +112,10 @@ fn test_drop_after_error_rolls_back_complete_value() {
 /// Verifies a successful transaction changes committed state only on commit.
 #[test]
 fn test_commit_publishes_nodes_and_payload() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(2)
-        .with_max_payload_bytes(4)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2)
+        .max_payload_bytes(4)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -134,9 +140,10 @@ fn test_commit_publishes_nodes_and_payload() {
 /// Verifies an uncommitted successful transaction rolls back on ordinary drop.
 #[test]
 fn test_drop_rolls_back_successful_admissions() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
-        .with_max_payload_bytes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .max_payload_bytes(1)
+        .build()
         .budget();
     {
         let mut transaction = budget.transaction();
@@ -152,9 +159,10 @@ fn test_drop_rolls_back_successful_admissions() {
 /// Verifies unwinding drops a transaction without publishing its working state.
 #[test]
 fn test_panic_drop_rolls_back_working_state() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
-        .with_max_payload_bytes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .max_payload_bytes(1)
+        .build()
         .budget();
 
     let result = catch_unwind(AssertUnwindSafe(|| {
@@ -173,9 +181,10 @@ fn test_panic_drop_rolls_back_working_state() {
 /// Verifies a failed event leaves a transaction able to admit later events.
 #[test]
 fn test_try_admit_failure_keeps_transaction_usable() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(2)
-        .with_max_payload_bytes(2)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2)
+        .max_payload_bytes(2)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -201,9 +210,10 @@ fn test_try_admit_failure_keeps_transaction_usable() {
 /// Verifies object keys consume only payload capacity, not value-node capacity.
 #[test]
 fn test_try_admit_key_consumes_only_payload() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
-        .with_max_payload_bytes(2)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .max_payload_bytes(2)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -218,8 +228,9 @@ fn test_try_admit_key_consumes_only_payload() {
 /// Verifies array and object events each consume one committed value node.
 #[test]
 fn test_try_admit_array_and_object_consume_nodes() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(2)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -240,10 +251,11 @@ fn test_try_admit_array_and_object_consume_nodes() {
 /// configured resource identity.
 #[test]
 fn test_try_admit_reports_deterministic_resource_priority() {
-    let mut node_limited = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(0)
-        .with_max_string_bytes(0)
-        .with_max_payload_bytes(0)
+    let mut node_limited = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(0)
+        .max_string_bytes(0)
+        .max_payload_bytes(0)
+        .build()
         .budget();
     let mut transaction = node_limited.transaction();
     let error = transaction
@@ -251,10 +263,11 @@ fn test_try_admit_reports_deterministic_resource_priority() {
         .expect_err("point limit rejects before cumulative limits");
     assert_eq!(error.resource(), &JsonResource::StringBytes);
 
-    let mut point_limited = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(0)
-        .with_max_string_bytes(1)
-        .with_max_payload_bytes(0)
+    let mut point_limited = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(0)
+        .max_string_bytes(1)
+        .max_payload_bytes(0)
+        .build()
         .budget();
     let mut transaction = point_limited.transaction();
     let error = transaction
@@ -262,9 +275,10 @@ fn test_try_admit_reports_deterministic_resource_priority() {
         .expect_err("node limit rejects after point checks");
     assert_eq!(error.resource(), &JsonResource::Nodes);
 
-    let mut payload_limited = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
-        .with_max_payload_bytes(0)
+    let mut payload_limited = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .max_payload_bytes(0)
+        .build()
         .budget();
     let mut transaction = payload_limited.transaction();
     let error = transaction
@@ -276,9 +290,10 @@ fn test_try_admit_reports_deterministic_resource_priority() {
 /// Verifies reset discards prior committed usage while retaining configuration.
 #[test]
 fn test_reset_clears_committed_state() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
-        .with_max_payload_bytes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .max_payload_bytes(1)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction

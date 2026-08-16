@@ -16,9 +16,10 @@ use qubit_budget::json::JsonResource;
 #[test]
 fn test_decode_attempt_drop_preserves_input_only() {
     let mut session = JsonDecodeSession::owned(
-        JsonDecodeLimits::<JsonResource, usize>::new()
-            .with_max_input_bytes(4)
-            .with_max_nodes(1),
+        JsonDecodeLimits::<JsonResource, usize>::builder()
+            .max_input_bytes(4)
+            .max_nodes(1)
+            .build(),
     );
     {
         let mut attempt = session.begin_value();

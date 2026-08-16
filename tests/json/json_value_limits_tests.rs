@@ -21,15 +21,16 @@ fn test_default_uses_usize_quantity() {
 /// Verifies that JSON convenience builders preserve a non-`usize` quantity.
 #[test]
 fn test_standard_builder_supports_u64_quantity() {
-    let limits = JsonValueLimits::<JsonResource, u64>::new()
-        .with_max_depth(1_u64)
-        .with_max_nodes(2_u64)
-        .with_max_sequence_items(3_u64)
-        .with_max_map_entries(4_u64)
-        .with_max_key_bytes(5_u64)
-        .with_max_string_bytes(6_u64)
-        .with_max_number_bytes(7_u64)
-        .with_max_payload_bytes(8_u64);
+    let limits = JsonValueLimits::<JsonResource, u64>::builder()
+        .max_depth(1_u64)
+        .max_nodes(2_u64)
+        .max_sequence_items(3_u64)
+        .max_map_entries(4_u64)
+        .max_key_bytes(5_u64)
+        .max_string_bytes(6_u64)
+        .max_number_bytes(7_u64)
+        .max_payload_bytes(8_u64)
+        .build();
 
     assert_eq!(limits.max_depth(), Some(1_u64));
     assert_eq!(limits.max_payload_bytes(), Some(8_u64));
@@ -39,15 +40,16 @@ fn test_standard_builder_supports_u64_quantity() {
 /// Verifies that the standard JSON builder binds every value dimension.
 #[test]
 fn test_standard_builder_configures_all_value_dimensions() {
-    let limits = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_depth(1)
-        .with_max_nodes(2)
-        .with_max_sequence_items(3)
-        .with_max_map_entries(4)
-        .with_max_key_bytes(5)
-        .with_max_string_bytes(6)
-        .with_max_number_bytes(7)
-        .with_max_payload_bytes(8);
+    let limits = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_depth(1)
+        .max_nodes(2)
+        .max_sequence_items(3)
+        .max_map_entries(4)
+        .max_key_bytes(5)
+        .max_string_bytes(6)
+        .max_number_bytes(7)
+        .max_payload_bytes(8)
+        .build();
 
     assert_eq!(limits.max_depth(), Some(1));
     assert_eq!(limits.max_nodes(), Some(2));
@@ -69,8 +71,9 @@ fn test_standard_builder_configures_all_value_dimensions() {
 /// Verifies that the standard value builder creates an independent budget.
 #[test]
 fn test_standard_builder_creates_budget() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
 
@@ -84,8 +87,9 @@ fn test_standard_builder_creates_budget() {
 /// Verifies that structural limits may be borrowed or explicitly consumed.
 #[test]
 fn test_structure_limits_expresses_borrowing_and_ownership() {
-    let limits =
-        JsonValueLimits::<JsonResource, usize>::new().with_max_depth(4);
+    let limits = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_depth(4)
+        .build();
     let _: &StructureLimits<JsonResource, usize> = limits.structure_limits();
     assert_eq!(limits.structure_limits().max_depth(), Some(4));
     assert_eq!(limits.into_structure_limits().max_depth(), Some(4));
@@ -93,7 +97,7 @@ fn test_structure_limits_expresses_borrowing_and_ownership() {
 
 #[test]
 fn test_empty_value_limits_report_unconfigured_maxima() {
-    let limits = JsonValueLimits::<JsonResource, usize>::new();
+    let limits = JsonValueLimits::<JsonResource, usize>::builder().build();
     assert_eq!(limits.max_depth(), None);
     assert_eq!(limits.max_string_bytes(), None);
     assert_eq!(limits.max_number_bytes(), None);
@@ -109,10 +113,11 @@ fn test_custom_resources_remain_attached_to_value_limits() {
         Payload,
     }
 
-    let limits = JsonValueLimits::<Resource, u8>::new()
-        .with_string_bytes_limit(ResourceLimit::new(Resource::String, 3))
-        .with_number_bytes_limit(ResourceLimit::new(Resource::Number, 4))
-        .with_payload_bytes_limit(ResourceLimit::new(Resource::Payload, 5));
+    let limits = JsonValueLimits::<Resource, u8>::builder()
+        .string_bytes_limit(ResourceLimit::new(Resource::String, 3))
+        .number_bytes_limit(ResourceLimit::new(Resource::Number, 4))
+        .payload_bytes_limit(ResourceLimit::new(Resource::Payload, 5))
+        .build();
 
     assert_eq!(
         limits
@@ -145,11 +150,13 @@ fn test_custom_resources_create_value_budget() {
         Nodes,
     }
 
-    let mut budget = JsonValueLimits::<Resource, u8>::new()
-        .with_structure_limits(
-            StructureLimits::new()
-                .with_nodes_limit(ResourceLimit::new(Resource::Nodes, 1)),
+    let mut budget = JsonValueLimits::<Resource, u8>::builder()
+        .structure_limits(
+            StructureLimits::builder()
+                .nodes_limit(ResourceLimit::new(Resource::Nodes, 1))
+                .build(),
         )
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -163,8 +170,9 @@ fn test_custom_resources_create_value_budget() {
 /// Verifies point checks reject an oversized array without creating a budget.
 #[test]
 fn test_check_point_array_measurement_rejects_items_without_mutable_budget() {
-    let limits = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_sequence_items(1);
+    let limits = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_sequence_items(1)
+        .build();
     let error = limits
         .check_point(JsonMeasurement::Array { depth: 1, items: 2 })
         .expect_err("two items must exceed the point limit");
@@ -174,7 +182,7 @@ fn test_check_point_array_measurement_rejects_items_without_mutable_budget() {
 /// Verifies unconfigured dimensions do not convert native measurements.
 #[test]
 fn test_unconfigured_payload_skips_unrepresentable_conversion() {
-    let limits = JsonValueLimits::<JsonResource, u8>::new();
+    let limits = JsonValueLimits::<JsonResource, u8>::builder().build();
     limits
         .check_point(JsonMeasurement::String {
             depth: usize::MAX,
@@ -186,13 +194,14 @@ fn test_unconfigured_payload_skips_unrepresentable_conversion() {
 /// Verifies every measurement variant checks its matching point dimension.
 #[test]
 fn test_check_point_rejects_each_json_measurement_variant_at_point_limit() {
-    let limits = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_depth(1)
-        .with_max_sequence_items(1)
-        .with_max_map_entries(1)
-        .with_max_key_bytes(1)
-        .with_max_string_bytes(1)
-        .with_max_number_bytes(1);
+    let limits = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_depth(1)
+        .max_sequence_items(1)
+        .max_map_entries(1)
+        .max_key_bytes(1)
+        .max_string_bytes(1)
+        .max_number_bytes(1)
+        .build();
     let measurements = [
         (JsonMeasurement::Null { depth: 2 }, JsonResource::Depth),
         (JsonMeasurement::Boolean { depth: 2 }, JsonResource::Depth),
@@ -230,16 +239,17 @@ fn test_check_point_rejects_each_json_measurement_variant_at_point_limit() {
 /// Verifies conversion failures precede depth and variant point checks.
 #[test]
 fn test_check_point_prioritizes_conversion_before_depth_and_point_limits() {
-    let limits = JsonValueLimits::<JsonResource, u8>::new()
-        .with_structure_limits(
-            StructureLimits::<JsonResource, u8>::new().with_depth_limit(
-                ResourceLimit::new(JsonResource::Depth, u8::MAX),
-            ),
+    let limits = JsonValueLimits::<JsonResource, u8>::builder()
+        .structure_limits(
+            StructureLimits::<JsonResource, u8>::builder()
+                .depth_limit(ResourceLimit::new(JsonResource::Depth, u8::MAX))
+                .build(),
         )
-        .with_string_bytes_limit(ResourceLimit::new(
+        .string_bytes_limit(ResourceLimit::new(
             JsonResource::StringBytes,
             u8::MAX,
-        ));
+        ))
+        .build();
 
     let error = limits
         .check_point(JsonMeasurement::String {
@@ -260,9 +270,10 @@ fn test_check_point_prioritizes_conversion_before_depth_and_point_limits() {
 /// Verifies depth point checks precede variant-specific point checks.
 #[test]
 fn test_check_prioritizes_depth_before_variant_point_limit() {
-    let limits = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_depth(1)
-        .with_max_string_bytes(1);
+    let limits = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_depth(1)
+        .max_string_bytes(1)
+        .build();
 
     let error = limits
         .check_point(JsonMeasurement::String { depth: 2, bytes: 2 })
@@ -274,10 +285,12 @@ fn test_check_prioritizes_depth_before_variant_point_limit() {
 /// Verifies a payload-only conversion error identifies the cumulative limit.
 #[test]
 fn test_check_payload_only_conversion_reports_payload_resource() {
-    let limits =
-        JsonValueLimits::<JsonResource, u8>::new().with_payload_bytes_limit(
-            ResourceLimit::new(JsonResource::PayloadBytes, u8::MAX),
-        );
+    let limits = JsonValueLimits::<JsonResource, u8>::builder()
+        .payload_bytes_limit(ResourceLimit::new(
+            JsonResource::PayloadBytes,
+            u8::MAX,
+        ))
+        .build();
 
     let error = limits
         .check_point(JsonMeasurement::String {
@@ -301,15 +314,16 @@ fn test_check_payload_only_conversion_reports_payload_resource() {
 /// limits.
 #[test]
 fn test_check_prefers_point_resource_when_payload_limit_is_also_configured() {
-    let limits = JsonValueLimits::<JsonResource, u8>::new()
-        .with_string_bytes_limit(ResourceLimit::new(
+    let limits = JsonValueLimits::<JsonResource, u8>::builder()
+        .string_bytes_limit(ResourceLimit::new(
             JsonResource::StringBytes,
             u8::MAX,
         ))
-        .with_payload_bytes_limit(ResourceLimit::new(
+        .payload_bytes_limit(ResourceLimit::new(
             JsonResource::PayloadBytes,
             u8::MAX,
-        ));
+        ))
+        .build();
 
     let error = limits
         .check_point(JsonMeasurement::String {
@@ -330,26 +344,28 @@ fn test_check_prefers_point_resource_when_payload_limit_is_also_configured() {
 /// Verifies every configured point dimension reports its conversion resource.
 #[test]
 fn test_check_conversion_failures_report_each_point_resource() {
-    let limits = JsonValueLimits::<JsonResource, u8>::new()
-        .with_structure_limits(
-            StructureLimits::<JsonResource, u8>::new()
-                .with_sequence_items_limit(ResourceLimit::new(
+    let limits = JsonValueLimits::<JsonResource, u8>::builder()
+        .structure_limits(
+            StructureLimits::<JsonResource, u8>::builder()
+                .sequence_items_limit(ResourceLimit::new(
                     JsonResource::SequenceItems,
                     u8::MAX,
                 ))
-                .with_map_entries_limit(ResourceLimit::new(
+                .map_entries_limit(ResourceLimit::new(
                     JsonResource::MapEntries,
                     u8::MAX,
                 ))
-                .with_key_bytes_limit(ResourceLimit::new(
+                .key_bytes_limit(ResourceLimit::new(
                     JsonResource::KeyBytes,
                     u8::MAX,
-                )),
+                ))
+                .build(),
         )
-        .with_number_bytes_limit(ResourceLimit::new(
+        .number_bytes_limit(ResourceLimit::new(
             JsonResource::NumberBytes,
             u8::MAX,
-        ));
+        ))
+        .build();
     let overflow = usize::from(u8::MAX) + 1;
     let measurements = [
         (

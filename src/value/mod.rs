@@ -15,6 +15,11 @@ mod string_limits;
 
 #[cfg(feature = "big-decimal")]
 pub use big_decimal_limits::BigDecimalLimits;
+#[cfg(feature = "big-decimal")]
+pub use big_decimal_limits::BigDecimalLimitsBuilder;
 #[cfg(feature = "big-integer")]
 pub use big_integer_limits::BigIntegerLimits;
+#[cfg(feature = "big-integer")]
+pub use big_integer_limits::BigIntegerLimitsBuilder;
 pub use string_limits::StringLimits;
+pub use string_limits::StringLimitsBuilder;

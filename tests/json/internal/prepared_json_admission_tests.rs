@@ -14,10 +14,11 @@ use qubit_budget::json::JsonValueLimits;
 /// Verifies point limits reject an event before cumulative accounting changes.
 #[test]
 fn test_prepared_admission_checks_point_limit_first() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(2)
-        .with_max_string_bytes(1)
-        .with_max_payload_bytes(4)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2)
+        .max_string_bytes(1)
+        .max_payload_bytes(4)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     let error = transaction

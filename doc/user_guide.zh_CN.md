@@ -22,7 +22,7 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 | `qubit-http` | 从流式 HTTP 响应收集的字节 | `ResourceBudget` | 每个已接受的分块都会永久消耗响应体额度。 |
 | `qubit-config` | 配置源的字节、属性、节点和包含的子源 | `ResourceBudget`、`ResourceLimit`、预算组 | 子源必须同时满足自身和所有父源的限制。 |
 | `qubit-local-files` | 复制或遍历时打开的目录读取器 | `ResourcePool` | 读取器打开时占用容量，关闭后显式归还。 |
-| `qubit-retry` | 重试次数、单次操作耗时和总耗时 | `ResourceBudget`、`DurationBudget`、`TimeBudget` | 三者的生命周期不同，必须分别记账。 |
+| `qubit-retry` | 重试次数、累计操作耗时和总耗时 | `ResourceBudget`、`DurationBudget`、`TimeBudget` | 三者的生命周期不同，必须分别记账。 |
 | `qubit-json` | 原始输入、规范化输入和一个 JSON value | JSON session 与 transaction | 已接受的 I/O 必须保留计费；失败的 value 不能占用结构容量。 |
 
 ## 五种记账模式
@@ -128,9 +128,39 @@ directories.release(1)?;
 `qubit-retry` 的 `RetryBudget` 组合了三种原语：
 
 1. `ResourceBudget<RetryResource, u32>` 用于接纳有限次数的尝试。
-2. `DurationBudget` 记录每次已完成操作实际消耗的时间。
+2. `DurationBudget` 记录全部已完成操作累计消耗的时间。
 3. `TimeBudget` 通过 `qubit-clock` 执行一个端到端的单调时钟截止时间，其中包括退避和
    观察器工作。
+
+`qubit-retry` 的公开 API 通过一个 `RetryBudget` 暴露这三项限制：
+
+```rust
+use std::time::Duration;
+
+use qubit_clock::StdMonotonicClock;
+use qubit_retry::RetryBudget;
+use qubit_retry::RetryPolicy;
+
+let clock = StdMonotonicClock::new();
+let policy = RetryPolicy::builder()
+    .max_attempts(3)
+    .max_operation_elapsed(Duration::from_secs(10))
+    .max_total_elapsed(Duration::from_secs(30))
+    .build()?;
+let mut budget = RetryBudget::new(&clock, *policy.limits())?;
+
+let attempt = budget.begin_attempt()?;
+// Run one request attempt here.
+let snapshot = budget.finish_attempt(attempt);
+
+budget.check_retry_after(Duration::from_millis(500))?;
+assert_eq!(snapshot.attempts(), 1);
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+`begin_attempt()` 会先检查所有后续限制，再扣减一次尝试额度。`finish_attempt()` 会记录
+实际操作耗时，即使这次操作已经超过时长额度也一样。`check_retry_after()` 会在休眠前
+用总截止时间检查计划中的退避时长。
 
 这种拆分是有意的。一项操作即使耗时过长，也可能已经完成；该事实需要被记录下来，
 超出的时间会耗尽后续操作的时长额度，因此之后的 `begin_attempt()` 会拒绝重试。另一边，
@@ -159,11 +189,12 @@ use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonResource;
 
 let mut session = JsonDecodeSession::owned(
-    JsonDecodeLimits::<JsonResource, usize>::new()
-        .with_max_input_bytes(64 * 1024)
-        .with_max_normalized_input_bytes(64 * 1024)
-        .with_max_depth(32)
-        .with_max_nodes(10_000),
+    JsonDecodeLimits::<JsonResource, usize>::builder()
+        .max_input_bytes(64 * 1024)
+        .max_normalized_input_bytes(64 * 1024)
+        .max_depth(32)
+        .max_nodes(10_000)
+        .build(),
 );
 ```
 

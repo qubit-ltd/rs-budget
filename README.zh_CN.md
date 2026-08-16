@@ -88,9 +88,10 @@ use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
-let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-    .with_max_nodes(8)
-    .with_max_string_bytes(16)
+let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+    .max_nodes(8)
+    .max_string_bytes(16)
+    .build()
     .budget();
 let mut transaction = budget.transaction();
 transaction.try_admit(JsonMeasurement::String {

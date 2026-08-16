@@ -58,8 +58,9 @@ fn test_readmes_document_value_transaction_example() {
             ["use qubit_budget", "::json::JsonValueLimits;"].concat();
         assert!(readme.contains(&measurement_import));
         assert!(readme.contains(&limits_import));
-        assert!(readme.contains(".with_max_nodes(8)"));
-        assert!(readme.contains(".with_max_string_bytes(16)"));
+        assert!(readme.contains(".max_nodes(8)"));
+        assert!(readme.contains(".max_string_bytes(16)"));
+        assert!(readme.contains(".build()"));
         assert!(readme.contains("let mut transaction = budget.transaction();"));
         assert!(readme.contains("JsonMeasurement::String {"));
         assert!(readme.contains("depth: 1,"));
@@ -129,8 +130,9 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     use qubit_budget::json::JsonResource;
     use qubit_budget::json::JsonValueLimits;
 
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(2)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2)
+        .build()
         .budget();
     {
         let mut transaction = budget.transaction();
@@ -147,10 +149,11 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     assert_eq!(budget.used_nodes(), Some(1));
 
     let mut decode = JsonDecodeSession::owned(
-        JsonDecodeLimits::<JsonResource, usize>::new()
-            .with_max_input_bytes(4)
-            .with_max_normalized_input_bytes(4)
-            .with_max_nodes(2),
+        JsonDecodeLimits::<JsonResource, usize>::builder()
+            .max_input_bytes(4)
+            .max_normalized_input_bytes(4)
+            .max_nodes(2)
+            .build(),
     );
     {
         let mut attempt = decode.begin_value();
@@ -173,9 +176,10 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     assert_eq!(decode.value_budget().used_nodes(), Some(0));
 
     let mut encode = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_output_bytes(4)
-            .with_max_nodes(2),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(4)
+            .max_nodes(2)
+            .build(),
     );
     {
         let mut attempt = encode.begin_value();

@@ -25,7 +25,7 @@ application error.
 | `qubit-http` | Bytes collected from a streaming HTTP response | `ResourceBudget` | Each accepted chunk permanently consumes response-body capacity. |
 | `qubit-config` | Source bytes, properties, nodes, and included sources | `ResourceBudget`, `ResourceLimit`, grouped charge | A child source must satisfy both its own and every ancestor’s limit. |
 | `qubit-local-files` | Open directory readers during a copy or walk | `ResourcePool` | A reader occupies capacity while open, then explicitly returns it. |
-| `qubit-retry` | Retry count, per-operation time, and total elapsed time | `ResourceBudget`, `DurationBudget`, `TimeBudget` | These are three different lifetimes, so they are accounted separately. |
+| `qubit-retry` | Retry count, cumulative operation time, and total elapsed time | `ResourceBudget`, `DurationBudget`, `TimeBudget` | These are three different lifetimes, so they are accounted separately. |
 | `qubit-json` | Raw input, normalized input, and one decoded JSON value | JSON sessions and transactions | I/O already accepted must remain charged; a failed value must not consume structural capacity. |
 
 ## The five accounting models
@@ -140,9 +140,40 @@ or ownership model when those are required.
 `qubit-retry` composes three primitives in `RetryBudget`:
 
 1. `ResourceBudget<RetryResource, u32>` admits a finite number of attempts.
-2. `DurationBudget` tracks actual time spent inside completed operations.
+2. `DurationBudget` tracks cumulative time spent inside completed operations.
 3. `TimeBudget` uses `qubit-clock` to enforce one end-to-end monotonic deadline,
    including backoff and observer work.
+
+The public `qubit-retry` API exposes those three limits as one `RetryBudget`:
+
+```rust
+use std::time::Duration;
+
+use qubit_clock::StdMonotonicClock;
+use qubit_retry::RetryBudget;
+use qubit_retry::RetryPolicy;
+
+let clock = StdMonotonicClock::new();
+let policy = RetryPolicy::builder()
+    .max_attempts(3)
+    .max_operation_elapsed(Duration::from_secs(10))
+    .max_total_elapsed(Duration::from_secs(30))
+    .build()?;
+let mut budget = RetryBudget::new(&clock, *policy.limits())?;
+
+let attempt = budget.begin_attempt()?;
+// Run one request attempt here.
+let snapshot = budget.finish_attempt(attempt);
+
+budget.check_retry_after(Duration::from_millis(500))?;
+assert_eq!(snapshot.attempts(), 1);
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+`begin_attempt()` first checks all continuation limits, then consumes one
+attempt. `finish_attempt()` records the elapsed operation time even when the
+operation exceeded its allowance. `check_retry_after()` tests the proposed
+backoff against the total deadline before sleeping.
 
 This separation is deliberate. A request can finish an attempt that took too
 long; that completed attempt is an observed fact. The overrun consumes the
@@ -176,11 +207,12 @@ use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonResource;
 
 let mut session = JsonDecodeSession::owned(
-    JsonDecodeLimits::<JsonResource, usize>::new()
-        .with_max_input_bytes(64 * 1024)
-        .with_max_normalized_input_bytes(64 * 1024)
-        .with_max_depth(32)
-        .with_max_nodes(10_000),
+    JsonDecodeLimits::<JsonResource, usize>::builder()
+        .max_input_bytes(64 * 1024)
+        .max_normalized_input_bytes(64 * 1024)
+        .max_depth(32)
+        .max_nodes(10_000)
+        .build(),
 );
 ```
 

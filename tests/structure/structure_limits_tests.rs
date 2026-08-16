@@ -15,12 +15,13 @@ use qubit_budget::StructureResource;
 
 #[test]
 fn test_structure_limits_expose_configured_values() {
-    let limits = StructureLimits::<StructureResource, usize>::new()
-        .with_max_depth(1)
-        .with_max_nodes(2)
-        .with_max_sequence_items(3)
-        .with_max_map_entries(4)
-        .with_max_key_bytes(5);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_depth(1)
+        .max_nodes(2)
+        .max_sequence_items(3)
+        .max_map_entries(4)
+        .max_key_bytes(5)
+        .build();
 
     assert_eq!(limits.max_depth(), Some(1));
     assert_eq!(limits.max_nodes(), Some(2));
@@ -37,8 +38,9 @@ fn test_generic_structure_limits_support_custom_key_limit() {
         KeyBytes,
     }
 
-    let limits = StructureLimits::<Resource, u8>::new()
-        .with_key_bytes_limit(ResourceLimit::new(Resource::KeyBytes, 3));
+    let limits = StructureLimits::<Resource, u8>::builder()
+        .key_bytes_limit(ResourceLimit::new(Resource::KeyBytes, 3))
+        .build();
 
     assert_eq!(limits.max_key_bytes(), Some(3));
     assert_eq!(
@@ -48,12 +50,13 @@ fn test_generic_structure_limits_support_custom_key_limit() {
 }
 
 #[test]
-fn test_with_max_methods_bind_each_limit_to_its_structure_resource() {
-    let mut budget = StructureLimits::<StructureResource, usize>::new()
-        .with_max_depth(1)
-        .with_max_nodes(1)
-        .with_max_sequence_items(1)
-        .with_max_map_entries(1)
+fn test_builder_max_methods_bind_each_limit_to_its_structure_resource() {
+    let mut budget = StructureLimits::<StructureResource, usize>::builder()
+        .max_depth(1)
+        .max_nodes(1)
+        .max_sequence_items(1)
+        .max_map_entries(1)
+        .build()
         .budget();
 
     assert!(matches!(

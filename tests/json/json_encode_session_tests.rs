@@ -19,9 +19,10 @@ use qubit_budget::json::JsonValueLimits;
 #[test]
 fn test_encode_attempt_drop_keeps_output_and_rolls_back_value() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_output_bytes(8)
-            .with_max_nodes(2),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(8)
+            .max_nodes(2)
+            .build(),
     );
     {
         let mut attempt = session.begin_value();
@@ -43,9 +44,10 @@ fn test_encode_attempt_drop_keeps_output_and_rolls_back_value() {
 #[test]
 fn test_encode_attempt_checks_output_and_reuses_session() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_output_bytes(4)
-            .with_max_nodes(2),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(4)
+            .max_nodes(2)
+            .build(),
     );
 
     let mut first = session.begin_value();
@@ -75,8 +77,9 @@ fn test_encode_attempt_checks_output_and_reuses_session() {
 #[test]
 fn test_encode_attempt_value_transaction_mut_exposes_working_state() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_payload_bytes(4),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_payload_bytes(4)
+            .build(),
     );
     let mut attempt = session.begin_value();
     attempt
@@ -93,9 +96,10 @@ fn test_encode_attempt_value_transaction_mut_exposes_working_state() {
 #[test]
 fn test_encode_attempt_split_mut_allows_output_and_value_accounting() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_output_bytes(4)
-            .with_max_nodes(1),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(4)
+            .max_nodes(1)
+            .build(),
     );
     let mut attempt = session.begin_value();
     let (output, value) = attempt.split_mut();
@@ -119,8 +123,9 @@ fn test_encode_attempt_split_mut_allows_output_and_value_accounting() {
 /// attempt while ignoring unconfigured output accounting.
 #[test]
 fn test_encode_session_borrowing_value_reuses_committed_budget() {
-    let mut value = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(2)
+    let mut value = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2)
+        .build()
         .budget();
     {
         let mut session = JsonEncodeSession::borrowing_value(&mut value);
@@ -141,8 +146,9 @@ fn test_encode_session_borrowing_value_reuses_committed_budget() {
 #[test]
 fn test_encode_session_borrowing_output_keeps_charge_after_attempt_drop() {
     let mut output = ResourceBudget::new(JsonResource::OutputBytes, 3_usize);
-    let mut value = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(2)
+    let mut value = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2)
+        .build()
         .budget();
     {
         let mut session =
@@ -162,9 +168,10 @@ fn test_encode_session_borrowing_output_keeps_charge_after_attempt_drop() {
 #[test]
 fn test_encode_attempt_output_error_is_atomic() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_output_bytes(2)
-            .with_max_nodes(1),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(2)
+            .max_nodes(1)
+            .build(),
     );
     {
         let mut attempt = session.begin_value();
@@ -185,9 +192,10 @@ fn test_encode_attempt_output_error_is_atomic() {
 #[test]
 fn test_encode_attempt_panic_keeps_output_and_rolls_back_value() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_output_bytes(3)
-            .with_max_nodes(1),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(3)
+            .max_nodes(1)
+            .build(),
     );
     let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
         let mut attempt = session.begin_value();

@@ -5,6 +5,7 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
+// qubit-style: allow multiple-public-types
 //! Defines optional structural input limits.
 
 use crate::ResourceLimit;
@@ -68,50 +69,11 @@ where
         }
     }
 
-    /// Configures the inclusive nesting-depth limit.
+    /// Creates a builder for structural limits.
     #[inline]
     #[must_use]
-    pub fn with_depth_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
-        self.max_depth = Some(limit);
-        self
-    }
-
-    /// Configures the cumulative node limit.
-    #[inline]
-    #[must_use]
-    pub fn with_nodes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
-        self.max_nodes = Some(limit);
-        self
-    }
-
-    /// Configures the inclusive sequence-item limit.
-    #[inline]
-    #[must_use]
-    pub fn with_sequence_items_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
-        self.max_sequence_items = Some(limit);
-        self
-    }
-
-    /// Configures the inclusive map-entry limit.
-    #[inline]
-    #[must_use]
-    pub fn with_map_entries_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
-        self.max_map_entries = Some(limit);
-        self
-    }
-
-    /// Configures the inclusive structural-key byte limit.
-    #[inline]
-    #[must_use]
-    pub fn with_key_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
-        self.max_key_bytes = Some(limit);
-        self
+    pub const fn builder() -> StructureLimitsBuilder<R, Q> {
+        StructureLimitsBuilder::new()
     }
 
     /// Returns the complete depth limit, when configured.
@@ -210,50 +172,138 @@ where
     }
 }
 
-impl StructureLimits<StructureResource, usize> {
-    /// Configures the inclusive maximum nesting depth.
+/// Builder for [`StructureLimits`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StructureLimitsBuilder<R = StructureResource, Q = usize>
+where
+    Q: ResourceQuantity,
+{
+    limits: StructureLimits<R, Q>,
+}
+
+impl<R, Q> Default for StructureLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<R, Q> From<StructureLimitsBuilder<R, Q>> for StructureLimits<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    fn from(builder: StructureLimitsBuilder<R, Q>) -> Self {
+        builder.build()
+    }
+}
+
+impl<R, Q> StructureLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    /// Creates an empty structural-limits builder.
     #[inline]
     #[must_use]
-    pub const fn with_max_depth(mut self, maximum: usize) -> Self {
-        self.max_depth =
+    pub const fn new() -> Self {
+        Self {
+            limits: StructureLimits::new(),
+        }
+    }
+
+    /// Sets the depth limit.
+    #[inline]
+    #[must_use]
+    pub fn depth_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.max_depth = Some(limit);
+        self
+    }
+
+    /// Sets the node limit.
+    #[inline]
+    #[must_use]
+    pub fn nodes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.max_nodes = Some(limit);
+        self
+    }
+
+    /// Sets the sequence-item limit.
+    #[inline]
+    #[must_use]
+    pub fn sequence_items_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.max_sequence_items = Some(limit);
+        self
+    }
+
+    /// Sets the map-entry limit.
+    #[inline]
+    #[must_use]
+    pub fn map_entries_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.max_map_entries = Some(limit);
+        self
+    }
+
+    /// Sets the structural-key limit.
+    #[inline]
+    #[must_use]
+    pub fn key_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.max_key_bytes = Some(limit);
+        self
+    }
+
+    /// Builds the configured structural limits.
+    #[inline]
+    #[must_use]
+    pub fn build(self) -> StructureLimits<R, Q> {
+        self.limits
+    }
+}
+
+impl StructureLimitsBuilder<StructureResource, usize> {
+    /// Sets the maximum nesting depth.
+    #[inline]
+    #[must_use]
+    pub const fn max_depth(mut self, maximum: usize) -> Self {
+        self.limits.max_depth =
             Some(ResourceLimit::new(StructureResource::Depth, maximum));
         self
     }
 
-    /// Configures the cumulative maximum number of processed nodes.
+    /// Sets the maximum number of processed nodes.
     #[inline]
     #[must_use]
-    pub const fn with_max_nodes(mut self, maximum: usize) -> Self {
-        self.max_nodes =
+    pub const fn max_nodes(mut self, maximum: usize) -> Self {
+        self.limits.max_nodes =
             Some(ResourceLimit::new(StructureResource::Nodes, maximum));
         self
     }
 
-    /// Configures the inclusive maximum item count for one sequence.
+    /// Sets the maximum number of items in one sequence.
     #[inline]
     #[must_use]
-    pub const fn with_max_sequence_items(mut self, maximum: usize) -> Self {
-        self.max_sequence_items = Some(ResourceLimit::new(
+    pub const fn max_sequence_items(mut self, maximum: usize) -> Self {
+        self.limits.max_sequence_items = Some(ResourceLimit::new(
             StructureResource::SequenceItems,
             maximum,
         ));
         self
     }
 
-    /// Configures the inclusive maximum entry count for one map.
+    /// Sets the maximum number of entries in one map.
     #[inline]
     #[must_use]
-    pub const fn with_max_map_entries(mut self, maximum: usize) -> Self {
-        self.max_map_entries =
+    pub const fn max_map_entries(mut self, maximum: usize) -> Self {
+        self.limits.max_map_entries =
             Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
         self
     }
 
-    /// Configures the inclusive maximum byte length of one structural key.
+    /// Sets the maximum byte length of one structural key.
     #[inline]
     #[must_use]
-    pub const fn with_max_key_bytes(mut self, maximum: usize) -> Self {
-        self.max_key_bytes =
+    pub const fn max_key_bytes(mut self, maximum: usize) -> Self {
+        self.limits.max_key_bytes =
             Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
         self
     }

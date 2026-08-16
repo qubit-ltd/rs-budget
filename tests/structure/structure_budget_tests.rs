@@ -14,11 +14,12 @@ use qubit_budget::StructureResource;
 
 #[test]
 fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
-    let limits = StructureLimits::<StructureResource, usize>::new()
-        .with_max_depth(2)
-        .with_max_nodes(2)
-        .with_max_sequence_items(1)
-        .with_max_map_entries(1);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_depth(2)
+        .max_nodes(2)
+        .max_sequence_items(1)
+        .max_map_entries(1)
+        .build();
     let mut budget = limits.budget();
 
     budget.check_depth(2).expect("exact depth should fit");
@@ -43,8 +44,9 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
 
 #[test]
 fn test_unconfigured_structure_limits_allow_all_checks() {
-    let mut budget =
-        StructureLimits::<StructureResource, usize>::new().budget();
+    let mut budget = StructureLimits::<StructureResource, usize>::builder()
+        .build()
+        .budget();
 
     budget
         .check_depth(usize::MAX)
@@ -60,8 +62,9 @@ fn test_unconfigured_structure_limits_allow_all_checks() {
 
 #[test]
 fn test_charge_node_failure_is_atomic() {
-    let mut budget = StructureLimits::<StructureResource, usize>::new()
-        .with_max_nodes(1)
+    let mut budget = StructureLimits::<StructureResource, usize>::builder()
+        .max_nodes(1)
+        .build()
         .budget();
 
     budget.charge_node().expect("first node should fit");
@@ -82,8 +85,9 @@ fn test_charge_node_failure_is_atomic() {
 
 #[test]
 fn test_budget_creates_independent_node_accounting_sessions() {
-    let limits =
-        StructureLimits::<StructureResource, usize>::new().with_max_nodes(1);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_nodes(1)
+        .build();
     let mut first_budget = limits.budget();
     let mut second_budget = limits.budget();
 
@@ -103,8 +107,9 @@ fn test_generic_structure_budget_uses_custom_resource_and_quantity() {
         Nodes,
     }
 
-    let limits = StructureLimits::<Resource, u8>::default()
-        .with_nodes_limit(ResourceLimit::new(Resource::Nodes, 2));
+    let limits = StructureLimits::<Resource, u8>::builder()
+        .nodes_limit(ResourceLimit::new(Resource::Nodes, 2))
+        .build();
     let mut budget = limits.budget();
     budget.charge_node().expect("first node should fit");
     budget.charge_node().expect("second node should fit");
@@ -122,11 +127,12 @@ fn test_generic_structure_budget_uses_custom_resource_and_quantity() {
 /// Verifies sequence and map entry points perform all atomic checks.
 #[test]
 fn test_structure_budget_enters_sequences_and_maps() {
-    let limits = StructureLimits::<StructureResource, usize>::new()
-        .with_max_depth(2)
-        .with_max_nodes(2)
-        .with_max_sequence_items(1)
-        .with_max_map_entries(1);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_depth(2)
+        .max_nodes(2)
+        .max_sequence_items(1)
+        .max_map_entries(1)
+        .build();
     let mut budget = limits.budget();
 
     budget
@@ -139,9 +145,10 @@ fn test_structure_budget_enters_sequences_and_maps() {
 /// Verifies depth, sequence, and map entry failures do not charge nodes.
 #[test]
 fn test_enter_node_depth_failure_does_not_charge_nodes() {
-    let limits = StructureLimits::<StructureResource, usize>::new()
-        .with_max_depth(1)
-        .with_max_nodes(1);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_depth(1)
+        .max_nodes(1)
+        .build();
     let mut budget = limits.budget();
 
     assert!(matches!(
@@ -154,10 +161,11 @@ fn test_enter_node_depth_failure_does_not_charge_nodes() {
 /// Verifies sequence item failures do not charge nodes after depth passes.
 #[test]
 fn test_enter_sequence_items_failure_does_not_charge_nodes() {
-    let limits = StructureLimits::<StructureResource, usize>::new()
-        .with_max_depth(2)
-        .with_max_sequence_items(1)
-        .with_max_nodes(1);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_depth(2)
+        .max_sequence_items(1)
+        .max_nodes(1)
+        .build();
     let mut budget = limits.budget();
 
     assert!(matches!(
@@ -170,10 +178,11 @@ fn test_enter_sequence_items_failure_does_not_charge_nodes() {
 /// Verifies map entry failures do not charge nodes after depth passes.
 #[test]
 fn test_enter_map_entries_failure_does_not_charge_nodes() {
-    let limits = StructureLimits::<StructureResource, usize>::new()
-        .with_max_depth(2)
-        .with_max_map_entries(1)
-        .with_max_nodes(1);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_depth(2)
+        .max_map_entries(1)
+        .max_nodes(1)
+        .build();
     let mut budget = limits.budget();
 
     assert!(matches!(
@@ -186,9 +195,10 @@ fn test_enter_map_entries_failure_does_not_charge_nodes() {
 /// Verifies node entry, key checks, and node usage share one budget session.
 #[test]
 fn test_structure_budget_tracks_nodes_and_checks_key_bytes() {
-    let limits = StructureLimits::<StructureResource, usize>::new()
-        .with_max_nodes(1)
-        .with_max_key_bytes(2);
+    let limits = StructureLimits::<StructureResource, usize>::builder()
+        .max_nodes(1)
+        .max_key_bytes(2)
+        .build();
     let mut budget = limits.budget();
 
     budget

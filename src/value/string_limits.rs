@@ -5,6 +5,7 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
+// qubit-style: allow multiple-public-types
 //! UTF-8 byte limits for one string value.
 
 use crate::MeasuredBudgetError;
@@ -33,12 +34,11 @@ where
         }
     }
 
-    /// Adds an inclusive UTF-8 byte limit.
+    /// Creates a builder for string limits.
     #[inline]
     #[must_use]
-    pub fn with_utf8_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
-        self.max_utf8_bytes = Some(limit);
-        self
+    pub const fn builder() -> StringLimitsBuilder<R, Q> {
+        StringLimitsBuilder::new()
     }
 
     /// Returns the configured UTF-8 byte limit, if any.
@@ -64,6 +64,53 @@ where
             MeasuredBudgetError::quantity(limit.resource().clone(), source)
         })?;
         limit.check(bytes).map_err(MeasuredBudgetError::from)
+    }
+}
+
+/// Builder for [`StringLimits`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StringLimitsBuilder<R, Q = u64>
+where
+    Q: ResourceQuantity,
+{
+    limits: StringLimits<R, Q>,
+}
+
+impl<R, Q> Default for StringLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<R, Q> StringLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    /// Creates an empty string-limits builder.
+    #[inline]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            limits: StringLimits::new(),
+        }
+    }
+
+    /// Sets the inclusive UTF-8 byte limit.
+    #[inline]
+    #[must_use]
+    pub fn utf8_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.max_utf8_bytes = Some(limit);
+        self
+    }
+
+    /// Builds the configured string limits.
+    #[inline]
+    #[must_use]
+    pub fn build(self) -> StringLimits<R, Q> {
+        self.limits
     }
 }
 

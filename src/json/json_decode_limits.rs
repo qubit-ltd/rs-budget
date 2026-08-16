@@ -5,10 +5,12 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
+// qubit-style: allow multiple-public-types
 //! Defines JSON decoding limits.
 
 use super::JsonResource;
 use super::JsonValueLimits;
+use super::JsonValueLimitsBuilder;
 use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
@@ -48,32 +50,11 @@ where
             value: JsonValueLimits::new(),
         }
     }
-    /// Configures the cumulative raw input-byte budget.
+    /// Creates a builder for JSON decoding limits.
     #[inline]
     #[must_use]
-    pub fn with_input_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
-        self.input = Some(limit);
-        self
-    }
-    /// Configures the cumulative normalized input-byte budget.
-    #[inline]
-    #[must_use]
-    pub fn with_normalized_input_bytes_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
-        self.normalized_input = Some(limit);
-        self
-    }
-    /// Replaces the direction-independent value limits for decoding.
-    #[inline]
-    #[must_use]
-    pub fn with_value_limits(mut self, limits: JsonValueLimits<R, Q>) -> Self {
-        self.value = limits;
-        self
+    pub const fn builder() -> JsonDecodeLimitsBuilder<R, Q> {
+        JsonDecodeLimitsBuilder::new()
     }
     /// Returns the complete raw input-byte limit, when configured.
     #[must_use]
@@ -114,94 +95,194 @@ where
         limit_maximum(self.normalized_input.as_ref())
     }
 }
+/// Builder for [`JsonDecodeLimits`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct JsonDecodeLimitsBuilder<R = JsonResource, Q = usize>
+where
+    Q: ResourceQuantity,
+{
+    pub(crate) limits: JsonDecodeLimits<R, Q>,
+}
+
+impl<R, Q> Default for JsonDecodeLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<R, Q> JsonDecodeLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    /// Creates an empty JSON decoding-limits builder.
+    #[inline]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            limits: JsonDecodeLimits::new(),
+        }
+    }
+
+    /// Sets the raw input-byte limit.
+    #[inline]
+    #[must_use]
+    pub fn input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.input = Some(limit);
+        self
+    }
+
+    /// Sets the normalized input-byte limit.
+    #[inline]
+    #[must_use]
+    pub fn normalized_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
+        self.limits.normalized_input = Some(limit);
+        self
+    }
+
+    /// Sets the JSON value limits.
+    #[inline]
+    #[must_use]
+    pub fn value_limits(mut self, limits: JsonValueLimits<R, Q>) -> Self {
+        self.limits.value = limits;
+        self
+    }
+
+    /// Builds the configured JSON decoding limits.
+    #[inline]
+    #[must_use]
+    pub fn build(self) -> JsonDecodeLimits<R, Q> {
+        self.limits
+    }
+}
+
 impl JsonDecodeLimits<JsonResource, usize> {
-    /// Creates an unconfigured decoding limit set using the standard JSON
-    /// resource types and `usize` measurements.
+    /// Creates an unconfigured decoding limit set using standard JSON types.
     #[must_use]
     pub const fn empty() -> Self {
         Self::new()
     }
-    /// Configures the cumulative raw input-byte maximum.
+}
+
+impl JsonDecodeLimitsBuilder<JsonResource, usize> {
+    /// Sets the maximum raw input-byte count.
     #[inline]
     #[must_use]
-    pub fn with_max_input_bytes(mut self, maximum: usize) -> Self {
-        self.input =
+    pub fn max_input_bytes(mut self, maximum: usize) -> Self {
+        self.limits.input =
             Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
         self
     }
 
-    /// Configures the cumulative normalized input-byte maximum.
+    /// Sets the maximum normalized input-byte count.
     #[inline]
     #[must_use]
-    pub fn with_max_normalized_input_bytes(mut self, maximum: usize) -> Self {
-        self.normalized_input = Some(ResourceLimit::new(
+    pub fn max_normalized_input_bytes(mut self, maximum: usize) -> Self {
+        self.limits.normalized_input = Some(ResourceLimit::new(
             JsonResource::NormalizedInputBytes,
             maximum,
         ));
         self
     }
 
-    /// Configures the inclusive maximum nesting depth.
+    /// Sets the maximum nesting depth.
     #[inline]
     #[must_use]
-    pub fn with_max_depth(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_depth(maximum);
+    pub fn max_depth(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_depth(maximum)
+        .build();
         self
     }
 
-    /// Configures the cumulative maximum number of JSON nodes.
+    /// Sets the maximum number of JSON nodes.
     #[inline]
     #[must_use]
-    pub fn with_max_nodes(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_nodes(maximum);
+    pub fn max_nodes(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_nodes(maximum)
+        .build();
         self
     }
 
-    /// Configures the maximum number of items in one JSON array.
+    /// Sets the maximum number of items in one JSON array.
     #[inline]
     #[must_use]
-    pub fn with_max_sequence_items(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_sequence_items(maximum);
+    pub fn max_sequence_items(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_sequence_items(maximum)
+        .build();
         self
     }
 
-    /// Configures the maximum number of entries in one JSON object.
+    /// Sets the maximum number of entries in one JSON object.
     #[inline]
     #[must_use]
-    pub fn with_max_map_entries(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_map_entries(maximum);
+    pub fn max_map_entries(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_map_entries(maximum)
+        .build();
         self
     }
 
-    /// Configures the maximum UTF-8 byte length of one JSON object key.
+    /// Sets the maximum UTF-8 byte length of one JSON object key.
     #[inline]
     #[must_use]
-    pub fn with_max_key_bytes(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_key_bytes(maximum);
+    pub fn max_key_bytes(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_key_bytes(maximum)
+        .build();
         self
     }
 
-    /// Configures the maximum UTF-8 byte length of one JSON string.
+    /// Sets the maximum UTF-8 byte length of one JSON string.
     #[inline]
     #[must_use]
-    pub fn with_max_string_bytes(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_string_bytes(maximum);
+    pub fn max_string_bytes(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_string_bytes(maximum)
+        .build();
         self
     }
 
-    /// Configures the maximum byte length of one JSON number representation.
+    /// Sets the maximum byte length of one JSON number representation.
     #[inline]
     #[must_use]
-    pub fn with_max_number_bytes(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_number_bytes(maximum);
+    pub fn max_number_bytes(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_number_bytes(maximum)
+        .build();
         self
     }
 
-    /// Configures the cumulative payload-byte maximum.
+    /// Sets the cumulative payload-byte maximum.
     #[inline]
     #[must_use]
-    pub fn with_max_payload_bytes(mut self, maximum: usize) -> Self {
-        self.value = self.value.with_max_payload_bytes(maximum);
+    pub fn max_payload_bytes(mut self, maximum: usize) -> Self {
+        self.limits.value = JsonValueLimitsBuilder {
+            limits: self.limits.value,
+        }
+        .max_payload_bytes(maximum)
+        .build();
         self
     }
 }

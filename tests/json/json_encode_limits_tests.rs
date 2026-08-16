@@ -19,16 +19,17 @@ fn test_default_uses_usize_quantity() {
 /// Verifies that encode builders configure output and nested value limits.
 #[test]
 fn test_standard_builder_configures_encode_dimensions() {
-    let limits = JsonEncodeLimits::<JsonResource, usize>::new()
-        .with_max_output_bytes(1)
-        .with_max_depth(2)
-        .with_max_nodes(3)
-        .with_max_sequence_items(4)
-        .with_max_map_entries(5)
-        .with_max_key_bytes(6)
-        .with_max_string_bytes(7)
-        .with_max_number_bytes(8)
-        .with_max_payload_bytes(9);
+    let limits = JsonEncodeLimits::<JsonResource, usize>::builder()
+        .max_output_bytes(1)
+        .max_depth(2)
+        .max_nodes(3)
+        .max_sequence_items(4)
+        .max_map_entries(5)
+        .max_key_bytes(6)
+        .max_string_bytes(7)
+        .max_number_bytes(8)
+        .max_payload_bytes(9)
+        .build();
 
     assert_eq!(limits.max_output_bytes(), Some(1));
     assert_eq!(limits.value_limits().max_depth(), Some(2));
@@ -44,8 +45,9 @@ fn test_standard_builder_configures_encode_dimensions() {
 /// Verifies that nested value limits may be borrowed or explicitly consumed.
 #[test]
 fn test_value_limits_expresses_borrowing_and_ownership() {
-    let limits =
-        JsonEncodeLimits::<JsonResource, usize>::new().with_max_depth(2);
+    let limits = JsonEncodeLimits::<JsonResource, usize>::builder()
+        .max_depth(2)
+        .build();
     let _: &JsonValueLimits = limits.value_limits();
     assert_eq!(limits.value_limits().max_depth(), Some(2));
     assert_eq!(limits.into_value_limits().max_depth(), Some(2));
@@ -54,16 +56,17 @@ fn test_value_limits_expresses_borrowing_and_ownership() {
 #[test]
 fn test_empty_encode_limits_report_unconfigured_maximum() {
     assert_eq!(
-        JsonEncodeLimits::<JsonResource, usize>::new().max_output_bytes(),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .build()
+            .max_output_bytes(),
         None
     );
 }
 
 #[test]
 fn test_generic_encode_limits_expose_maximum() {
-    let limits =
-        JsonEncodeLimits::<JsonResource, u8>::new().with_output_bytes_limit(
-            ResourceLimit::new(JsonResource::OutputBytes, 4),
-        );
+    let limits = JsonEncodeLimits::<JsonResource, u8>::builder()
+        .output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 4))
+        .build();
     assert_eq!(limits.max_output_bytes(), Some(4));
 }

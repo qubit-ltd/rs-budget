@@ -16,9 +16,10 @@ use qubit_budget::json::JsonResource;
 #[test]
 fn test_encode_attempt_drop_preserves_output_only() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new()
-            .with_max_output_bytes(4)
-            .with_max_nodes(1),
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(4)
+            .max_nodes(1)
+            .build(),
     );
     {
         let mut attempt = session.begin_value();

@@ -15,8 +15,9 @@ use qubit_budget::json::JsonValueLimits;
 /// Verifies only an explicit commit publishes staged value usage.
 #[test]
 fn test_value_transaction_commit_publishes_usage() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_nodes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
     transaction
@@ -32,9 +33,10 @@ fn test_value_transaction_commit_publishes_usage() {
 /// Verifies prospective container checks retain transaction accounting.
 #[test]
 fn test_check_container_count_rejects_next_item_without_mutation() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_sequence_items(1)
-        .with_max_nodes(4)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_sequence_items(1)
+        .max_nodes(4)
+        .build()
         .budget();
     let transaction = budget.transaction();
 
@@ -50,8 +52,9 @@ fn test_check_container_count_rejects_next_item_without_mutation() {
 /// Verifies prospective map checks use the object-entry resource limit.
 #[test]
 fn test_check_container_count_rejects_next_map_entry() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_map_entries(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_map_entries(1)
+        .build()
         .budget();
     let transaction = budget.transaction();
 
@@ -69,9 +72,10 @@ fn test_check_container_count_rejects_next_map_entry() {
 
 #[test]
 fn test_enter_container_admits_node_before_children() {
-    let mut budget = JsonValueLimits::<JsonResource, usize>::new()
-        .with_max_depth(1)
-        .with_max_nodes(1)
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_depth(1)
+        .max_nodes(1)
+        .build()
         .budget();
     let mut transaction = budget.transaction();
 

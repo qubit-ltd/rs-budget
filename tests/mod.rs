@@ -13,4 +13,5 @@ mod value;
 
 mod structure;
 
+mod builder_tests;
 mod time;

@@ -24,9 +24,12 @@ enum TestResource {
 
 #[test]
 fn test_zero_has_no_significant_decimal_digits() {
-    let limits = BigIntegerLimits::new().with_significant_decimal_digits_limit(
-        ResourceLimit::new(TestResource::Digits, 0_u64),
-    );
+    let limits = BigIntegerLimits::builder()
+        .significant_decimal_digits_limit(ResourceLimit::new(
+            TestResource::Digits,
+            0_u64,
+        ))
+        .build();
     limits
         .check(&BigInt::from(0))
         .expect("zero has no significant decimal digits");
@@ -35,9 +38,12 @@ fn test_zero_has_no_significant_decimal_digits() {
 #[test]
 fn test_obvious_digit_overflow_reports_lower_bound() {
     let huge = BigInt::from(1_u8) << 1_000_000_u32;
-    let limits = BigIntegerLimits::new().with_significant_decimal_digits_limit(
-        ResourceLimit::new(TestResource::Digits, 16_u64),
-    );
+    let limits = BigIntegerLimits::builder()
+        .significant_decimal_digits_limit(ResourceLimit::new(
+            TestResource::Digits,
+            16_u64,
+        ))
+        .build();
     assert!(matches!(
         limits.check(&huge),
         Err(MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -51,15 +57,13 @@ fn test_obvious_digit_overflow_reports_lower_bound() {
 #[test]
 fn test_magnitude_bits_limit_is_checked_before_digits() {
     let value = BigInt::from(1_u8) << 10;
-    let limits = BigIntegerLimits::new()
-        .with_magnitude_bits_limit(ResourceLimit::new(
-            TestResource::Bits,
-            8_u64,
-        ))
-        .with_significant_decimal_digits_limit(ResourceLimit::new(
+    let limits = BigIntegerLimits::builder()
+        .magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8_u64))
+        .significant_decimal_digits_limit(ResourceLimit::new(
             TestResource::Digits,
             1_u64,
-        ));
+        ))
+        .build();
     assert!(matches!(
         limits.check(&value),
         Err(MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
@@ -72,8 +76,9 @@ fn test_magnitude_bits_limit_is_checked_before_digits() {
 
 #[test]
 fn test_big_integer_limits_support_usize_quantities() {
-    let limits = BigIntegerLimits::<TestResource, usize>::new()
-        .with_magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8));
+    let limits = BigIntegerLimits::<TestResource, usize>::builder()
+        .magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8))
+        .build();
     let error = limits
         .check(&(BigInt::from(1_u8) << 10))
         .expect_err("eleven bits exceed eight");
@@ -90,21 +95,20 @@ fn test_big_integer_limits_support_usize_quantities() {
 
 #[test]
 fn test_big_integer_accessors_and_unconfigured_limits() {
-    let limits = BigIntegerLimits::new()
-        .with_magnitude_bits_limit(ResourceLimit::new(
-            TestResource::Bits,
-            8_u64,
-        ))
-        .with_significant_decimal_digits_limit(ResourceLimit::new(
+    let limits = BigIntegerLimits::builder()
+        .magnitude_bits_limit(ResourceLimit::new(TestResource::Bits, 8_u64))
+        .significant_decimal_digits_limit(ResourceLimit::new(
             TestResource::Digits,
             3_u64,
-        ));
+        ))
+        .build();
     assert_eq!(limits.magnitude_bits_limit().unwrap().maximum(), 8);
     assert_eq!(
         limits.significant_decimal_digits_limit().unwrap().maximum(),
         3
     );
-    BigIntegerLimits::<TestResource>::new()
+    BigIntegerLimits::<TestResource>::builder()
+        .build()
         .check(&BigInt::from(123456))
         .expect("unconfigured limits accept every value");
 }
@@ -129,11 +133,11 @@ proptest! {
         }
         let text = value.to_str_radix(10);
         let digits = text.strip_prefix('-').unwrap_or(&text).len() as u64;
-        let limits = BigIntegerLimits::new()
-            .with_significant_decimal_digits_limit(ResourceLimit::new(
+        let limits = BigIntegerLimits::builder()
+            .significant_decimal_digits_limit(ResourceLimit::new(
                 TestResource::Digits,
                 maximum,
-            ));
+            )).build();
 
         let result = limits.check(&value);
         if digits <= maximum {

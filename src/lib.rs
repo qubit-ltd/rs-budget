@@ -51,12 +51,18 @@ pub use string::BudgetedStringError;
 pub use string::BudgetedStringWriter;
 pub use structure::StructureBudget;
 pub use structure::StructureLimits;
+pub use structure::StructureLimitsBuilder;
 pub use structure::StructureResource;
 #[cfg(feature = "big-decimal")]
 pub use value::BigDecimalLimits;
+#[cfg(feature = "big-decimal")]
+pub use value::BigDecimalLimitsBuilder;
 #[cfg(feature = "big-integer")]
 pub use value::BigIntegerLimits;
+#[cfg(feature = "big-integer")]
+pub use value::BigIntegerLimitsBuilder;
 pub use value::StringLimits;
+pub use value::StringLimitsBuilder;
 
 pub mod time;
 

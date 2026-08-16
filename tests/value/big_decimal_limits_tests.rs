@@ -23,9 +23,12 @@ enum TestResource {
 #[test]
 fn test_minimum_scale_reports_exact_unsigned_magnitude() {
     let value = BigDecimal::new(BigInt::from(1), i64::MIN);
-    let limits = BigDecimalLimits::new().with_scale_magnitude_limit(
-        ResourceLimit::new(TestResource::Scale, 150_000_u64),
-    );
+    let limits = BigDecimalLimits::builder()
+        .scale_magnitude_limit(ResourceLimit::new(
+            TestResource::Scale,
+            150_000_u64,
+        ))
+        .build();
     let error = limits.check(&value).expect_err("minimum scale must fail");
     assert_eq!(
         error
@@ -38,16 +41,20 @@ fn test_minimum_scale_reports_exact_unsigned_magnitude() {
 #[test]
 fn test_scale_is_checked_before_coefficient() {
     let value = BigDecimal::new(BigInt::from(10).pow(1000), 200_000);
-    let limits = BigDecimalLimits::new()
-        .with_scale_magnitude_limit(ResourceLimit::new(
+    let limits = BigDecimalLimits::builder()
+        .scale_magnitude_limit(ResourceLimit::new(
             TestResource::Scale,
             150_000_u64,
         ))
-        .with_coefficient_limits(
-            BigIntegerLimits::new().with_significant_decimal_digits_limit(
-                ResourceLimit::new(TestResource::Digits, 1_u64),
-            ),
-        );
+        .coefficient_limits(
+            BigIntegerLimits::builder()
+                .significant_decimal_digits_limit(ResourceLimit::new(
+                    TestResource::Digits,
+                    1_u64,
+                ))
+                .build(),
+        )
+        .build();
     let error = limits
         .check(&value)
         .expect_err("scale must be checked first");
@@ -60,8 +67,9 @@ fn test_scale_is_checked_before_coefficient() {
 #[test]
 fn test_big_decimal_limits_support_usize_quantities() {
     let value = BigDecimal::new(BigInt::from(1), 9);
-    let limits = BigDecimalLimits::<TestResource, usize>::new()
-        .with_scale_magnitude_limit(ResourceLimit::new(TestResource::Scale, 8));
+    let limits = BigDecimalLimits::<TestResource, usize>::builder()
+        .scale_magnitude_limit(ResourceLimit::new(TestResource::Scale, 8))
+        .build();
     let error = limits
         .check(&value)
         .expect_err("scale must exceed the limit");
@@ -77,12 +85,13 @@ fn test_big_decimal_limits_support_usize_quantities() {
 
 #[test]
 fn test_big_decimal_accessors_and_unconfigured_limits() {
-    let coefficient = BigIntegerLimits::new().with_magnitude_bits_limit(
-        ResourceLimit::new(TestResource::Digits, 8_u64),
-    );
-    let limits = BigDecimalLimits::new()
-        .with_coefficient_limits(coefficient)
-        .with_scale_magnitude_limit(ResourceLimit::new(TestResource::Scale, 3));
+    let coefficient = BigIntegerLimits::builder()
+        .magnitude_bits_limit(ResourceLimit::new(TestResource::Digits, 8_u64))
+        .build();
+    let limits = BigDecimalLimits::builder()
+        .coefficient_limits(coefficient)
+        .scale_magnitude_limit(ResourceLimit::new(TestResource::Scale, 3))
+        .build();
     assert_eq!(
         limits
             .coefficient_limits()
@@ -92,7 +101,8 @@ fn test_big_decimal_accessors_and_unconfigured_limits() {
         8
     );
     assert_eq!(limits.scale_magnitude_limit().unwrap().maximum(), 3);
-    BigDecimalLimits::<TestResource>::new()
+    BigDecimalLimits::<TestResource>::builder()
+        .build()
         .check(&BigDecimal::from(1))
         .expect("unconfigured limits accept every value");
 }
