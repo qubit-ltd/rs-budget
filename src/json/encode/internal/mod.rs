@@ -5,10 +5,8 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-mod decode;
-mod encode;
-mod value;
-mod json_container_kind_tests;
-mod json_documentation_tests;
-mod json_measurement_tests;
-mod json_resource_tests;
+//! Private storage for JSON encoding sessions.
+
+mod encode_storage;
+
+pub(super) use encode_storage::EncodeStorage;

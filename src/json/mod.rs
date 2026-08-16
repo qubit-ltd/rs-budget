@@ -20,27 +20,22 @@
 //! publish staged value accounting only through `commit`; dropping an attempt,
 //! including while unwinding, rolls the value state back.
 
-mod internal;
+mod decode;
+mod encode;
 mod json_container_kind;
-mod json_decode_attempt;
-mod json_decode_limits;
-mod json_decode_session;
-mod json_encode_attempt;
-mod json_encode_limits;
-mod json_encode_session;
 mod json_measurement;
 mod json_resource;
 mod value;
 
 pub use json_container_kind::JsonContainerKind;
-pub use json_decode_attempt::JsonDecodeAttempt;
-pub use json_decode_limits::JsonDecodeLimits;
-pub use json_decode_limits::JsonDecodeLimitsBuilder;
-pub use json_decode_session::JsonDecodeSession;
-pub use json_encode_attempt::JsonEncodeAttempt;
-pub use json_encode_limits::JsonEncodeLimits;
-pub use json_encode_limits::JsonEncodeLimitsBuilder;
-pub use json_encode_session::JsonEncodeSession;
+pub use decode::JsonDecodeAttempt;
+pub use decode::JsonDecodeLimits;
+pub use decode::JsonDecodeLimitsBuilder;
+pub use decode::JsonDecodeSession;
+pub use encode::JsonEncodeAttempt;
+pub use encode::JsonEncodeLimits;
+pub use encode::JsonEncodeLimitsBuilder;
+pub use encode::JsonEncodeSession;
 pub use json_measurement::JsonMeasurement;
 pub use json_resource::JsonResource;
 pub use value::JsonValueBudget;

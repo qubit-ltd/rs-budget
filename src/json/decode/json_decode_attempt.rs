@@ -7,11 +7,11 @@
 // =============================================================================
 //! Provides transactional value accounting for one JSON decode attempt.
 
-use super::JsonMeasurement;
-use super::JsonValueTransaction;
-use crate::MeasuredBudgetError;
-use crate::ResourceBudget;
-use crate::ResourceQuantity;
+use crate::json::JsonMeasurement;
+use crate::json::JsonValueTransaction;
+use crate::resource::MeasuredBudgetError;
+use crate::resource::ResourceBudget;
+use crate::resource::ResourceQuantity;
 
 /// I/O accounting and transactional value admission for one JSON decode.
 ///

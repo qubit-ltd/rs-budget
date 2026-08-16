@@ -5,10 +5,6 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-mod decode;
-mod encode;
-mod value;
-mod json_container_kind_tests;
-mod json_documentation_tests;
-mod json_measurement_tests;
-mod json_resource_tests;
+mod json_decode_attempt_tests;
+mod json_decode_limits_tests;
+mod json_decode_session_tests;

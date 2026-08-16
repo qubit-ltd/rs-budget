@@ -1,14 +1,10 @@
 // =============================================================================
-//    Copyright (c) 2025 - 2026 Haixing Hu.
+//    Copyright (c) 2026 Haixing Hu.
 //
 //    SPDX-License-Identifier: Apache-2.0
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Private storage types for JSON budget sessions.
-
-mod decode_storage;
-mod encode_storage;
-
-pub(super) use decode_storage::DecodeStorage;
-pub(super) use encode_storage::EncodeStorage;
+mod json_encode_attempt_tests;
+mod json_encode_limits_tests;
+mod json_encode_session_tests;

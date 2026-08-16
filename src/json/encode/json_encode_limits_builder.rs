@@ -1,0 +1,134 @@
+// =============================================================================
+//    Copyright (c) 2026 Haixing Hu.
+//
+//    SPDX-License-Identifier: Apache-2.0
+//
+//    Licensed under the Apache License, Version 2.0.
+// =============================================================================
+//! Builds JSON encoding limits.
+
+use super::JsonEncodeLimits;
+use crate::json::JsonResource;
+use crate::json::JsonValueLimits;
+use crate::resource::ResourceLimit;
+use crate::resource::ResourceQuantity;
+
+/// Builder for [`JsonEncodeLimits`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct JsonEncodeLimitsBuilder<R = JsonResource, Q = usize>
+where
+    Q: ResourceQuantity,
+{
+    limits: JsonEncodeLimits<R, Q>,
+}
+
+impl<R, Q> Default for JsonEncodeLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<R, Q> JsonEncodeLimitsBuilder<R, Q>
+where
+    Q: ResourceQuantity,
+{
+    #[inline]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { limits: JsonEncodeLimits::new() }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn output_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+        self.limits.set_output_bytes_limit(limit);
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn value_limits(mut self, limits: JsonValueLimits<R, Q>) -> Self {
+        self.limits.set_value_limits(limits);
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn build(self) -> JsonEncodeLimits<R, Q> {
+        self.limits
+    }
+}
+
+impl JsonEncodeLimitsBuilder<JsonResource, usize> {
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self::new()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_output_bytes(mut self, maximum: usize) -> Self {
+        self.limits.set_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, maximum));
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_depth(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_depth(maximum).build())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_nodes(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_nodes(maximum).build())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_sequence_items(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_sequence_items(maximum).build())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_map_entries(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_map_entries(maximum).build())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_key_bytes(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_key_bytes(maximum).build())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_string_bytes(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_string_bytes(maximum).build())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_number_bytes(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_number_bytes(maximum).build())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn max_payload_bytes(self, maximum: usize) -> Self {
+        self.map_value(|limits| limits.max_payload_bytes(maximum).build())
+    }
+
+    fn map_value<F>(mut self, configure: F) -> Self
+    where
+        F: FnOnce(crate::json::JsonValueLimitsBuilder) -> JsonValueLimits,
+    {
+        let value = *self.limits.value_limits();
+        self.limits.set_value_limits(configure(value.into_builder()));
+        self
+    }
+}

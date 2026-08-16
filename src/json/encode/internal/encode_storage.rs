@@ -8,8 +8,8 @@
 //! Private owned and borrowed encode-session storage.
 // qubit-style: allow source-test-pair
 
-use crate::ResourceBudget;
-use crate::ResourceQuantity;
+use crate::resource::ResourceBudget;
+use crate::resource::ResourceQuantity;
 use crate::json::JsonValueBudget;
 
 /// Backing storage for owned and caller-borrowed encode budgets.

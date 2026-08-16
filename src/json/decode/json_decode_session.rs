@@ -9,11 +9,11 @@
 
 use super::JsonDecodeAttempt;
 use super::JsonDecodeLimits;
-use super::JsonResource;
-use super::JsonValueBudget;
 use super::internal::DecodeStorage;
-use crate::ResourceBudget;
-use crate::ResourceQuantity;
+use crate::json::JsonResource;
+use crate::json::JsonValueBudget;
+use crate::resource::ResourceBudget;
+use crate::resource::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON decoding operation.
 #[derive(Debug)]

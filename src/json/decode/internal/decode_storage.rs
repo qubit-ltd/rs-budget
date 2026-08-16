@@ -8,8 +8,8 @@
 //! Private owned and borrowed decode-session storage.
 // qubit-style: allow source-test-pair
 
-use crate::ResourceBudget;
-use crate::ResourceQuantity;
+use crate::resource::ResourceBudget;
+use crate::resource::ResourceQuantity;
 use crate::json::JsonValueBudget;
 
 /// Mutable budgets borrowed by one decode attempt.
