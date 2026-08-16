@@ -27,7 +27,6 @@ mod json_measurement;
 mod json_resource;
 mod value;
 
-pub use json_container_kind::JsonContainerKind;
 pub use decode::JsonDecodeAttempt;
 pub use decode::JsonDecodeLimits;
 pub use decode::JsonDecodeLimitsBuilder;
@@ -36,6 +35,7 @@ pub use encode::JsonEncodeAttempt;
 pub use encode::JsonEncodeLimits;
 pub use encode::JsonEncodeLimitsBuilder;
 pub use encode::JsonEncodeSession;
+pub use json_container_kind::JsonContainerKind;
 pub use json_measurement::JsonMeasurement;
 pub use json_resource::JsonResource;
 pub use value::JsonValueBudget;

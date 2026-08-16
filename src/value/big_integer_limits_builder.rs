@@ -57,8 +57,7 @@ where
         mut self,
         limit: ResourceLimit<R, Q>,
     ) -> Self {
-        self.limits
-            .set_significant_decimal_digits_limit(limit);
+        self.limits.set_significant_decimal_digits_limit(limit);
         self
     }
 

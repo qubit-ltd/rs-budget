@@ -38,7 +38,9 @@ where
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
-        Self { limits: JsonDecodeLimits::new() }
+        Self {
+            limits: JsonDecodeLimits::new(),
+        }
     }
 
     #[inline]
@@ -50,7 +52,10 @@ where
 
     #[inline]
     #[must_use]
-    pub fn normalized_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    pub fn normalized_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.limits.set_normalized_input_bytes_limit(limit);
         self
     }
@@ -73,17 +78,21 @@ impl JsonDecodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_input_bytes(mut self, maximum: usize) -> Self {
-        self.limits.set_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        self.limits.set_input_bytes_limit(ResourceLimit::new(
+            JsonResource::InputBytes,
+            maximum,
+        ));
         self
     }
 
     #[inline]
     #[must_use]
     pub fn max_normalized_input_bytes(mut self, maximum: usize) -> Self {
-        self.limits.set_normalized_input_bytes_limit(ResourceLimit::new(
-            JsonResource::NormalizedInputBytes,
-            maximum,
-        ));
+        self.limits
+            .set_normalized_input_bytes_limit(ResourceLimit::new(
+                JsonResource::NormalizedInputBytes,
+                maximum,
+            ));
         self
     }
 
@@ -140,7 +149,8 @@ impl JsonDecodeLimitsBuilder<JsonResource, usize> {
         F: FnOnce(crate::json::JsonValueLimitsBuilder) -> JsonValueLimits,
     {
         let value = *self.limits.value_limits();
-        self.limits.set_value_limits(configure(value.into_builder()));
+        self.limits
+            .set_value_limits(configure(value.into_builder()));
         self
     }
 }

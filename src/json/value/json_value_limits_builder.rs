@@ -110,7 +110,10 @@ where
     #[inline]
     #[must_use]
     pub fn max_depth(mut self, maximum: Q) -> Self {
-        let structure = self.limits.structure_limits().into_builder()
+        let structure = self
+            .limits
+            .structure_limits()
+            .into_builder()
             .depth_limit(ResourceLimit::new(JsonResource::Depth, maximum))
             .build();
         self.limits.set_structure_limits(structure);
@@ -121,7 +124,10 @@ where
     #[inline]
     #[must_use]
     pub fn max_nodes(mut self, maximum: Q) -> Self {
-        let structure = self.limits.structure_limits().into_builder()
+        let structure = self
+            .limits
+            .structure_limits()
+            .into_builder()
             .nodes_limit(ResourceLimit::new(JsonResource::Nodes, maximum))
             .build();
         self.limits.set_structure_limits(structure);
@@ -132,8 +138,14 @@ where
     #[inline]
     #[must_use]
     pub fn max_sequence_items(mut self, maximum: Q) -> Self {
-        let structure = self.limits.structure_limits().into_builder()
-            .sequence_items_limit(ResourceLimit::new(JsonResource::SequenceItems, maximum))
+        let structure = self
+            .limits
+            .structure_limits()
+            .into_builder()
+            .sequence_items_limit(ResourceLimit::new(
+                JsonResource::SequenceItems,
+                maximum,
+            ))
             .build();
         self.limits.set_structure_limits(structure);
         self
@@ -143,8 +155,14 @@ where
     #[inline]
     #[must_use]
     pub fn max_map_entries(mut self, maximum: Q) -> Self {
-        let structure = self.limits.structure_limits().into_builder()
-            .map_entries_limit(ResourceLimit::new(JsonResource::MapEntries, maximum))
+        let structure = self
+            .limits
+            .structure_limits()
+            .into_builder()
+            .map_entries_limit(ResourceLimit::new(
+                JsonResource::MapEntries,
+                maximum,
+            ))
             .build();
         self.limits.set_structure_limits(structure);
         self
@@ -154,8 +172,14 @@ where
     #[inline]
     #[must_use]
     pub fn max_key_bytes(mut self, maximum: Q) -> Self {
-        let structure = self.limits.structure_limits().into_builder()
-            .key_bytes_limit(ResourceLimit::new(JsonResource::KeyBytes, maximum))
+        let structure = self
+            .limits
+            .structure_limits()
+            .into_builder()
+            .key_bytes_limit(ResourceLimit::new(
+                JsonResource::KeyBytes,
+                maximum,
+            ))
             .build();
         self.limits.set_structure_limits(structure);
         self

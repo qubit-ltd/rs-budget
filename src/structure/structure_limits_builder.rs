@@ -79,10 +79,7 @@ where
     /// Sets the sequence-item limit.
     #[inline]
     #[must_use]
-    pub fn sequence_items_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn sequence_items_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_sequence_items_limit(limit);
         self
     }
@@ -90,10 +87,7 @@ where
     /// Sets the map-entry limit.
     #[inline]
     #[must_use]
-    pub fn map_entries_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn map_entries_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_map_entries_limit(limit);
         self
     }

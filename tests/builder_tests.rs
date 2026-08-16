@@ -1,5 +1,6 @@
 use qubit_budget::ResourceLimit;
 use qubit_budget::StringLimits;
+use qubit_budget::StringLimitsBuilder;
 use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
 
@@ -25,8 +26,7 @@ fn builders_cover_generic_limit_setters() {
         .build();
     assert_eq!(string.utf8_bytes_limit().unwrap().maximum(), 6);
     let _: StringLimits<StructureResource, u64> = Default::default();
-    let _: qubit_budget::StringLimitsBuilder<StructureResource, u64> =
-        Default::default();
+    let _: StringLimitsBuilder<StructureResource, u64> = Default::default();
 
     #[cfg(feature = "json")]
     {
@@ -90,6 +90,7 @@ fn builders_cover_generic_limit_setters() {
     #[cfg(feature = "big-integer")]
     {
         use qubit_budget::BigIntegerLimits;
+        use qubit_budget::BigIntegerLimitsBuilder;
         let integer = BigIntegerLimits::<StructureResource, u64>::builder()
             .magnitude_bits_limit(ResourceLimit::new(
                 StructureResource::Nodes,
@@ -103,13 +104,14 @@ fn builders_cover_generic_limit_setters() {
         assert_eq!(integer.magnitude_bits_limit().unwrap().maximum(), 21);
         assert!(integer.significant_decimal_digits_limit().is_some());
         let _: BigIntegerLimits<StructureResource, u64> = Default::default();
-        let _: qubit_budget::BigIntegerLimitsBuilder<StructureResource, u64> =
+        let _: BigIntegerLimitsBuilder<StructureResource, u64> =
             Default::default();
     }
 
     #[cfg(feature = "big-decimal")]
     {
         use qubit_budget::BigDecimalLimits;
+        use qubit_budget::BigDecimalLimitsBuilder;
         use qubit_budget::BigIntegerLimits;
         let decimal = BigDecimalLimits::<StructureResource, u64>::builder()
             .coefficient_limits(
@@ -133,7 +135,7 @@ fn builders_cover_generic_limit_setters() {
                 .is_some()
         );
         let _: BigDecimalLimits<StructureResource, u64> = Default::default();
-        let _: qubit_budget::BigDecimalLimitsBuilder<StructureResource, u64> =
+        let _: BigDecimalLimitsBuilder<StructureResource, u64> =
             Default::default();
     }
 }

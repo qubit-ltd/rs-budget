@@ -85,7 +85,10 @@ where
 
     /// Replaces coefficient limits during builder composition.
     #[inline(always)]
-    pub(super) fn set_coefficient_limits(&mut self, limits: BigIntegerLimits<R, Q>) {
+    pub(super) fn set_coefficient_limits(
+        &mut self,
+        limits: BigIntegerLimits<R, Q>,
+    ) {
         self.coefficient = limits;
     }
 

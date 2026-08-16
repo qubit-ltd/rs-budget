@@ -39,7 +39,10 @@ where
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
-        Self { output: None, value: JsonValueLimits::new() }
+        Self {
+            output: None,
+            value: JsonValueLimits::new(),
+        }
     }
 
     #[inline]
@@ -75,7 +78,10 @@ where
         }
     }
 
-    pub(super) fn set_output_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
+    pub(super) fn set_output_bytes_limit(
+        &mut self,
+        limit: ResourceLimit<R, Q>,
+    ) {
         self.output = Some(limit);
     }
 

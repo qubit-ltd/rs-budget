@@ -7,8 +7,8 @@
 // =============================================================================
 mod decode;
 mod encode;
-mod value;
 mod json_container_kind_tests;
 mod json_documentation_tests;
 mod json_measurement_tests;
 mod json_resource_tests;
+mod value;

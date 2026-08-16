@@ -52,6 +52,11 @@ pub use structure::StructureBudget;
 pub use structure::StructureLimits;
 pub use structure::StructureLimitsBuilder;
 pub use structure::StructureResource;
+pub use time::DurationBudget;
+#[cfg(feature = "time")]
+pub use time::TimeBudget;
+#[cfg(feature = "time")]
+pub use time::TimeBudgetError;
 #[cfg(feature = "big-decimal")]
 pub use value::BigDecimalLimits;
 #[cfg(feature = "big-decimal")]
@@ -62,8 +67,3 @@ pub use value::BigIntegerLimits;
 pub use value::BigIntegerLimitsBuilder;
 pub use value::StringLimits;
 pub use value::StringLimitsBuilder;
-pub use time::DurationBudget;
-#[cfg(feature = "time")]
-pub use time::TimeBudget;
-#[cfg(feature = "time")]
-pub use time::TimeBudgetError;

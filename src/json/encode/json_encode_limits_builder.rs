@@ -38,7 +38,9 @@ where
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
-        Self { limits: JsonEncodeLimits::new() }
+        Self {
+            limits: JsonEncodeLimits::new(),
+        }
     }
 
     #[inline]
@@ -71,7 +73,10 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
     #[inline]
     #[must_use]
     pub fn max_output_bytes(mut self, maximum: usize) -> Self {
-        self.limits.set_output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, maximum));
+        self.limits.set_output_bytes_limit(ResourceLimit::new(
+            JsonResource::OutputBytes,
+            maximum,
+        ));
         self
     }
 
@@ -128,7 +133,8 @@ impl JsonEncodeLimitsBuilder<JsonResource, usize> {
         F: FnOnce(crate::json::JsonValueLimitsBuilder) -> JsonValueLimits,
     {
         let value = *self.limits.value_limits();
-        self.limits.set_value_limits(configure(value.into_builder()));
+        self.limits
+            .set_value_limits(configure(value.into_builder()));
         self
     }
 }
