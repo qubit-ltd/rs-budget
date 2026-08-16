@@ -196,6 +196,13 @@ where
     {
         PreparedJsonAdmission::prepare(self, measurement)?.check_point(self)
     }
+
+    /// Creates a fresh mutable budget from these JSON value limits.
+    #[inline]
+    #[must_use]
+    pub fn budget(self) -> JsonValueBudget<R, Q> {
+        JsonValueBudget::new(self)
+    }
 }
 
 impl<Q> JsonValueLimits<JsonResource, Q>
@@ -277,13 +284,6 @@ where
         self.max_payload_bytes =
             Some(ResourceLimit::new(JsonResource::PayloadBytes, maximum));
         self
-    }
-
-    /// Creates a fresh mutable budget from these JSON value limits.
-    #[inline]
-    #[must_use]
-    pub fn budget(self) -> JsonValueBudget<JsonResource, Q> {
-        JsonValueBudget::new(self)
     }
 }
 

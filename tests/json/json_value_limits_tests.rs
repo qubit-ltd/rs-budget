@@ -137,6 +137,29 @@ fn test_custom_resources_remain_attached_to_value_limits() {
     );
 }
 
+/// Verifies generic value limits can create a budget directly.
+#[test]
+fn test_custom_resources_create_value_budget() {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum Resource {
+        Nodes,
+    }
+
+    let mut budget = JsonValueLimits::<Resource, u8>::new()
+        .with_structure_limits(
+            StructureLimits::new()
+                .with_nodes_limit(ResourceLimit::new(Resource::Nodes, 1)),
+        )
+        .budget();
+    let mut transaction = budget.transaction();
+    transaction
+        .try_admit(JsonMeasurement::Null { depth: 0 })
+        .expect("one node fits");
+    transaction.commit();
+
+    assert_eq!(budget.used_nodes(), Some(1));
+}
+
 /// Verifies point checks reject an oversized array without creating a budget.
 #[test]
 fn test_check_point_array_measurement_rejects_items_without_mutable_budget() {
