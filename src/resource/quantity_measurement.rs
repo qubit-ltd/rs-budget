@@ -10,7 +10,6 @@
 use std::fmt;
 
 /// A native unsigned measurement whose value could not fit a resource quantity.
-#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QuantityMeasurement {
     /// Measurement supplied by a Rust container or string length.

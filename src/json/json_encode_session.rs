@@ -16,7 +16,6 @@ use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON encoding operation.
-#[must_use]
 #[derive(Debug)]
 pub struct JsonEncodeSession<'a, R = JsonResource, Q = usize>
 where
@@ -33,6 +32,7 @@ where
 {
     /// Creates a session borrowing only a caller-owned value budget.
     #[inline]
+    #[must_use]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             storage: EncodeStorage::Borrowed {
@@ -44,6 +44,7 @@ where
 
     /// Creates a session borrowing caller-owned output and value budgets.
     #[inline]
+    #[must_use]
     pub fn borrowing_output(
         output: &'a mut ResourceBudget<R, Q>,
         value: &'a mut JsonValueBudget<R, Q>,
@@ -61,14 +62,14 @@ where
     /// The returned attempt charges accepted output immediately, but publishes
     /// staged JSON value accounting only after `commit`. Dropping it rolls back
     /// only the staged value state.
-    #[must_use = "dropping the attempt rolls back JSON value accounting"]
+    #[must_use]
     pub fn begin_value(&mut self) -> JsonEncodeAttempt<'_, R, Q> {
         let (output, value) = self.storage.split();
         JsonEncodeAttempt::new(output, value.transaction())
     }
 
     /// Returns the output budget when configured.
-    #[must_use = "the output budget reports consumed output bytes"]
+    #[must_use]
     #[inline(always)]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
@@ -85,7 +86,7 @@ where
     }
 
     /// Returns the value budget for read-only inspection.
-    #[must_use = "the value budget reports accepted JSON traversal"]
+    #[must_use]
     #[inline(always)]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
@@ -102,6 +103,7 @@ where
 {
     /// Creates an owned session from immutable limits.
     #[inline]
+    #[must_use]
     pub fn owned(limits: JsonEncodeLimits<R, Q>) -> Self {
         let output = limits
             .output_bytes_limit()

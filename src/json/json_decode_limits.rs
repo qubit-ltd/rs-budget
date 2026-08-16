@@ -13,7 +13,6 @@ use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
 /// Optional limits for one JSON decoding session.
-#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonDecodeLimits<R = JsonResource, Q = usize>
 where
@@ -41,6 +40,7 @@ where
 {
     /// Creates an unconfigured generic decoding limit set.
     #[inline]
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             input: None,
@@ -50,18 +50,27 @@ where
     }
     /// Configures the cumulative raw input-byte budget.
     #[inline]
-    pub fn with_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    #[must_use]
+    pub fn with_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.input = Some(limit);
         self
     }
     /// Configures the cumulative normalized input-byte budget.
     #[inline]
-    pub fn with_normalized_input_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    #[must_use]
+    pub fn with_normalized_input_bytes_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.normalized_input = Some(limit);
         self
     }
     /// Replaces the direction-independent value limits for decoding.
     #[inline]
+    #[must_use]
     pub fn with_value_limits(mut self, limits: JsonValueLimits<R, Q>) -> Self {
         self.value = limits;
         self
@@ -75,17 +84,19 @@ where
     /// Returns the complete normalized input-byte limit, when configured.
     #[must_use]
     #[inline(always)]
-    pub const fn normalized_input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
+    pub const fn normalized_input_bytes_limit(
+        &self,
+    ) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
     }
     /// Borrows the JSON value limits used for decoding.
-    #[must_use = "the value limits determine decode traversal constraints"]
+    #[must_use]
     #[inline(always)]
     pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
         &self.value
     }
     /// Consumes these decoding limits and returns their JSON value limits.
-    #[must_use = "the returned value limits can configure a JSON value budget"]
+    #[must_use]
     #[inline]
     pub fn into_value_limits(self) -> JsonValueLimits<R, Q> {
         self.value
@@ -106,18 +117,22 @@ where
 impl JsonDecodeLimits<JsonResource, usize> {
     /// Creates an unconfigured decoding limit set using the standard JSON
     /// resource types and `usize` measurements.
+    #[must_use]
     pub const fn empty() -> Self {
         Self::new()
     }
     /// Configures the cumulative raw input-byte maximum.
     #[inline]
+    #[must_use]
     pub fn with_max_input_bytes(mut self, maximum: usize) -> Self {
-        self.input = Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        self.input =
+            Some(ResourceLimit::new(JsonResource::InputBytes, maximum));
         self
     }
 
     /// Configures the cumulative normalized input-byte maximum.
     #[inline]
+    #[must_use]
     pub fn with_max_normalized_input_bytes(mut self, maximum: usize) -> Self {
         self.normalized_input = Some(ResourceLimit::new(
             JsonResource::NormalizedInputBytes,
@@ -128,6 +143,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the inclusive maximum nesting depth.
     #[inline]
+    #[must_use]
     pub fn with_max_depth(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_depth(maximum);
         self
@@ -135,6 +151,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the cumulative maximum number of JSON nodes.
     #[inline]
+    #[must_use]
     pub fn with_max_nodes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_nodes(maximum);
         self
@@ -142,6 +159,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the maximum number of items in one JSON array.
     #[inline]
+    #[must_use]
     pub fn with_max_sequence_items(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_sequence_items(maximum);
         self
@@ -149,6 +167,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the maximum number of entries in one JSON object.
     #[inline]
+    #[must_use]
     pub fn with_max_map_entries(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_map_entries(maximum);
         self
@@ -156,6 +175,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the maximum UTF-8 byte length of one JSON object key.
     #[inline]
+    #[must_use]
     pub fn with_max_key_bytes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_key_bytes(maximum);
         self
@@ -163,6 +183,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the maximum UTF-8 byte length of one JSON string.
     #[inline]
+    #[must_use]
     pub fn with_max_string_bytes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_string_bytes(maximum);
         self
@@ -170,6 +191,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the maximum byte length of one JSON number representation.
     #[inline]
+    #[must_use]
     pub fn with_max_number_bytes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_number_bytes(maximum);
         self
@@ -177,6 +199,7 @@ impl JsonDecodeLimits<JsonResource, usize> {
 
     /// Configures the cumulative payload-byte maximum.
     #[inline]
+    #[must_use]
     pub fn with_max_payload_bytes(mut self, maximum: usize) -> Self {
         self.value = self.value.with_max_payload_bytes(maximum);
         self

@@ -22,7 +22,6 @@ use crate::ResourceQuantity;
 /// The writer is constructed and committed by
 /// [`ResourceBudget::try_write_string`]. A failed render drops the buffered
 /// prefix and leaves the budget unchanged.
-#[must_use]
 pub struct BudgetedStringWriter<'a, R, Q = u64>
 where
     Q: ResourceQuantity,
@@ -59,7 +58,8 @@ where
         if self.failure.is_some() {
             return false;
         }
-        let Some(next_len) = checked_output_len(self.output.len(), bytes.len()) else {
+        let Some(next_len) = checked_output_len(self.output.len(), bytes.len())
+        else {
             self.failure = Some(WriterFailure::LengthOverflow);
             return false;
         };
@@ -92,14 +92,14 @@ where
     }
 
     /// Returns a formatting writer view over the current transaction.
-    #[must_use = "formatted output is written through the returned adapter"]
+    #[must_use]
     #[inline]
     pub fn as_fmt(&mut self) -> impl fmt::Write + '_ {
         FmtWriter { writer: self }
     }
 
     /// Returns an I/O writer view over the current transaction.
-    #[must_use = "output bytes are written through the returned adapter"]
+    #[must_use]
     #[inline]
     pub fn as_io(&mut self) -> impl io::Write + '_ {
         IoWriter { writer: self }
@@ -107,7 +107,10 @@ where
 }
 
 /// Adds two output lengths while detecting `usize` overflow.
-const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
+const fn checked_output_len(
+    current: usize,
+    additional: usize,
+) -> Option<usize> {
     current.checked_add(additional)
 }
 
@@ -146,11 +149,14 @@ where
         if let Err(error) = rendered {
             return Err(BudgetedStringError::Render(error));
         }
-        let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
+        let output = String::from_utf8(bytes)
+            .map_err(BudgetedStringError::InvalidUtf8)?;
         let output_length =
-            Q::try_from_usize(output.len()).map_err(|source| BudgetedStringError::Quantity {
-                resource: self.resource().clone(),
-                source,
+            Q::try_from_usize(output.len()).map_err(|source| {
+                BudgetedStringError::Quantity {
+                    resource: self.resource().clone(),
+                    source,
+                }
             })?;
         self.try_consume(output_length)
             .map_err(BudgetedStringError::Budget)?;

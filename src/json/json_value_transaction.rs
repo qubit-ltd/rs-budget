@@ -20,7 +20,6 @@ use crate::ResourceQuantity;
 ///
 /// Dropping this value, including during unwinding, discards its fixed-size
 /// working state and leaves the target budget's committed state unchanged.
-#[must_use]
 pub struct JsonValueTransaction<'a, R, Q>
 where
     Q: ResourceQuantity,
@@ -57,7 +56,8 @@ where
         &mut self,
         measurement: JsonMeasurement,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
+        let prepared =
+            PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
         prepared.check_point(self.target.limits())?;
         self.check_cumulative(prepared)?;
         self.apply(prepared);
@@ -75,8 +75,12 @@ where
         depth: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let measurement = match kind {
-            JsonContainerKind::Sequence => JsonMeasurement::Array { depth, items: 0 },
-            JsonContainerKind::Map => JsonMeasurement::Object { depth, entries: 0 },
+            JsonContainerKind::Sequence => {
+                JsonMeasurement::Array { depth, items: 0 }
+            }
+            JsonContainerKind::Map => {
+                JsonMeasurement::Object { depth, entries: 0 }
+            }
         };
         self.try_admit(measurement)
     }
@@ -105,7 +109,9 @@ where
                 .limits()
                 .structure_limits()
                 .sequence_items_limit(),
-            JsonContainerKind::Map => self.target.limits().structure_limits().map_entries_limit(),
+            JsonContainerKind::Map => {
+                self.target.limits().structure_limits().map_entries_limit()
+            }
         };
         self.check_container_items(prospective, limit)
     }
@@ -180,8 +186,9 @@ where
         let Some(limit) = limit else {
             return Ok(());
         };
-        let amount = Q::try_from_usize(amount)
-            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
+        let amount = Q::try_from_usize(amount).map_err(|source| {
+            MeasuredBudgetError::quantity(limit.resource().clone(), source)
+        })?;
         limit.check(amount).map_err(MeasuredBudgetError::from)
     }
 
@@ -209,7 +216,10 @@ where
     }
 
     /// Checks the configured payload budget for one event without mutation.
-    fn check_payload(&self, payload_bytes: Q) -> Result<(), MeasuredBudgetError<R, Q>> {
+    fn check_payload(
+        &self,
+        payload_bytes: Q,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let Some(remaining) = self.working.remaining_payload_bytes() else {
             return Ok(());
         };

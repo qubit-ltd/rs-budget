@@ -17,7 +17,6 @@ use crate::ResourceQuantity;
 ///
 /// Dropping an attempt rolls back JSON value accounting. Raw and normalized
 /// input charges remain committed, including while unwinding from a panic.
-#[must_use = "dropping the attempt rolls back JSON value accounting; input charges remain"]
 pub struct JsonDecodeAttempt<'a, R, Q>
 where
     Q: ResourceQuantity,
@@ -37,6 +36,7 @@ where
 {
     /// Creates an attempt from the budgets split out of a decode session.
     #[inline(always)]
+    #[must_use]
     pub(crate) const fn new(
         input: Option<&'a mut ResourceBudget<R, Q>>,
         normalized_input: Option<&'a mut ResourceBudget<R, Q>>,
@@ -86,14 +86,14 @@ where
     }
 
     /// Returns the raw input budget while the attempt exclusively owns it.
-    #[must_use = "the raw input budget reports immediately charged bytes"]
+    #[must_use]
     #[inline(always)]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.input.as_deref()
     }
 
     /// Returns the normalized input budget while the attempt owns it.
-    #[must_use = "the normalized budget reports immediately charged bytes"]
+    #[must_use]
     #[inline(always)]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.normalized_input.as_deref()
@@ -128,9 +128,11 @@ where
     }
 
     /// Returns the mutable transaction that holds this attempt's value state.
-    #[must_use = "the returned transaction must be used for JSON value admission"]
+    #[must_use]
     #[inline]
-    pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {
+    pub fn value_transaction_mut(
+        &mut self,
+    ) -> &mut JsonValueTransaction<'a, R, Q> {
         &mut self.value
     }
 

@@ -17,7 +17,6 @@ use crate::StructureResource;
 /// `R` identifies the resource values reported in [`crate::BudgetError`], and
 /// `Q` is the exact unsigned quantity used for all measurements. The default
 /// configuration uses [`StructureResource`] and [`usize`].
-#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StructureLimits<R = StructureResource, Q = usize>
 where
@@ -44,13 +43,7 @@ where
     Q: ResourceQuantity,
 {
     fn default() -> Self {
-        Self {
-            max_depth: None,
-            max_nodes: None,
-            max_sequence_items: None,
-            max_map_entries: None,
-            max_key_bytes: None,
-        }
+        Self::new()
     }
 }
 
@@ -64,6 +57,7 @@ where
     /// with [`Self::new`]. Custom resource sets use this constructor because
     /// their resource identity is supplied by each `*_limit` method.
     #[inline]
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             max_depth: None,
@@ -76,6 +70,7 @@ where
 
     /// Configures the inclusive nesting-depth limit.
     #[inline]
+    #[must_use]
     pub fn with_depth_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_depth = Some(limit);
         self
@@ -83,6 +78,7 @@ where
 
     /// Configures the cumulative node limit.
     #[inline]
+    #[must_use]
     pub fn with_nodes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_nodes = Some(limit);
         self
@@ -90,20 +86,29 @@ where
 
     /// Configures the inclusive sequence-item limit.
     #[inline]
-    pub fn with_sequence_items_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    #[must_use]
+    pub fn with_sequence_items_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_sequence_items = Some(limit);
         self
     }
 
     /// Configures the inclusive map-entry limit.
     #[inline]
-    pub fn with_map_entries_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
+    #[must_use]
+    pub fn with_map_entries_limit(
+        mut self,
+        limit: ResourceLimit<R, Q>,
+    ) -> Self {
         self.max_map_entries = Some(limit);
         self
     }
 
     /// Configures the inclusive structural-key byte limit.
     #[inline]
+    #[must_use]
     pub fn with_key_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_key_bytes = Some(limit);
         self
@@ -196,6 +201,7 @@ where
 
     /// Creates an independent structural budget session from these limits.
     #[inline]
+    #[must_use]
     pub fn budget(&self) -> StructureBudget<R, Q>
     where
         R: Clone,
@@ -207,20 +213,25 @@ where
 impl StructureLimits<StructureResource, usize> {
     /// Configures the inclusive maximum nesting depth.
     #[inline]
+    #[must_use]
     pub const fn with_max_depth(mut self, maximum: usize) -> Self {
-        self.max_depth = Some(ResourceLimit::new(StructureResource::Depth, maximum));
+        self.max_depth =
+            Some(ResourceLimit::new(StructureResource::Depth, maximum));
         self
     }
 
     /// Configures the cumulative maximum number of processed nodes.
     #[inline]
+    #[must_use]
     pub const fn with_max_nodes(mut self, maximum: usize) -> Self {
-        self.max_nodes = Some(ResourceLimit::new(StructureResource::Nodes, maximum));
+        self.max_nodes =
+            Some(ResourceLimit::new(StructureResource::Nodes, maximum));
         self
     }
 
     /// Configures the inclusive maximum item count for one sequence.
     #[inline]
+    #[must_use]
     pub const fn with_max_sequence_items(mut self, maximum: usize) -> Self {
         self.max_sequence_items = Some(ResourceLimit::new(
             StructureResource::SequenceItems,
@@ -231,15 +242,19 @@ impl StructureLimits<StructureResource, usize> {
 
     /// Configures the inclusive maximum entry count for one map.
     #[inline]
+    #[must_use]
     pub const fn with_max_map_entries(mut self, maximum: usize) -> Self {
-        self.max_map_entries = Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
+        self.max_map_entries =
+            Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
         self
     }
 
     /// Configures the inclusive maximum byte length of one structural key.
     #[inline]
+    #[must_use]
     pub const fn with_max_key_bytes(mut self, maximum: usize) -> Self {
-        self.max_key_bytes = Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
+        self.max_key_bytes =
+            Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
         self
     }
 }

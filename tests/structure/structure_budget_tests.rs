@@ -43,7 +43,8 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
 
 #[test]
 fn test_unconfigured_structure_limits_allow_all_checks() {
-    let mut budget = StructureLimits::<StructureResource, usize>::new().budget();
+    let mut budget =
+        StructureLimits::<StructureResource, usize>::new().budget();
 
     budget
         .check_depth(usize::MAX)
@@ -81,7 +82,8 @@ fn test_charge_node_failure_is_atomic() {
 
 #[test]
 fn test_budget_creates_independent_node_accounting_sessions() {
-    let limits = StructureLimits::<StructureResource, usize>::new().with_max_nodes(1);
+    let limits =
+        StructureLimits::<StructureResource, usize>::new().with_max_nodes(1);
     let mut first_budget = limits.budget();
     let mut second_budget = limits.budget();
 

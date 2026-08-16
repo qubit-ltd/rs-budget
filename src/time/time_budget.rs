@@ -25,7 +25,6 @@ use super::TimeBudgetError;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `C` - Monotonic clock implementation used to sample the budget.
-#[must_use]
 #[derive(Debug)]
 pub struct TimeBudget<R, C> {
     /// Resource value retained in deadline errors.
@@ -134,21 +133,19 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
 
 impl<R, C> TimeBudget<R, C> {
     /// Returns the associated resource.
-    #[must_use = "the resource identity is needed for diagnostics"]
+    #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
     /// Returns the instant sampled at construction.
-    #[must_use = "the construction instant defines elapsed time"]
     #[inline(always)]
     pub const fn started_at(&self) -> MonotonicInstant {
         self.started_at
     }
 
     /// Returns the fixed deadline.
-    #[must_use = "the deadline defines budget expiry"]
     #[inline(always)]
     pub const fn deadline(&self) -> MonotonicInstant {
         self.deadline
@@ -221,12 +218,12 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
         if now >= self.deadline {
             Ok(Duration::ZERO)
         } else {
-            self.deadline
-                .duration_since(now)
-                .map_err(|source| TimeBudgetError::Clock {
+            self.deadline.duration_since(now).map_err(|source| {
+                TimeBudgetError::Clock {
                     resource: self.resource.clone(),
                     source,
-                })
+                }
+            })
         }
     }
 
@@ -272,7 +269,10 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     /// past its deadline, [`TimeBudgetError::WouldExpire`] when the operation
     /// would reach or pass the deadline, or [`TimeBudgetError::Clock`] when
     /// calculating the prospective end instant overflows.
-    pub fn check_after(&self, duration: Duration) -> Result<(), TimeBudgetError<R>> {
+    pub fn check_after(
+        &self,
+        duration: Duration,
+    ) -> Result<(), TimeBudgetError<R>> {
         let now = self.clock.now();
         if now >= self.deadline {
             return Err(TimeBudgetError::Expired {
@@ -281,12 +281,12 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
                 now,
             });
         }
-        let end = now
-            .checked_add(duration)
-            .map_err(|source| TimeBudgetError::Clock {
+        let end = now.checked_add(duration).map_err(|source| {
+            TimeBudgetError::Clock {
                 resource: self.resource.clone(),
                 source,
-            })?;
+            }
+        })?;
         if end >= self.deadline {
             Err(TimeBudgetError::WouldExpire {
                 resource: self.resource.clone(),

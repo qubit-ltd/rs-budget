@@ -12,7 +12,6 @@ use crate::ResourceLimit;
 use crate::ResourceQuantity;
 
 /// Optional point limit for one UTF-8 string's byte length.
-#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StringLimits<R, Q = u64>
 where
@@ -27,6 +26,7 @@ where
 {
     /// Creates limits with no configured string bound.
     #[inline]
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             max_utf8_bytes: None,
@@ -35,6 +35,7 @@ where
 
     /// Adds an inclusive UTF-8 byte limit.
     #[inline]
+    #[must_use]
     pub fn with_utf8_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.max_utf8_bytes = Some(limit);
         self
@@ -59,8 +60,9 @@ where
         let Some(limit) = self.max_utf8_bytes.as_ref() else {
             return Ok(());
         };
-        let bytes = Q::try_from_usize(value.len())
-            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
+        let bytes = Q::try_from_usize(value.len()).map_err(|source| {
+            MeasuredBudgetError::quantity(limit.resource().clone(), source)
+        })?;
         limit.check(bytes).map_err(MeasuredBudgetError::from)
     }
 }

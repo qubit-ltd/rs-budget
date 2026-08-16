@@ -16,7 +16,6 @@ use crate::ResourceBudget;
 use crate::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON decoding operation.
-#[must_use]
 #[derive(Debug)]
 pub struct JsonDecodeSession<'a, R = JsonResource, Q = usize>
 where
@@ -33,6 +32,7 @@ where
 {
     /// Creates a session borrowing only a caller-owned value budget.
     #[inline]
+    #[must_use]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             storage: DecodeStorage::Borrowed {
@@ -45,6 +45,7 @@ where
 
     /// Creates a session borrowing caller-owned raw-input and value budgets.
     #[inline]
+    #[must_use]
     pub fn borrowing_input(
         input: &'a mut ResourceBudget<R, Q>,
         value: &'a mut JsonValueBudget<R, Q>,
@@ -60,6 +61,7 @@ where
 
     /// Creates a session borrowing all caller-owned decode budgets.
     #[inline]
+    #[must_use]
     pub fn borrowing_all(
         input: &'a mut ResourceBudget<R, Q>,
         normalized_input: &'a mut ResourceBudget<R, Q>,
@@ -79,14 +81,14 @@ where
     /// The returned attempt charges raw and normalized input immediately, but
     /// publishes staged JSON value accounting only after `commit`. Dropping it
     /// rolls back only the staged value state.
-    #[must_use = "dropping the attempt rolls back JSON value accounting"]
+    #[must_use]
     pub fn begin_value(&mut self) -> JsonDecodeAttempt<'_, R, Q> {
         let (input, normalized_input, value) = self.storage.split();
         JsonDecodeAttempt::new(input, normalized_input, value.transaction())
     }
 
     /// Returns the raw input budget when configured.
-    #[must_use = "the raw input budget reports consumed input bytes"]
+    #[must_use]
     #[inline(always)]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
@@ -110,7 +112,7 @@ where
     }
 
     /// Returns the normalized input budget when configured.
-    #[must_use = "the normalized budget reports consumed normalized bytes"]
+    #[must_use]
     #[inline(always)]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
@@ -124,7 +126,7 @@ where
     }
 
     /// Returns the value budget for read-only inspection.
-    #[must_use = "the value budget reports accepted JSON traversal"]
+    #[must_use]
     #[inline(always)]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
@@ -141,6 +143,7 @@ where
 {
     /// Creates an owned session from immutable limits.
     #[inline]
+    #[must_use]
     pub fn owned(limits: JsonDecodeLimits<R, Q>) -> Self {
         let input = limits
             .input_bytes_limit()

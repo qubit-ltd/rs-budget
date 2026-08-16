@@ -14,7 +14,6 @@ use super::internal::JsonValueState;
 use crate::ResourceQuantity;
 
 /// Committed JSON value accounting with immutable traversal limits.
-#[must_use]
 #[derive(Debug, PartialEq, Eq)]
 pub struct JsonValueBudget<R = JsonResource, Q = usize>
 where
@@ -32,6 +31,7 @@ where
     Q: ResourceQuantity,
 {
     /// Starts an all-or-nothing accounting transaction for one JSON value.
+    #[must_use]
     pub fn transaction(&mut self) -> JsonValueTransaction<'_, R, Q> {
         JsonValueTransaction::new(self)
     }
@@ -40,9 +40,9 @@ where
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
-        self.state
-            .remaining_nodes()
-            .map(|remaining| self.limits.max_nodes().expect("configured nodes limit") - remaining)
+        self.state.remaining_nodes().map(|remaining| {
+            self.limits.max_nodes().expect("configured nodes limit") - remaining
+        })
     }
 
     /// Returns committed remaining node capacity when that limit is set.
@@ -79,18 +79,23 @@ where
 {
     /// Creates an empty committed ledger for `limits`.
     #[inline]
+    #[must_use]
     pub fn new(limits: JsonValueLimits<R, Q>) -> Self {
-        let state = JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
+        let state =
+            JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
         Self { limits, state }
     }
 
     /// Restores the ledger to its original zero-used committed state.
     pub fn reset(&mut self) {
-        self.state = JsonValueState::new(self.limits.max_nodes(), self.limits.max_payload_bytes());
+        self.state = JsonValueState::new(
+            self.limits.max_nodes(),
+            self.limits.max_payload_bytes(),
+        );
     }
 
     /// Returns the immutable limits shared by all transactions.
-    #[must_use = "the limits determine which transactions can be committed"]
+    #[must_use]
     #[inline(always)]
     pub const fn limits(&self) -> &JsonValueLimits<R, Q> {
         &self.limits

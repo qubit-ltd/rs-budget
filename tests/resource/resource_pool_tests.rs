@@ -20,7 +20,8 @@ enum TestResource {
     OpenFiles,
 }
 
-const OPEN_FILE_POOL: ResourcePool<&str> = ResourcePool::new("open-files", 3_u64);
+const OPEN_FILE_POOL: ResourcePool<&str> =
+    ResourcePool::new("open-files", 3_u64);
 
 #[test]
 fn test_new_is_const() {
@@ -42,7 +43,10 @@ fn test_release_can_happen_in_another_context_and_in_parts() {
     assert_eq!(pool.in_use(), 0);
 }
 
-fn acquire_then_release(pool: &mut ResourcePool<TestResource>, amount: u64) -> Result<(), String> {
+fn acquire_then_release(
+    pool: &mut ResourcePool<TestResource>,
+    amount: u64,
+) -> Result<(), String> {
     pool.try_acquire(amount)
         .map_err(|error| error.to_string())?;
     pool.release(amount).map_err(|error| error.to_string())?;
@@ -63,7 +67,8 @@ fn test_release_makes_capacity_reusable() {
 #[test]
 fn test_acquire_and_release_have_distinct_error_types() {
     let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
-    acquire_then_release(&mut pool, 1).expect("both operations should share one error type");
+    acquire_then_release(&mut pool, 1)
+        .expect("both operations should share one error type");
 }
 
 #[test]

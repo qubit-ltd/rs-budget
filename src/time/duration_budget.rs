@@ -22,7 +22,6 @@ use crate::ResourceLimit;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
-#[must_use]
 #[derive(Debug, PartialEq, Eq)]
 pub struct DurationBudget<R> {
     /// Finite maximum active duration of the budget.
@@ -55,6 +54,7 @@ impl<R> DurationBudget<R> {
     /// assert_eq!(budget.remaining(), Duration::from_secs(3));
     /// ```
     #[inline]
+    #[must_use]
     pub const fn new(resource: R, limit: Duration) -> Self {
         Self {
             limit: ResourceLimit::new(resource, limit),
@@ -72,6 +72,7 @@ impl<R> DurationBudget<R> {
     ///
     /// A budget whose remaining duration equals the limit maximum.
     #[inline]
+    #[must_use]
     pub fn from_limit(limit: ResourceLimit<R, Duration>) -> Self {
         let remaining = limit.maximum();
         Self { limit, remaining }
@@ -150,7 +151,7 @@ impl<R> DurationBudget<R> {
     /// The exact duration consumed, equal to the smaller of `requested` and
     /// the current remaining duration.
     #[inline]
-    #[must_use = "the resource limit configures this duration budget"]
+    #[must_use]
     pub fn consume_available(&mut self, requested: Duration) -> Duration {
         let consumed = requested.min(self.remaining);
         self.remaining -= consumed;
@@ -165,7 +166,7 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns the immutable resource limit that configures this budget.
-    #[must_use = "the resource limit configures this duration budget"]
+    #[must_use]
     #[inline(always)]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Duration> {
         &self.limit

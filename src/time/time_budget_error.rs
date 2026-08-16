@@ -18,7 +18,6 @@ use thiserror::Error;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
-#[must_use]
 #[derive(Debug, Error)]
 pub enum TimeBudgetError<R> {
     /// The clock rejected a domain or instant operation.
@@ -31,7 +30,9 @@ pub enum TimeBudgetError<R> {
         source: TimeError,
     },
     /// The fixed deadline has already been reached.
-    #[error("time budget for {resource:?} expired at {deadline:?}; now is {now:?}")]
+    #[error(
+        "time budget for {resource:?} expired at {deadline:?}; now is {now:?}"
+    )]
     Expired {
         /// Resource value associated with the deadline.
         resource: R,
@@ -41,7 +42,9 @@ pub enum TimeBudgetError<R> {
         now: MonotonicInstant,
     },
     /// A prospective operation would reach or pass the deadline.
-    #[error("time budget for {resource:?} at {now:?} cannot fit {requested:?} before {deadline:?}")]
+    #[error(
+        "time budget for {resource:?} at {now:?} cannot fit {requested:?} before {deadline:?}"
+    )]
     WouldExpire {
         /// Resource value associated with the deadline.
         resource: R,
@@ -102,7 +105,8 @@ impl<R> TimeBudgetError<R> {
     #[inline(always)]
     pub const fn deadline(&self) -> Option<MonotonicInstant> {
         match self {
-            Self::Expired { deadline, .. } | Self::WouldExpire { deadline, .. } => Some(*deadline),
+            Self::Expired { deadline, .. }
+            | Self::WouldExpire { deadline, .. } => Some(*deadline),
             Self::Clock { .. } => None,
         }
     }
@@ -117,7 +121,9 @@ impl<R> TimeBudgetError<R> {
     #[inline(always)]
     pub const fn now(&self) -> Option<MonotonicInstant> {
         match self {
-            Self::Expired { now, .. } | Self::WouldExpire { now, .. } => Some(*now),
+            Self::Expired { now, .. } | Self::WouldExpire { now, .. } => {
+                Some(*now)
+            }
             Self::Clock { .. } => None,
         }
     }

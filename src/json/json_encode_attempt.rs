@@ -17,7 +17,6 @@ use crate::ResourceQuantity;
 ///
 /// Dropping an attempt rolls back JSON value accounting. Accepted output
 /// charges remain committed, including while unwinding from a panic.
-#[must_use = "dropping the attempt rolls back JSON value accounting; accepted output charges remain"]
 pub struct JsonEncodeAttempt<'a, R, Q>
 where
     Q: ResourceQuantity,
@@ -35,6 +34,7 @@ where
 {
     /// Creates an attempt from the budgets split out of an encode session.
     #[inline(always)]
+    #[must_use]
     pub(crate) const fn new(
         output: Option<&'a mut ResourceBudget<R, Q>>,
         value: JsonValueTransaction<'a, R, Q>,
@@ -47,7 +47,10 @@ where
     /// Returns a quantity-conversion or budget error without changing the
     /// configured output budget. An absent output budget is ignored.
     #[inline]
-    pub fn check_output_bytes(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn check_output_bytes(
+        &self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref() {
             Some(budget) => budget.check_available_usize(amount),
             None => Ok(()),
@@ -82,7 +85,7 @@ where
     }
 
     /// Returns the output budget while the attempt exclusively owns it.
-    #[must_use = "the output budget reports immediately charged bytes"]
+    #[must_use]
     #[inline(always)]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.output.as_deref()
@@ -94,7 +97,7 @@ where
     /// The returned transaction keeps its value changes staged until this
     /// attempt is committed. Dropping the attempt rolls back only that value
     /// state.
-    #[must_use = "the returned output budget and value transaction perform the encode accounting"]
+    #[must_use]
     #[inline]
     pub fn split_mut(
         &mut self,
@@ -134,9 +137,11 @@ where
     }
 
     /// Returns the mutable transaction that holds this attempt's value state.
-    #[must_use = "the returned transaction must be used for JSON value admission"]
+    #[must_use]
     #[inline]
-    pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {
+    pub fn value_transaction_mut(
+        &mut self,
+    ) -> &mut JsonValueTransaction<'a, R, Q> {
         &mut self.value
     }
 

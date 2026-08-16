@@ -75,7 +75,8 @@ fn test_encode_attempt_checks_output_and_reuses_session() {
 #[test]
 fn test_encode_attempt_value_transaction_mut_exposes_working_state() {
     let mut session = JsonEncodeSession::owned(
-        JsonEncodeLimits::<JsonResource, usize>::new().with_max_payload_bytes(4),
+        JsonEncodeLimits::<JsonResource, usize>::new()
+            .with_max_payload_bytes(4),
     );
     let mut attempt = session.begin_value();
     attempt
@@ -144,7 +145,8 @@ fn test_encode_session_borrowing_output_keeps_charge_after_attempt_drop() {
         .with_max_nodes(2)
         .budget();
     {
-        let mut session = JsonEncodeSession::borrowing_output(&mut output, &mut value);
+        let mut session =
+            JsonEncodeSession::borrowing_output(&mut output, &mut value);
         let mut attempt = session.begin_value();
         attempt.try_consume_output_bytes(3).expect("output fits");
         attempt
@@ -164,16 +166,17 @@ fn test_encode_attempt_output_error_is_atomic() {
             .with_max_output_bytes(2)
             .with_max_nodes(1),
     );
-    let mut attempt = session.begin_value();
-    assert!(attempt.try_consume_output_bytes(3).is_err());
-    assert_eq!(
-        attempt.output_budget().expect("configured output").used(),
-        0
-    );
-    attempt
-        .try_admit(JsonMeasurement::Null { depth: 1 })
-        .expect("value fits");
-    drop(attempt);
+    {
+        let mut attempt = session.begin_value();
+        assert!(attempt.try_consume_output_bytes(3).is_err());
+        assert_eq!(
+            attempt.output_budget().expect("configured output").used(),
+            0
+        );
+        attempt
+            .try_admit(JsonMeasurement::Null { depth: 1 })
+            .expect("value fits");
+    }
     assert_eq!(session.value_budget().used_nodes(), Some(0));
 }
 

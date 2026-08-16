@@ -27,6 +27,7 @@ where
 {
     /// Creates the initial zero-used state from configured cumulative maxima.
     #[inline(always)]
+    #[must_use]
     pub(crate) const fn new(
         remaining_nodes: Option<Q>,
         remaining_payload_bytes: Option<Q>,

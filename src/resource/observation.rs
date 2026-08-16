@@ -14,7 +14,6 @@ use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
 /// A resource observation that may be exact or only a safe lower bound.
-#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Observation<Q> {
     /// The measured quantity is exact.

@@ -11,7 +11,6 @@
 use crate::QuantityMeasurement;
 
 /// Error returned when a native measurement cannot fit the selected quantity.
-#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("measurement {measurement} cannot be represented by {target}")]
 pub struct QuantityConversionError {
@@ -33,7 +32,11 @@ impl QuantityConversionError {
     ///
     /// A failure retaining both the original measurement and target type.
     #[inline(always)]
-    pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
+    #[must_use]
+    pub const fn new(
+        measurement: QuantityMeasurement,
+        target: &'static str,
+    ) -> Self {
         Self {
             measurement,
             target,
@@ -41,7 +44,7 @@ impl QuantityConversionError {
     }
 
     /// Returns the native measurement that could not be represented.
-    #[must_use = "the measurement identifies the failed native quantity"]
+    #[must_use]
     #[inline(always)]
     pub const fn measurement(&self) -> QuantityMeasurement {
         self.measurement
