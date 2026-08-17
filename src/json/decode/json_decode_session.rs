@@ -31,8 +31,8 @@ use crate::resource::ResourceQuantity;
 /// use qubit_budget::json::JsonMeasurement;
 ///
 /// let limits = JsonDecodeLimits::builder()
-///     .max_input_bytes(4)
-///     .max_nodes(1)
+///     .max_input_bytes(4_usize)
+///     .max_nodes(1_usize)
 ///     .build();
 /// let mut session = JsonDecodeSession::owned(limits);
 /// let mut attempt = session.begin_value();

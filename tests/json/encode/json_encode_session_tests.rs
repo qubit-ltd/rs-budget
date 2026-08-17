@@ -141,6 +141,25 @@ fn test_encode_session_borrowing_value_reuses_committed_budget() {
     assert_eq!(value.used_nodes(), Some(1));
 }
 
+/// Verifies encode session accessors across configured and unconfigured
+/// storage.
+#[test]
+fn test_encode_session_accessors_report_configured_budgets() {
+    let session = JsonEncodeSession::owned(
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(8)
+            .build(),
+    );
+    assert_eq!(session.max_output_bytes(), Some(8));
+    assert!(session.output_budget().is_some());
+    assert!(session.value_budget().used_nodes().is_none());
+
+    let mut value = JsonValueLimits::<JsonResource, usize>::new().budget();
+    let session = JsonEncodeSession::borrowing_value(&mut value);
+    assert_eq!(session.max_output_bytes(), None);
+    assert!(session.output_budget().is_none());
+}
+
 /// Verifies that a session borrowing output retains accepted output when its
 /// value attempt is dropped.
 #[test]
@@ -151,8 +170,7 @@ fn test_encode_session_borrowing_output_keeps_charge_after_attempt_drop() {
         .build()
         .budget();
     {
-        let mut session =
-            JsonEncodeSession::borrowing_output(&mut output, &mut value);
+        let mut session = JsonEncodeSession::borrowing_output(&mut output, &mut value);
         let mut attempt = session.begin_value();
         attempt.try_consume_output_bytes(3).expect("output fits");
         attempt

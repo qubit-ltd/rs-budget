@@ -62,9 +62,9 @@ where
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
-        self.state.remaining_nodes().map(|remaining| {
-            self.limits.max_nodes().expect("configured nodes limit") - remaining
-        })
+        self.state
+            .remaining_nodes()
+            .map(|remaining| self.limits.max_nodes().expect("configured nodes limit") - remaining)
     }
 
     /// Returns committed remaining node capacity when that limit is set.
@@ -103,17 +103,13 @@ where
     #[inline]
     #[must_use]
     pub fn new(limits: JsonValueLimits<R, Q>) -> Self {
-        let state =
-            JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
+        let state = JsonValueState::new(limits.max_nodes(), limits.max_payload_bytes());
         Self { limits, state }
     }
 
     /// Restores the ledger to its original zero-used committed state.
     pub fn reset(&mut self) {
-        self.state = JsonValueState::new(
-            self.limits.max_nodes(),
-            self.limits.max_payload_bytes(),
-        );
+        self.state = JsonValueState::new(self.limits.max_nodes(), self.limits.max_payload_bytes());
     }
 
     /// Returns the immutable limits shared by all transactions.

@@ -34,3 +34,17 @@ fn test_encode_attempt_drop_preserves_output_only() {
     assert_eq!(session.output_budget().expect("output budget").used(), 2);
     assert_eq!(session.value_budget().used_nodes(), Some(0));
 }
+
+#[test]
+fn test_encode_attempt_can_consume_output_bytes() {
+    let mut session = JsonEncodeSession::owned(
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(4)
+            .build(),
+    );
+    let mut attempt = session.begin_value();
+    attempt
+        .try_consume_output_bytes(3)
+        .expect("output charge fits");
+    assert_eq!(attempt.output_budget().expect("output budget").used(), 3);
+}

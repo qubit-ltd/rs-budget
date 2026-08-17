@@ -19,9 +19,7 @@ where
     Q: Copy + Debug,
 {
     /// A release request exceeded the amount currently in use.
-    #[error(
-        "resource {resource:?} has {in_use:?} in use, but {requested:?} was released"
-    )]
+    #[error("resource {resource:?} has {in_use:?} in use, but {requested:?} was released")]
     InvalidRelease {
         /// Resource associated with the failed release request.
         resource: R,

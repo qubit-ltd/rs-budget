@@ -5,7 +5,6 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-use qubit_budget::ResourceLimit;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
@@ -66,7 +65,16 @@ fn test_empty_encode_limits_report_unconfigured_maximum() {
 #[test]
 fn test_generic_encode_limits_expose_maximum() {
     let limits = JsonEncodeLimits::<JsonResource, u8>::builder()
-        .output_bytes_limit(ResourceLimit::new(JsonResource::OutputBytes, 4))
+        .max_output_bytes(4)
+        .max_depth(5)
+        .max_nodes(6)
+        .max_sequence_items(7)
+        .max_map_entries(8)
+        .max_key_bytes(9)
+        .max_string_bytes(10)
+        .max_number_bytes(11)
+        .max_payload_bytes(12)
         .build();
     assert_eq!(limits.max_output_bytes(), Some(4));
+    assert_eq!(limits.value_limits().max_payload_bytes(), Some(12));
 }

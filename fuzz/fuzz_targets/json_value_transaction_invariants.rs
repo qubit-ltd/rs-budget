@@ -38,7 +38,7 @@ fuzz_target!(|data: &[u8]| {
                 .first()
                 .copied()
                 .unwrap_or_default()
-                % 4
+                % 6
             {
                 0 => JsonMeasurement::Null { depth: 0 },
                 1 => JsonMeasurement::Boolean { depth: 0 },
@@ -46,6 +46,30 @@ fuzz_target!(|data: &[u8]| {
                     depth: 0,
                     bytes: usize::from(
                         measurement_chunk.get(1).copied().unwrap_or_default(),
+                    ),
+                },
+                3 => JsonMeasurement::Array {
+                    depth: usize::from(
+                        measurement_chunk.get(1).copied().unwrap_or_default(),
+                    ),
+                    items: usize::from(
+                        measurement_chunk.get(2).copied().unwrap_or_default(),
+                    ),
+                },
+                4 => JsonMeasurement::Object {
+                    depth: usize::from(
+                        measurement_chunk.get(1).copied().unwrap_or_default(),
+                    ),
+                    entries: usize::from(
+                        measurement_chunk.get(2).copied().unwrap_or_default(),
+                    ),
+                },
+                5 => JsonMeasurement::Number {
+                    depth: usize::from(
+                        measurement_chunk.get(1).copied().unwrap_or_default(),
+                    ),
+                    bytes: usize::from(
+                        measurement_chunk.get(2).copied().unwrap_or_default(),
                     ),
                 },
                 _ => JsonMeasurement::Key {

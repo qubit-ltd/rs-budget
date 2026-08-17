@@ -38,10 +38,7 @@ where
 {
     /// Creates a grouped failure for the first rejecting budget.
     #[must_use]
-    pub(crate) const fn new(
-        index: usize,
-        source: InsufficientBudgetError<R, Q>,
-    ) -> Self {
+    pub(crate) const fn new(index: usize, source: InsufficientBudgetError<R, Q>) -> Self {
         Self { index, source }
     }
 

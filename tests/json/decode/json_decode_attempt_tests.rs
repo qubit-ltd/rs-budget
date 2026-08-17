@@ -34,3 +34,17 @@ fn test_decode_attempt_drop_preserves_input_only() {
     assert_eq!(session.input_budget().expect("input budget").used(), 2);
     assert_eq!(session.value_budget().used_nodes(), Some(0));
 }
+
+#[test]
+fn test_decode_attempt_can_consume_input_bytes() {
+    let mut session = JsonDecodeSession::owned(
+        JsonDecodeLimits::<JsonResource, usize>::builder()
+            .max_input_bytes(4)
+            .build(),
+    );
+    let mut attempt = session.begin_value();
+    attempt
+        .try_consume_input_bytes(3)
+        .expect("input charge fits");
+    assert_eq!(attempt.input_budget().expect("input budget").used(), 3);
+}

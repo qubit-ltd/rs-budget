@@ -55,6 +55,13 @@ where
         JsonDecodeLimitsBuilder::new()
     }
 
+    /// Converts these limits into a builder for further configuration.
+    #[inline]
+    #[must_use]
+    pub const fn into_builder(self) -> JsonDecodeLimitsBuilder<R, Q> {
+        JsonDecodeLimitsBuilder::from_limits(self)
+    }
+
     /// Returns the complete raw input-byte limit, when configured.
     #[must_use]
     #[inline(always)]
@@ -65,9 +72,7 @@ where
     /// Returns the complete normalized input-byte limit, when configured.
     #[must_use]
     #[inline(always)]
-    pub const fn normalized_input_bytes_limit(
-        &self,
-    ) -> Option<&ResourceLimit<R, Q>> {
+    pub const fn normalized_input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
     }
 
@@ -99,17 +104,17 @@ where
         limit_maximum(self.normalized_input.as_ref())
     }
 
+    /// Replaces the raw input-byte limit during builder composition.
     pub(super) fn set_input_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.input = Some(limit);
     }
 
-    pub(super) fn set_normalized_input_bytes_limit(
-        &mut self,
-        limit: ResourceLimit<R, Q>,
-    ) {
+    /// Replaces the normalized input-byte limit during builder composition.
+    pub(super) fn set_normalized_input_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.normalized_input = Some(limit);
     }
 
+    /// Replaces the JSON value limits during builder composition.
     pub(super) fn set_value_limits(&mut self, limits: JsonValueLimits<R, Q>) {
         self.value = limits;
     }

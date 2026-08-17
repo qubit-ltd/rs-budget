@@ -42,6 +42,13 @@ where
         }
     }
 
+    /// Creates a builder retaining an existing limit configuration.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_limits(limits: BigIntegerLimits<R, Q>) -> Self {
+        Self { limits }
+    }
+
     /// Sets the magnitude bit-length limit.
     #[inline]
     #[must_use]
@@ -53,10 +60,7 @@ where
     /// Sets the significant decimal digit limit.
     #[inline]
     #[must_use]
-    pub fn significant_decimal_digits_limit(
-        mut self,
-        limit: ResourceLimit<R, Q>,
-    ) -> Self {
+    pub fn significant_decimal_digits_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_significant_decimal_digits_limit(limit);
         self
     }

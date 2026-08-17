@@ -160,6 +160,42 @@ fn test_check_available_usize_preserves_budget_state() {
 }
 
 #[test]
+fn test_u64_checks_and_resource_accessor_cover_success_paths() {
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 8_u8);
+    assert_eq!(budget.resource(), &TestResource::Bytes);
+    assert_eq!(budget.resource_limit().maximum(), 8);
+    assert_eq!(budget.limit(), 8);
+    budget
+        .check_available_u64(3)
+        .expect("the u64 request should fit");
+    budget
+        .try_consume_u64(3)
+        .expect("the u64 request should be consumed");
+    assert_eq!(budget.used(), 3);
+    assert_eq!(budget.consume_available(10), 5);
+    assert_eq!(budget.remaining(), 0);
+}
+
+#[test]
+fn test_u64_quantity_budget_uses_u64_adapters() {
+    let mut budget = ResourceBudget::new(TestResource::Bytes, 8_u64);
+    budget
+        .check_available_u64(3)
+        .expect("the u64 request should fit");
+    budget
+        .try_consume_u64(3)
+        .expect("the u64 request should be consumed");
+    assert_eq!(budget.used(), 3);
+}
+
+#[test]
+fn test_budget_can_be_rebuilt_from_a_resource_limit() {
+    let budget = ResourceBudget::from_limit(ResourceLimit::new(TestResource::Bytes, 5_u64));
+    assert_eq!(budget.limit(), 5);
+    assert_eq!(budget.remaining(), 5);
+}
+
+#[test]
 fn test_group_consume_charges_every_budget_after_all_checks_pass() {
     let mut local = ResourceBudget::new(TestResource::Bytes, 5_u64);
     let mut aggregate = ResourceBudget::new(TestResource::Bytes, 8_u64);
@@ -176,9 +212,8 @@ fn test_group_consume_does_not_charge_any_budget_when_later_check_fails() {
     let mut local = ResourceBudget::new(TestResource::Bytes, 5_u64);
     let mut aggregate = ResourceBudget::new(TestResource::Bytes, 2_u64);
 
-    let error =
-        ResourceBudget::try_consume_group(&mut [&mut local, &mut aggregate], 3)
-            .expect_err("the aggregate budget should reject three bytes");
+    let error = ResourceBudget::try_consume_group(&mut [&mut local, &mut aggregate], 3)
+        .expect_err("the aggregate budget should reject three bytes");
 
     assert_eq!(error.index(), 1);
     assert!(matches!(

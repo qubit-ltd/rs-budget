@@ -52,10 +52,8 @@ fn test_readmes_document_value_transaction_example() {
         include_str!("../../README.md"),
         include_str!("../../README.zh_CN.md"),
     ] {
-        let measurement_import =
-            ["use qubit_budget", "::json::JsonMeasurement;"].concat();
-        let limits_import =
-            ["use qubit_budget", "::json::JsonValueLimits;"].concat();
+        let measurement_import = ["use qubit_budget", "::json::JsonMeasurement;"].concat();
+        let limits_import = ["use qubit_budget", "::json::JsonValueLimits;"].concat();
         assert!(readme.contains(&measurement_import));
         assert!(readme.contains(&limits_import));
         assert!(readme.contains(".max_nodes(8)"));
@@ -89,10 +87,7 @@ fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
         assert_complete_atomicity_matrix(document, rows);
         let normalized_document = document.to_ascii_lowercase();
         assert!(document.contains("Vec"));
-        assert!(
-            document.contains("success-only")
-                || document.contains("只在成功时计费")
-        );
+        assert!(document.contains("success-only") || document.contains("只在成功时计费"));
         assert!(document.contains("accepted prefix"));
         assert!(
             normalized_document.contains("raw input")
@@ -110,9 +105,10 @@ fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
                 || document.contains("回滚")
         );
     }
-    assert!(include_str!("../../doc/user_guide.md").contains(
-        "Callers create each attempt explicitly with `begin_value()`"
-    ));
+    assert!(
+        include_str!("../../doc/user_guide.md")
+            .contains("Callers create each attempt explicitly with `begin_value()`")
+    );
     assert!(
         include_str!("../../doc/user_guide.zh_CN.md")
             .contains("调用者通过 `begin_value()` 显式创建每个 attempt。")

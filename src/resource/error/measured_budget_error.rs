@@ -24,9 +24,7 @@ where
     Q: Copy + Debug,
 {
     /// A native measurement could not fit the configured quantity type.
-    #[error(
-        "resource {resource:?} has an unrepresentable measurement: {source}"
-    )]
+    #[error("resource {resource:?} has an unrepresentable measurement: {source}")]
     Quantity {
         /// Resource associated with the rejected measurement.
         resource: R,
@@ -56,10 +54,7 @@ where
     /// A quantity representation failure retaining its resource identity.
     #[inline(always)]
     #[must_use]
-    pub const fn quantity(
-        resource: R,
-        source: QuantityConversionError,
-    ) -> Self {
+    pub const fn quantity(resource: R, source: QuantityConversionError) -> Self {
         Self::Quantity { resource, source }
     }
 

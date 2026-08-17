@@ -53,6 +53,13 @@ where
         JsonEncodeLimitsBuilder::new()
     }
 
+    /// Converts these limits into a builder for further configuration.
+    #[inline]
+    #[must_use]
+    pub const fn into_builder(self) -> JsonEncodeLimitsBuilder<R, Q> {
+        JsonEncodeLimitsBuilder::from_limits(self)
+    }
+
     /// Returns the complete output-byte limit, when configured.
     #[must_use]
     #[inline(always)]
@@ -84,13 +91,12 @@ where
         }
     }
 
-    pub(super) fn set_output_bytes_limit(
-        &mut self,
-        limit: ResourceLimit<R, Q>,
-    ) {
+    /// Replaces the output-byte limit during builder composition.
+    pub(super) fn set_output_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.output = Some(limit);
     }
 
+    /// Replaces the JSON value limits during builder composition.
     pub(super) fn set_value_limits(&mut self, limits: JsonValueLimits<R, Q>) {
         self.value = limits;
     }

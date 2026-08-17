@@ -119,6 +119,30 @@ fn test_decode_session_borrowing_value_reuses_committed_budget() {
     assert_eq!(value.used_nodes(), Some(1));
 }
 
+/// Verifies decode session accessors across configured and unconfigured
+/// storage.
+#[test]
+fn test_decode_session_accessors_report_configured_budgets() {
+    let session = JsonDecodeSession::owned(
+        JsonDecodeLimits::<JsonResource, usize>::builder()
+            .max_input_bytes(8)
+            .max_normalized_input_bytes(7)
+            .build(),
+    );
+    assert_eq!(session.max_input_bytes(), Some(8));
+    assert_eq!(session.max_normalized_input_bytes(), Some(7));
+    assert!(session.input_budget().is_some());
+    assert!(session.normalized_input_budget().is_some());
+    assert!(session.value_budget().used_nodes().is_none());
+
+    let mut value = JsonValueLimits::<JsonResource, usize>::new().budget();
+    let session = JsonDecodeSession::borrowing_value(&mut value);
+    assert_eq!(session.max_input_bytes(), None);
+    assert_eq!(session.max_normalized_input_bytes(), None);
+    assert!(session.input_budget().is_none());
+    assert!(session.normalized_input_budget().is_none());
+}
+
 /// Verifies that a session borrowing input keeps its immediate input charge
 /// when its value attempt is dropped.
 #[test]
@@ -129,8 +153,7 @@ fn test_decode_session_borrowing_input_keeps_charge_after_attempt_drop() {
         .build()
         .budget();
     {
-        let mut session =
-            JsonDecodeSession::borrowing_input(&mut input, &mut value);
+        let mut session = JsonDecodeSession::borrowing_input(&mut input, &mut value);
         let mut attempt = session.begin_value();
         attempt.try_consume_input_bytes(3).expect("input fits");
         attempt
@@ -146,18 +169,13 @@ fn test_decode_session_borrowing_input_keeps_charge_after_attempt_drop() {
 #[test]
 fn test_decode_session_borrowing_all_commits_io_and_value() {
     let mut input = ResourceBudget::new(JsonResource::InputBytes, 3_usize);
-    let mut normalized =
-        ResourceBudget::new(JsonResource::NormalizedInputBytes, 4_usize);
+    let mut normalized = ResourceBudget::new(JsonResource::NormalizedInputBytes, 4_usize);
     let mut value = JsonValueLimits::<JsonResource, usize>::builder()
         .max_nodes(2)
         .build()
         .budget();
     {
-        let mut session = JsonDecodeSession::borrowing_all(
-            &mut input,
-            &mut normalized,
-            &mut value,
-        );
+        let mut session = JsonDecodeSession::borrowing_all(&mut input, &mut normalized, &mut value);
         let mut attempt = session.begin_value();
         attempt.try_consume_input_bytes(3).expect("input fits");
         attempt

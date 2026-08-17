@@ -113,10 +113,7 @@ where
     ///
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds current
     /// availability. The pool remains unchanged in that case.
-    pub fn try_acquire(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), InsufficientBudgetError<R, Q>>
+    pub fn try_acquire(&mut self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -148,10 +145,7 @@ where
     ///
     /// Returns [`ResourceReleaseError`] when `amount` exceeds
     /// current occupancy. The pool remains unchanged in that case.
-    pub fn release(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), ResourceReleaseError<R, Q>>
+    pub fn release(&mut self, amount: Q) -> Result<(), ResourceReleaseError<R, Q>>
     where
         R: Clone,
     {

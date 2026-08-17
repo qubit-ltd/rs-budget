@@ -43,13 +43,17 @@ where
         }
     }
 
+    /// Creates a builder retaining an existing limit configuration.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_limits(limits: BigDecimalLimits<R, Q>) -> Self {
+        Self { limits }
+    }
+
     /// Sets the coefficient limits.
     #[inline]
     #[must_use]
-    pub fn coefficient_limits(
-        mut self,
-        limits: BigIntegerLimits<R, Q>,
-    ) -> Self {
+    pub fn coefficient_limits(mut self, limits: BigIntegerLimits<R, Q>) -> Self {
         self.limits.set_coefficient_limits(limits);
         self
     }

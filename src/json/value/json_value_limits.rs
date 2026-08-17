@@ -87,7 +87,7 @@ where
     /// Converts these limits into a builder for further configuration.
     #[inline]
     #[must_use]
-    pub(crate) const fn into_builder(self) -> JsonValueLimitsBuilder<R, Q> {
+    pub const fn into_builder(self) -> JsonValueLimitsBuilder<R, Q> {
         JsonValueLimitsBuilder::from_limits(self)
     }
     /// Borrows the structural limits used by this value configuration.
@@ -180,10 +180,7 @@ where
     /// Returns conversion or point-limit errors retaining their associated
     /// resource identity.
     #[inline]
-    pub fn check_point(
-        &self,
-        measurement: JsonMeasurement,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_point(&self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -198,34 +195,22 @@ where
     }
 
     /// Replaces the string-byte limit.
-    pub(super) fn set_string_bytes_limit(
-        &mut self,
-        limit: ResourceLimit<R, Q>,
-    ) {
+    pub(super) fn set_string_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_string_bytes = Some(limit);
     }
 
     /// Replaces the number-byte limit.
-    pub(super) fn set_number_bytes_limit(
-        &mut self,
-        limit: ResourceLimit<R, Q>,
-    ) {
+    pub(super) fn set_number_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_number_bytes = Some(limit);
     }
 
     /// Replaces the payload-byte limit.
-    pub(super) fn set_payload_bytes_limit(
-        &mut self,
-        limit: ResourceLimit<R, Q>,
-    ) {
+    pub(super) fn set_payload_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_payload_bytes = Some(limit);
     }
 
     /// Replaces the structural limits.
-    pub(super) fn set_structure_limits(
-        &mut self,
-        limits: StructureLimits<R, Q>,
-    ) {
+    pub(super) fn set_structure_limits(&mut self, limits: StructureLimits<R, Q>) {
         self.structure = limits;
     }
 }

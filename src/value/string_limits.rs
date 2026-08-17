@@ -54,6 +54,13 @@ where
         StringLimitsBuilder::new()
     }
 
+    /// Converts these limits into a builder for further configuration.
+    #[inline]
+    #[must_use]
+    pub const fn into_builder(self) -> StringLimitsBuilder<R, Q> {
+        StringLimitsBuilder::from_limits(self)
+    }
+
     /// Returns the configured UTF-8 byte limit, if any.
     #[must_use]
     #[inline(always)]
@@ -73,9 +80,8 @@ where
         let Some(limit) = self.max_utf8_bytes.as_ref() else {
             return Ok(());
         };
-        let bytes = Q::try_from_usize(value.len()).map_err(|source| {
-            MeasuredBudgetError::quantity(limit.resource().clone(), source)
-        })?;
+        let bytes = Q::try_from_usize(value.len())
+            .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
         limit.check(bytes).map_err(MeasuredBudgetError::from)
     }
 

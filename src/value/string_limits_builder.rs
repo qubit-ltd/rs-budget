@@ -42,6 +42,13 @@ where
         }
     }
 
+    /// Creates a builder retaining an existing limit configuration.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn from_limits(limits: StringLimits<R, Q>) -> Self {
+        Self { limits }
+    }
+
     /// Sets the inclusive UTF-8 byte limit.
     #[inline]
     #[must_use]

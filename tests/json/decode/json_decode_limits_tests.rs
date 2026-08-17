@@ -5,7 +5,6 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-use qubit_budget::ResourceLimit;
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
@@ -65,12 +64,18 @@ fn test_empty_decode_limits_report_unconfigured_maxima() {
 #[test]
 fn test_generic_decode_limits_expose_maxima() {
     let limits = JsonDecodeLimits::<JsonResource, u8>::builder()
-        .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 4))
-        .normalized_input_bytes_limit(ResourceLimit::new(
-            JsonResource::NormalizedInputBytes,
-            5,
-        ))
+        .max_input_bytes(4)
+        .max_normalized_input_bytes(5)
+        .max_depth(6)
+        .max_nodes(7)
+        .max_sequence_items(8)
+        .max_map_entries(9)
+        .max_key_bytes(10)
+        .max_string_bytes(11)
+        .max_number_bytes(12)
+        .max_payload_bytes(13)
         .build();
     assert_eq!(limits.max_input_bytes(), Some(4));
     assert_eq!(limits.max_normalized_input_bytes(), Some(5));
+    assert_eq!(limits.value_limits().max_payload_bytes(), Some(13));
 }

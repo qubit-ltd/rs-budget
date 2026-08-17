@@ -126,10 +126,7 @@ where
     ///
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity.
-    pub fn check_available(
-        &self,
-        amount: Q,
-    ) -> Result<(), InsufficientBudgetError<R, Q>>
+    pub fn check_available(&self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -161,10 +158,7 @@ where
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity. The budget remains unchanged in that case.
     #[inline]
-    pub fn try_consume(
-        &mut self,
-        amount: Q,
-    ) -> Result<(), InsufficientBudgetError<R, Q>>
+    pub fn try_consume(&mut self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {
@@ -189,16 +183,12 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn check_available_usize(
-        &self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_available_usize(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_usize(amount).map_err(|source| {
-            MeasuredBudgetError::quantity(self.resource().clone(), source)
-        })?;
+        let amount = Q::try_from_usize(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
         self.check_available(amount)
             .map_err(MeasuredBudgetError::from)
     }
@@ -219,16 +209,12 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn check_available_u64(
-        &self,
-        amount: u64,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn check_available_u64(&self, amount: u64) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_u64(amount).map_err(|source| {
-            MeasuredBudgetError::quantity(self.resource().clone(), source)
-        })?;
+        let amount = Q::try_from_u64(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
         self.check_available(amount)
             .map_err(MeasuredBudgetError::from)
     }
@@ -249,16 +235,12 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn try_consume_usize(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn try_consume_usize(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_usize(amount).map_err(|source| {
-            MeasuredBudgetError::quantity(self.resource().clone(), source)
-        })?;
+        let amount = Q::try_from_usize(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
         self.try_consume(amount).map_err(MeasuredBudgetError::from)
     }
 
@@ -278,16 +260,12 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    pub fn try_consume_u64(
-        &mut self,
-        amount: u64,
-    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    pub fn try_consume_u64(&mut self, amount: u64) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
     {
-        let amount = Q::try_from_u64(amount).map_err(|source| {
-            MeasuredBudgetError::quantity(self.resource().clone(), source)
-        })?;
+        let amount = Q::try_from_u64(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
         self.try_consume(amount).map_err(MeasuredBudgetError::from)
     }
 
