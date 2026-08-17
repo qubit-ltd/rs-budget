@@ -40,11 +40,22 @@ fn test_decode_attempt_can_consume_input_bytes() {
     let mut session = JsonDecodeSession::owned(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(4)
+            .max_normalized_input_bytes(4)
             .build(),
     );
     let mut attempt = session.begin_value();
     attempt
         .try_consume_input_bytes(3)
         .expect("input charge fits");
+    attempt
+        .try_consume_normalized_input_bytes(2)
+        .expect("normalized input charge fits");
     assert_eq!(attempt.input_budget().expect("input budget").used(), 3);
+    assert_eq!(
+        attempt
+            .normalized_input_budget()
+            .expect("normalized input budget")
+            .used(),
+        2
+    );
 }
