@@ -135,11 +135,9 @@ parsing and Serde integration, use an adapter such as
 
 ## Learn More
 
-- [English user guide](doc/user_guide.md): a scenario-led explanation of JSON
+- [User guide](doc/user_guide.md): a scenario-led explanation of JSON
   accounting, errors, transactions, and troubleshooting.
-- [中文用户手册](doc/user_guide.zh_CN.md)
 - [API documentation](https://docs.rs/qubit-budget)
-- [中文 README](README.zh_CN.md)
 
 ## Testing
 

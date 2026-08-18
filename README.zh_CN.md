@@ -126,10 +126,8 @@ transaction 边界，但暂存的 value 用量只有 `commit` 才会发布。
 
 ## 延伸阅读
 
-- [中文用户手册](doc/user_guide.zh_CN.md)：通过完整 JSON 场景说明记账、事务、错误和排障。
-- [English user guide](doc/user_guide.md)
+- [用户手册](doc/user_guide.zh_CN.md)：通过完整 JSON 场景说明记账、事务、错误和排障。
 - [API 文档](https://docs.rs/qubit-budget)
-- [English README](README.md)
 
 ## 测试
 
