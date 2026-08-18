@@ -21,6 +21,7 @@ fuzz_target!(|data: &[u8]| {
     let payload = u64::from(input.get(1).copied().unwrap_or_default());
     let limits = JsonValueLimits::<JsonResource, u64>::builder()
         .max_nodes(nodes)
+        .max_key_bytes(payload)
         .payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, payload))
         .build();
     let mut budget = limits.budget();
@@ -31,7 +32,7 @@ fuzz_target!(|data: &[u8]| {
         let mut transaction = budget.transaction();
         let mut admitted = true;
         for measurement_chunk in chunk.get(1..).unwrap_or_default().chunks(3) {
-            let measurement = match measurement_chunk.first().copied().unwrap_or_default() % 6 {
+            let measurement = match measurement_chunk.first().copied().unwrap_or_default() % 7 {
                 0 => JsonMeasurement::Null { depth: 0 },
                 1 => JsonMeasurement::Boolean { depth: 0 },
                 2 => JsonMeasurement::String {
