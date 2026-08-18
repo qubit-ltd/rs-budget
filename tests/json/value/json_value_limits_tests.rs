@@ -60,10 +60,7 @@ fn test_standard_builder_configures_all_value_dimensions() {
     assert_eq!(limits.max_number_bytes(), Some(7));
     assert_eq!(limits.max_payload_bytes(), Some(8));
     assert_eq!(
-        limits
-            .string_bytes_limit()
-            .expect("string limit")
-            .resource(),
+        limits.string_bytes_limit().expect("string limit").resource(),
         &JsonResource::StringBytes,
     );
 }
@@ -87,9 +84,7 @@ fn test_standard_builder_creates_budget() {
 /// Verifies that structural limits may be borrowed or explicitly consumed.
 #[test]
 fn test_structure_limits_expresses_borrowing_and_ownership() {
-    let limits = JsonValueLimits::<JsonResource, usize>::builder()
-        .max_depth(4)
-        .build();
+    let limits = JsonValueLimits::<JsonResource, usize>::builder().max_depth(4).build();
     let _: &StructureLimits<JsonResource, usize> = limits.structure_limits();
     assert_eq!(limits.structure_limits().max_depth(), Some(4));
     assert_eq!(limits.into_structure_limits().max_depth(), Some(4));
@@ -120,24 +115,15 @@ fn test_custom_resources_remain_attached_to_value_limits() {
         .build();
 
     assert_eq!(
-        limits
-            .string_bytes_limit()
-            .expect("string limit")
-            .resource(),
+        limits.string_bytes_limit().expect("string limit").resource(),
         &Resource::String,
     );
     assert_eq!(
-        limits
-            .number_bytes_limit()
-            .expect("number limit")
-            .resource(),
+        limits.number_bytes_limit().expect("number limit").resource(),
         &Resource::Number,
     );
     assert_eq!(
-        limits
-            .payload_bytes_limit()
-            .expect("payload limit")
-            .resource(),
+        limits.payload_bytes_limit().expect("payload limit").resource(),
         &Resource::Payload,
     );
 }
@@ -218,10 +204,7 @@ fn test_check_point_rejects_each_json_measurement_variant_at_point_limit() {
             JsonResource::SequenceItems,
         ),
         (
-            JsonMeasurement::Object {
-                depth: 1,
-                entries: 2,
-            },
+            JsonMeasurement::Object { depth: 1, entries: 2 },
             JsonResource::MapEntries,
         ),
         (JsonMeasurement::Key { bytes: 2 }, JsonResource::KeyBytes),
@@ -363,10 +346,7 @@ fn test_check_conversion_failures_report_each_point_resource() {
             },
             JsonResource::MapEntries,
         ),
-        (
-            JsonMeasurement::Key { bytes: overflow },
-            JsonResource::KeyBytes,
-        ),
+        (JsonMeasurement::Key { bytes: overflow }, JsonResource::KeyBytes),
     ];
 
     for (measurement, resource) in measurements {

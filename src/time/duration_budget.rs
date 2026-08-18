@@ -93,10 +93,7 @@ impl<R> DurationBudget<R> {
     ///
     /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
     /// remaining duration.
-    pub fn check_available(
-        &self,
-        duration: Duration,
-    ) -> Result<(), InsufficientBudgetError<R, Duration>>
+    pub fn check_available(&self, duration: Duration) -> Result<(), InsufficientBudgetError<R, Duration>>
     where
         R: Clone,
     {
@@ -128,10 +125,7 @@ impl<R> DurationBudget<R> {
     /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
     /// remaining duration. The budget remains unchanged in that case.
     #[inline]
-    pub fn try_consume(
-        &mut self,
-        duration: Duration,
-    ) -> Result<(), InsufficientBudgetError<R, Duration>>
+    pub fn try_consume(&mut self, duration: Duration) -> Result<(), InsufficientBudgetError<R, Duration>>
     where
         R: Clone,
     {

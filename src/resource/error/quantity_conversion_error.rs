@@ -34,10 +34,7 @@ impl QuantityConversionError {
     #[inline(always)]
     #[must_use]
     pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
-        Self {
-            measurement,
-            target,
-        }
+        Self { measurement, target }
     }
 
     /// Returns the native measurement that could not be represented.

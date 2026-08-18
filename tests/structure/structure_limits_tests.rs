@@ -43,10 +43,7 @@ fn test_generic_structure_limits_support_custom_key_limit() {
         .build();
 
     assert_eq!(limits.max_key_bytes(), Some(3));
-    assert_eq!(
-        limits.key_bytes_limit().unwrap().resource(),
-        &Resource::KeyBytes
-    );
+    assert_eq!(limits.key_bytes_limit().unwrap().resource(), &Resource::KeyBytes);
 }
 
 #[test]

@@ -91,10 +91,7 @@ fn test_big_integer_accessors_and_unconfigured_limits() {
         .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 3_u64))
         .build();
     assert_eq!(limits.magnitude_bits_limit().unwrap().maximum(), 8);
-    assert_eq!(
-        limits.significant_decimal_digits_limit().unwrap().maximum(),
-        3
-    );
+    assert_eq!(limits.significant_decimal_digits_limit().unwrap().maximum(), 3);
     BigIntegerLimits::<TestResource>::builder()
         .build()
         .check(&BigInt::from(123456))

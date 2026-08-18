@@ -10,6 +10,7 @@
 use super::JsonDecodeLimits;
 use crate::json::JsonResource;
 use crate::json::JsonValueLimits;
+use crate::json::JsonValueLimitsBuilder;
 use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
 
@@ -91,8 +92,8 @@ where
     #[inline]
     #[must_use]
     pub fn max_input_bytes(mut self, maximum: Q) -> Self {
-        self.limits
-            .set_input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, maximum));
+        let limit = ResourceLimit::new(JsonResource::InputBytes, maximum);
+        self.limits.set_input_bytes_limit(limit);
         self
     }
 
@@ -100,11 +101,8 @@ where
     #[inline]
     #[must_use]
     pub fn max_normalized_input_bytes(mut self, maximum: Q) -> Self {
-        self.limits
-            .set_normalized_input_bytes_limit(ResourceLimit::new(
-                JsonResource::NormalizedInputBytes,
-                maximum,
-            ));
+        let limit = ResourceLimit::new(JsonResource::NormalizedInputBytes, maximum);
+        self.limits.set_normalized_input_bytes_limit(limit);
         self
     }
 
@@ -166,13 +164,10 @@ where
 
     fn map_value<F>(mut self, configure: F) -> Self
     where
-        F: FnOnce(
-            crate::json::JsonValueLimitsBuilder<JsonResource, Q>,
-        ) -> JsonValueLimits<JsonResource, Q>,
+        F: FnOnce(JsonValueLimitsBuilder<JsonResource, Q>) -> JsonValueLimits<JsonResource, Q>,
     {
         let value = *self.limits.value_limits();
-        self.limits
-            .set_value_limits(configure(value.into_builder()));
+        self.limits.set_value_limits(configure(value.into_builder()));
         self
     }
 }

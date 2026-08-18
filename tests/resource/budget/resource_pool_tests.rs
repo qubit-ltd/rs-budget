@@ -37,14 +37,12 @@ fn test_release_can_happen_in_another_context_and_in_parts() {
     pool.try_acquire(3).expect("capacity should fit");
     close_one(&mut pool);
     assert_eq!(pool.in_use(), 2);
-    pool.release(2)
-        .expect("the remaining units should be releasable");
+    pool.release(2).expect("the remaining units should be releasable");
     assert_eq!(pool.in_use(), 0);
 }
 
 fn acquire_then_release(pool: &mut ResourcePool<TestResource>, amount: u64) -> Result<(), String> {
-    pool.try_acquire(amount)
-        .map_err(|error| error.to_string())?;
+    pool.try_acquire(amount).map_err(|error| error.to_string())?;
     pool.release(amount).map_err(|error| error.to_string())?;
     Ok(())
 }
@@ -54,8 +52,7 @@ fn test_release_makes_capacity_reusable() {
     let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     pool.try_acquire(2).expect("capacity should be acquirable");
     pool.release(1).expect("one held unit should be releasable");
-    pool.try_acquire(1)
-        .expect("released capacity should be reusable");
+    pool.try_acquire(1).expect("released capacity should be reusable");
     assert_eq!(pool.available(), 0);
     assert_eq!(pool.in_use(), 2);
 }
@@ -69,11 +66,8 @@ fn test_acquire_and_release_have_distinct_error_types() {
 #[test]
 fn test_acquire_reports_exhaustion_without_mutation() {
     let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
-    pool.try_acquire(2)
-        .expect("the maximum should be acquirable");
-    let error = pool
-        .try_acquire(1)
-        .expect_err("one more unit should be exhausted");
+    pool.try_acquire(2).expect("the maximum should be acquirable");
+    let error = pool.try_acquire(1).expect_err("one more unit should be exhausted");
     assert!(matches!(
         error,
         InsufficientBudgetError {
@@ -90,9 +84,7 @@ fn test_acquire_reports_exhaustion_without_mutation() {
 fn test_invalid_release_is_atomic() {
     let mut pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     pool.try_acquire(1).expect("one unit should fit");
-    let error = pool
-        .release(2)
-        .expect_err("cannot release more than is held");
+    let error = pool.release(2).expect_err("cannot release more than is held");
     assert!(matches!(
         error,
         ResourceReleaseError::InvalidRelease {
@@ -155,8 +147,7 @@ fn test_pool_accepts_usize_quantities_without_conversion() {
     fn assert_quantity<Q: ResourceQuantity>() {}
 
     assert_quantity::<usize>();
-    let mut pool: ResourcePool<TestResource, usize> =
-        ResourcePool::new(TestResource::OpenFiles, 2_usize);
+    let mut pool: ResourcePool<TestResource, usize> = ResourcePool::new(TestResource::OpenFiles, 2_usize);
     pool.try_acquire(1_usize).expect("one directory should fit");
     assert_eq!(pool.available(), 1_usize);
 }

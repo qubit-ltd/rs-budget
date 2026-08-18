@@ -18,9 +18,7 @@ use thiserror::Error;
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `Q` - Copyable measurement value used by the failed constraint.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
-#[error(
-    "resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains"
-)]
+#[error("resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains")]
 pub struct InsufficientBudgetError<R, Q = u64>
 where
     Q: Copy + Debug,

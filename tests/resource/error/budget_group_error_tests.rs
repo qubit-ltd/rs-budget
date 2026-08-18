@@ -15,9 +15,8 @@ fn test_group_error_exposes_the_rejecting_budget() {
     let mut first = ResourceBudget::new("bytes", 1_u64);
     let mut second = ResourceBudget::new("bytes", 1_u64);
 
-    let error: BudgetGroupError<&str> =
-        ResourceBudget::try_consume_group(&mut [&mut first, &mut second], 2)
-            .expect_err("the first budget should reject two bytes");
+    let error: BudgetGroupError<&str> = ResourceBudget::try_consume_group(&mut [&mut first, &mut second], 2)
+        .expect_err("the first budget should reject two bytes");
 
     assert_eq!(error.index(), 0);
     assert!(matches!(

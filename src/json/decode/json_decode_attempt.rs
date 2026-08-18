@@ -54,10 +54,7 @@ where
     /// Returns a quantity-conversion or budget error without changing the
     /// configured input budget on failure. An absent input budget is ignored.
     #[inline]
-    pub fn try_consume_input_bytes(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_consume_input_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         consume_bytes(self.input.as_deref_mut(), amount)
     }
 
@@ -66,10 +63,7 @@ where
     /// Returns a quantity-conversion or budget error without changing the
     /// configured normalized budget on failure. An absent budget is ignored.
     #[inline]
-    pub fn try_consume_normalized_input_bytes(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_consume_normalized_input_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         consume_bytes(self.normalized_input.as_deref_mut(), amount)
     }
 
@@ -78,10 +72,7 @@ where
     /// Returns the transaction's conversion or value-limit error. A failure
     /// leaves this attempt's working value state and all I/O charges unchanged.
     #[inline]
-    pub fn try_admit(
-        &mut self,
-        measurement: JsonMeasurement,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
         self.value.try_admit(measurement)
     }
 

@@ -23,9 +23,7 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
     let mut budget = limits.budget();
 
     budget.check_depth(2).expect("exact depth should fit");
-    budget
-        .check_sequence_items(1)
-        .expect("first sequence should fit");
+    budget.check_sequence_items(1).expect("first sequence should fit");
     budget
         .check_sequence_items(1)
         .expect("point checks must not accumulate");
@@ -44,19 +42,13 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
 
 #[test]
 fn test_unconfigured_structure_limits_allow_all_checks() {
-    let mut budget = StructureLimits::<StructureResource, usize>::builder()
-        .build()
-        .budget();
+    let mut budget = StructureLimits::<StructureResource, usize>::builder().build().budget();
 
-    budget
-        .check_depth(usize::MAX)
-        .expect("depth is unconfigured");
+    budget.check_depth(usize::MAX).expect("depth is unconfigured");
     budget
         .check_sequence_items(usize::MAX)
         .expect("sequence size is unconfigured");
-    budget
-        .check_map_entries(usize::MAX)
-        .expect("map size is unconfigured");
+    budget.check_map_entries(usize::MAX).expect("map size is unconfigured");
     budget.charge_node().expect("node count is unconfigured");
 }
 
@@ -68,10 +60,7 @@ fn test_charge_node_failure_is_atomic() {
         .budget();
 
     budget.charge_node().expect("first node should fit");
-    assert!(matches!(
-        budget.charge_node(),
-        Err(BudgetError::Insufficient { .. })
-    ));
+    assert!(matches!(budget.charge_node(), Err(BudgetError::Insufficient { .. })));
     assert!(matches!(
         budget.charge_node(),
         Err(BudgetError::Insufficient {
@@ -91,9 +80,7 @@ fn test_budget_creates_independent_node_accounting_sessions() {
     let mut first_budget = limits.budget();
     let mut second_budget = limits.budget();
 
-    first_budget
-        .charge_node()
-        .expect("first session should fit");
+    first_budget.charge_node().expect("first session should fit");
     assert!(first_budget.charge_node().is_err());
     second_budget
         .charge_node()
@@ -135,9 +122,7 @@ fn test_structure_budget_enters_sequences_and_maps() {
         .build();
     let mut budget = limits.budget();
 
-    budget
-        .enter_sequence(1, 1)
-        .expect("the sequence entry should fit");
+    budget.enter_sequence(1, 1).expect("the sequence entry should fit");
     budget.enter_map(1, 1).expect("the map entry should fit");
     assert_eq!(budget.limits(), &limits);
 }
@@ -151,10 +136,7 @@ fn test_enter_node_depth_failure_does_not_charge_nodes() {
         .build();
     let mut budget = limits.budget();
 
-    assert!(matches!(
-        budget.enter_node(2),
-        Err(BudgetError::LimitExceeded { .. })
-    ));
+    assert!(matches!(budget.enter_node(2), Err(BudgetError::LimitExceeded { .. })));
     assert_eq!(budget.used_nodes(), 0);
 }
 
@@ -185,10 +167,7 @@ fn test_enter_map_entries_failure_does_not_charge_nodes() {
         .build();
     let mut budget = limits.budget();
 
-    assert!(matches!(
-        budget.enter_map(1, 2),
-        Err(BudgetError::LimitExceeded { .. })
-    ));
+    assert!(matches!(budget.enter_map(1, 2), Err(BudgetError::LimitExceeded { .. })));
     assert_eq!(budget.used_nodes(), 0);
 }
 
@@ -201,12 +180,8 @@ fn test_structure_budget_tracks_nodes_and_checks_key_bytes() {
         .build();
     let mut budget = limits.budget();
 
-    budget
-        .check_key_bytes(2)
-        .expect("an exact key byte limit should fit");
-    budget
-        .enter_node(1)
-        .expect("the first node should fit the node budget");
+    budget.check_key_bytes(2).expect("an exact key byte limit should fit");
+    budget.enter_node(1).expect("the first node should fit the node budget");
 
     assert_eq!(budget.used_nodes(), 1);
 }

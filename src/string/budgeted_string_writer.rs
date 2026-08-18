@@ -100,10 +100,7 @@ where
         }
         if next_len > self.output.capacity() {
             let target = self.output.capacity().saturating_mul(2).max(next_len);
-            if let Err(source) = self
-                .output
-                .try_reserve_exact(target.saturating_sub(self.output.len()))
-            {
+            if let Err(source) = self.output.try_reserve_exact(target.saturating_sub(self.output.len())) {
                 self.failure = Some(WriterFailure::Allocation(source));
                 return false;
             }
@@ -138,10 +135,7 @@ where
     Q: ResourceQuantity,
 {
     /// Renders and transactionally commits a UTF-8 string under this budget.
-    pub fn try_write_string<E, F>(
-        &mut self,
-        render: F,
-    ) -> Result<String, BudgetedStringError<R, E, Q>>
+    pub fn try_write_string<E, F>(&mut self, render: F) -> Result<String, BudgetedStringError<R, E, Q>>
     where
         E: fmt::Debug + fmt::Display,
         F: FnOnce(&mut BudgetedStringWriter<'_, R, Q>) -> Result<(), E>,
@@ -168,13 +162,11 @@ where
             return Err(BudgetedStringError::Render(error));
         }
         let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
-        let output_length =
-            Q::try_from_usize(output.len()).map_err(|source| BudgetedStringError::Quantity {
-                resource: self.resource().clone(),
-                source,
-            })?;
-        self.try_consume(output_length)
-            .map_err(BudgetedStringError::Budget)?;
+        let output_length = Q::try_from_usize(output.len()).map_err(|source| BudgetedStringError::Quantity {
+            resource: self.resource().clone(),
+            source,
+        })?;
+        self.try_consume(output_length).map_err(BudgetedStringError::Budget)?;
         Ok(output)
     }
 }

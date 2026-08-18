@@ -63,20 +63,14 @@ where
     #[must_use]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
-            storage: EncodeStorage::Borrowed {
-                output: None,
-                value,
-            },
+            storage: EncodeStorage::Borrowed { output: None, value },
         }
     }
 
     /// Creates a session borrowing caller-owned output and value budgets.
     #[inline]
     #[must_use]
-    pub fn borrowing_output(
-        output: &'a mut ResourceBudget<R, Q>,
-        value: &'a mut JsonValueBudget<R, Q>,
-    ) -> Self {
+    pub fn borrowing_output(output: &'a mut ResourceBudget<R, Q>, value: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             storage: EncodeStorage::Borrowed {
                 output: Some(output),
@@ -133,10 +127,7 @@ where
     #[inline]
     #[must_use]
     pub fn owned(limits: JsonEncodeLimits<R, Q>) -> Self {
-        let output = limits
-            .output_bytes_limit()
-            .cloned()
-            .map(ResourceBudget::from_limit);
+        let output = limits.output_bytes_limit().cloned().map(ResourceBudget::from_limit);
         let value = JsonValueBudget::new(limits.into_value_limits());
         Self {
             storage: EncodeStorage::Owned { output, value },

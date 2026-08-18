@@ -56,6 +56,7 @@ fn builders_cover_generic_limit_setters() {
         use qubit_budget::json::JsonMeasurement;
         use qubit_budget::json::JsonResource;
         use qubit_budget::json::JsonValueLimits;
+        use qubit_budget::json::JsonValueLimitsBuilder;
 
         let value = JsonValueLimits::<JsonResource, usize>::builder()
             .string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, 7))
@@ -77,10 +78,7 @@ fn builders_cover_generic_limit_setters() {
             .build();
         let decode = JsonDecodeLimits::<JsonResource, usize>::builder()
             .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 18))
-            .normalized_input_bytes_limit(ResourceLimit::new(
-                JsonResource::NormalizedInputBytes,
-                19,
-            ))
+            .normalized_input_bytes_limit(ResourceLimit::new(JsonResource::NormalizedInputBytes, 19))
             .value_limits(value)
             .build();
         let encode = JsonEncodeLimits::<JsonResource, usize>::builder()
@@ -145,7 +143,7 @@ fn builders_cover_generic_limit_setters() {
             .max_nodes(45)
             .build();
         assert_eq!(generic_value.max_nodes(), Some(45));
-        let generic_value = qubit_budget::json::JsonValueLimitsBuilder::<JsonResource, u64>::new()
+        let generic_value = JsonValueLimitsBuilder::<JsonResource, u64>::new()
             .structure_limits(
                 StructureLimits::<JsonResource, u64>::builder()
                     .nodes_limit(ResourceLimit::new(JsonResource::Nodes, 48))
@@ -153,12 +151,8 @@ fn builders_cover_generic_limit_setters() {
             )
             .build();
         assert_eq!(generic_value.structure_limits().max_nodes(), Some(48));
-        let _generic_budget = JsonValueLimits::<JsonResource, u64>::builder()
-            .max_nodes(46)
-            .budget();
-        let mut generic_budget = JsonValueLimits::<JsonResource, u64>::builder()
-            .max_nodes(47)
-            .budget();
+        let _generic_budget = JsonValueLimits::<JsonResource, u64>::builder().max_nodes(46).budget();
+        let mut generic_budget = JsonValueLimits::<JsonResource, u64>::builder().max_nodes(47).budget();
         let mut transaction = generic_budget.transaction();
         transaction
             .try_admit(JsonMeasurement::Null { depth: 1 })
@@ -202,12 +196,7 @@ fn builders_cover_generic_limit_setters() {
             .scale_magnitude_limit(ResourceLimit::new(StructureResource::Nodes, 24_u64))
             .build();
         assert_eq!(decimal.scale_magnitude_limit().unwrap().maximum(), 24);
-        assert!(
-            decimal
-                .coefficient_limits()
-                .magnitude_bits_limit()
-                .is_some()
-        );
+        assert!(decimal.coefficient_limits().magnitude_bits_limit().is_some());
         assert_eq!(decimal.into_builder().build(), decimal);
         let _: BigDecimalLimits<StructureResource, u64> = Default::default();
         let _: BigDecimalLimitsBuilder<StructureResource, u64> = Default::default();

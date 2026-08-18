@@ -241,10 +241,7 @@ impl StructureLimits<StructureResource, usize> {
     /// Replaces the standard sequence-item limit in a const builder operation.
     #[inline(always)]
     pub(super) const fn set_max_sequence_items(&mut self, maximum: usize) {
-        self.max_sequence_items = Some(ResourceLimit::new(
-            StructureResource::SequenceItems,
-            maximum,
-        ));
+        self.max_sequence_items = Some(ResourceLimit::new(StructureResource::SequenceItems, maximum));
     }
 
     /// Replaces the standard map-entry limit in a const builder operation.

@@ -52,10 +52,7 @@ where
     /// Returns conversion, point-limit, or cumulative-budget errors with their
     /// configured resource identity. Any error leaves this transaction's
     /// working state unchanged and does not affect the committed budget.
-    pub fn try_admit(
-        &mut self,
-        measurement: JsonMeasurement,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
         let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
         prepared.check_point(self.target.limits())?;
         self.check_cumulative(prepared)?;
@@ -99,11 +96,7 @@ where
         prospective: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let limit = match kind {
-            JsonContainerKind::Sequence => self
-                .target
-                .limits()
-                .structure_limits()
-                .sequence_items_limit(),
+            JsonContainerKind::Sequence => self.target.limits().structure_limits().sequence_items_limit(),
             JsonContainerKind::Map => self.target.limits().structure_limits().map_entries_limit(),
         };
         self.check_container_items(prospective, limit)
@@ -121,13 +114,9 @@ where
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
-        self.working.remaining_nodes().map(|remaining| {
-            self.target
-                .limits()
-                .max_nodes()
-                .expect("configured nodes limit")
-                - remaining
-        })
+        self.working
+            .remaining_nodes()
+            .map(|remaining| self.target.limits().max_nodes().expect("configured nodes limit") - remaining)
     }
 
     /// Returns staged remaining node capacity when the node limit is
@@ -159,10 +148,7 @@ where
     }
 
     /// Checks cumulative capacity for an event without changing working state.
-    fn check_cumulative(
-        &self,
-        prepared: PreparedJsonAdmission<Q>,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    fn check_cumulative(&self, prepared: PreparedJsonAdmission<Q>) -> Result<(), MeasuredBudgetError<R, Q>> {
         let (node, payload_bytes) = cumulative_cost(prepared);
         if node {
             self.check_nodes()?;
@@ -246,8 +232,7 @@ where
         | PreparedJsonAdmission::Boolean { .. }
         | PreparedJsonAdmission::Array { .. }
         | PreparedJsonAdmission::Object { .. } => (true, Q::ZERO),
-        PreparedJsonAdmission::String { bytes, .. }
-        | PreparedJsonAdmission::Number { bytes, .. } => (true, bytes),
+        PreparedJsonAdmission::String { bytes, .. } | PreparedJsonAdmission::Number { bytes, .. } => (true, bytes),
         PreparedJsonAdmission::Key { bytes } => (false, bytes),
     }
 }

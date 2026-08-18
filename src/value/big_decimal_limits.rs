@@ -75,9 +75,8 @@ where
     {
         let (coefficient, scale) = value.as_bigint_and_scale();
         if let Some(limit) = self.max_scale_magnitude.as_ref() {
-            let magnitude = Q::try_from_u64(scale.unsigned_abs()).map_err(|source| {
-                MeasuredBudgetError::quantity(limit.resource().clone(), source)
-            })?;
+            let magnitude = Q::try_from_u64(scale.unsigned_abs())
+                .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
             limit.check(magnitude).map_err(MeasuredBudgetError::from)?;
         }
         self.coefficient.check(coefficient.as_ref())

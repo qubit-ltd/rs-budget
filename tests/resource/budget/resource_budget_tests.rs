@@ -40,18 +40,14 @@ fn test_try_consume_decreases_remaining_and_increases_used() {
 #[test]
 fn test_check_available_does_not_mutate_the_budget() {
     let budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
-    budget
-        .check_available(5)
-        .expect("the exact maximum should fit");
+    budget.check_available(5).expect("the exact maximum should fit");
     assert_eq!(budget.remaining(), 5);
 }
 
 #[test]
 fn test_failed_consume_is_atomic_and_reports_exact_facts() {
     let mut budget = ResourceBudget::new(TestResource::Bytes, 5_u64);
-    budget
-        .try_consume(2)
-        .expect("initial consumption should fit");
+    budget.try_consume(2).expect("initial consumption should fit");
     assert!(matches!(
         budget.try_consume(4),
         Err(InsufficientBudgetError {
@@ -113,8 +109,7 @@ fn test_budget_accepts_usize_quantities_without_conversion() {
     fn assert_quantity<Q: ResourceQuantity>() {}
 
     assert_quantity::<usize>();
-    let mut budget: ResourceBudget<TestResource, usize> =
-        ResourceBudget::new(TestResource::Bytes, 5_usize);
+    let mut budget: ResourceBudget<TestResource, usize> = ResourceBudget::new(TestResource::Bytes, 5_usize);
     budget.try_consume(2_usize).expect("two bytes should fit");
     assert_eq!(budget.remaining(), 3_usize);
 }
@@ -123,9 +118,7 @@ fn test_budget_accepts_usize_quantities_without_conversion() {
 fn test_budget_converts_usize_and_u64_consumption_measurements() {
     let mut budget = ResourceBudget::new(TestResource::Bytes, 5_u8);
 
-    budget
-        .try_consume_usize(2)
-        .expect("the usize measurement should fit");
+    budget.try_consume_usize(2).expect("the usize measurement should fit");
     budget
         .check_available_u64(3)
         .expect("the exact u64 measurement should fit");
@@ -165,12 +158,8 @@ fn test_u64_checks_and_resource_accessor_cover_success_paths() {
     assert_eq!(budget.resource(), &TestResource::Bytes);
     assert_eq!(budget.resource_limit().maximum(), 8);
     assert_eq!(budget.limit(), 8);
-    budget
-        .check_available_u64(3)
-        .expect("the u64 request should fit");
-    budget
-        .try_consume_u64(3)
-        .expect("the u64 request should be consumed");
+    budget.check_available_u64(3).expect("the u64 request should fit");
+    budget.try_consume_u64(3).expect("the u64 request should be consumed");
     assert_eq!(budget.used(), 3);
     assert_eq!(budget.consume_available(10), 5);
     assert_eq!(budget.remaining(), 0);
@@ -179,12 +168,8 @@ fn test_u64_checks_and_resource_accessor_cover_success_paths() {
 #[test]
 fn test_u64_quantity_budget_uses_u64_adapters() {
     let mut budget = ResourceBudget::new(TestResource::Bytes, 8_u64);
-    budget
-        .check_available_u64(3)
-        .expect("the u64 request should fit");
-    budget
-        .try_consume_u64(3)
-        .expect("the u64 request should be consumed");
+    budget.check_available_u64(3).expect("the u64 request should fit");
+    budget.try_consume_u64(3).expect("the u64 request should be consumed");
     assert_eq!(budget.used(), 3);
 }
 
@@ -234,9 +219,8 @@ fn test_group_error_exposes_the_failing_index_and_budget_error() {
     let mut first = ResourceBudget::new(TestResource::Bytes, 1_u64);
     let mut second = ResourceBudget::new(TestResource::Bytes, 1_u64);
 
-    let error: BudgetGroupError<TestResource> =
-        ResourceBudget::try_consume_group(&mut [&mut first, &mut second], 2)
-            .expect_err("the first budget should reject two bytes");
+    let error: BudgetGroupError<TestResource> = ResourceBudget::try_consume_group(&mut [&mut first, &mut second], 2)
+        .expect_err("the first budget should reject two bytes");
 
     assert_eq!(error.index(), 0);
     assert_eq!(error.into_source_error().requested(), 2);

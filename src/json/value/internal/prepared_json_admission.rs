@@ -60,19 +60,11 @@ where
             }),
             JsonMeasurement::String { depth, bytes } => Ok(Self::String {
                 depth: convert(depth, structure.depth_limit())?,
-                bytes: convert_payload(
-                    bytes,
-                    limits.string_bytes_limit(),
-                    limits.payload_bytes_limit(),
-                )?,
+                bytes: convert_payload(bytes, limits.string_bytes_limit(), limits.payload_bytes_limit())?,
             }),
             JsonMeasurement::Number { depth, bytes } => Ok(Self::Number {
                 depth: convert(depth, structure.depth_limit())?,
-                bytes: convert_payload(
-                    bytes,
-                    limits.number_bytes_limit(),
-                    limits.payload_bytes_limit(),
-                )?,
+                bytes: convert_payload(bytes, limits.number_bytes_limit(), limits.payload_bytes_limit())?,
             }),
             JsonMeasurement::Array { depth, items } => Ok(Self::Array {
                 depth: convert(depth, structure.depth_limit())?,
@@ -83,11 +75,7 @@ where
                 entries: convert(entries, structure.map_entries_limit())?,
             }),
             JsonMeasurement::Key { bytes } => Ok(Self::Key {
-                bytes: convert_payload(
-                    bytes,
-                    structure.key_bytes_limit(),
-                    limits.payload_bytes_limit(),
-                )?,
+                bytes: convert_payload(bytes, structure.key_bytes_limit(), limits.payload_bytes_limit())?,
             }),
         }
     }
@@ -105,9 +93,7 @@ where
     {
         let structure = limits.structure_limits();
         match self {
-            Self::Null { depth } | Self::Boolean { depth } => {
-                check_limit(structure.depth_limit(), *depth)
-            }
+            Self::Null { depth } | Self::Boolean { depth } => check_limit(structure.depth_limit(), *depth),
             Self::String { depth, bytes } => {
                 check_limit(structure.depth_limit(), *depth)?;
                 check_limit(limits.string_bytes_limit(), *bytes)
@@ -133,10 +119,7 @@ where
 ///
 /// Returns a conversion error carrying the configured limit's resource when
 /// `amount` cannot be represented by `Q`.
-fn convert<R, Q>(
-    amount: usize,
-    limit: Option<&ResourceLimit<R, Q>>,
-) -> Result<Q, MeasuredBudgetError<R, Q>>
+fn convert<R, Q>(amount: usize, limit: Option<&ResourceLimit<R, Q>>) -> Result<Q, MeasuredBudgetError<R, Q>>
 where
     R: Clone,
     Q: ResourceQuantity,
@@ -144,8 +127,7 @@ where
     let Some(limit) = limit else {
         return Ok(Q::ZERO);
     };
-    Q::try_from_usize(amount)
-        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))
+    Q::try_from_usize(amount).map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))
 }
 
 /// Converts a native payload quantity when either point or cumulative limits
@@ -173,10 +155,7 @@ where
 ///
 /// Returns the configured resource-limit error when `actual` exceeds its
 /// inclusive maximum.
-fn check_limit<R, Q>(
-    limit: Option<&ResourceLimit<R, Q>>,
-    actual: Q,
-) -> Result<(), MeasuredBudgetError<R, Q>>
+fn check_limit<R, Q>(limit: Option<&ResourceLimit<R, Q>>, actual: Q) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     R: Clone,
     Q: ResourceQuantity,

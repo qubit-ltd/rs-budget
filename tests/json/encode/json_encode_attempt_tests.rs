@@ -23,9 +23,7 @@ fn test_encode_attempt_drop_preserves_output_only() {
     );
     {
         let mut attempt = session.begin_value();
-        attempt
-            .try_consume_output_bytes(2)
-            .expect("output charge fits");
+        attempt.try_consume_output_bytes(2).expect("output charge fits");
         attempt
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("value admission fits");
@@ -43,8 +41,6 @@ fn test_encode_attempt_can_consume_output_bytes() {
             .build(),
     );
     let mut attempt = session.begin_value();
-    attempt
-        .try_consume_output_bytes(3)
-        .expect("output charge fits");
+    attempt.try_consume_output_bytes(3).expect("output charge fits");
     assert_eq!(attempt.output_budget().expect("output budget").used(), 3);
 }

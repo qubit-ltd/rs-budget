@@ -79,9 +79,8 @@ where
         R: Clone,
     {
         if let Some(limit) = self.max_magnitude_bits.as_ref() {
-            let bits = Q::try_from_u64(value.bits()).map_err(|source| {
-                MeasuredBudgetError::quantity(limit.resource().clone(), source)
-            })?;
+            let bits = Q::try_from_u64(value.bits())
+                .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
             limit.check(bits).map_err(MeasuredBudgetError::from)?;
         }
         if let Some(limit) = self.max_significant_decimal_digits.as_ref() {
@@ -114,10 +113,7 @@ where
     }
 }
 
-fn check_decimal_digits<R, Q>(
-    limit: &ResourceLimit<R, Q>,
-    value: &BigInt,
-) -> Result<(), MeasuredBudgetError<R, Q>>
+fn check_decimal_digits<R, Q>(limit: &ResourceLimit<R, Q>, value: &BigInt) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     R: Clone,
     Q: ResourceQuantity,
@@ -128,8 +124,8 @@ where
     }
 
     let maximum = limit.maximum();
-    let bits = Q::try_from_u64(bits)
-        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
+    let bits =
+        Q::try_from_u64(bits).map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
     let low_bits = maximum
         .checked_add(maximum)
         .and_then(|value| value.checked_add(maximum));
@@ -151,8 +147,8 @@ where
 
     let text = value.to_str_radix(10);
     let digits = text.strip_prefix('-').unwrap_or(&text).len();
-    let digits = Q::try_from_usize(digits)
-        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
+    let digits =
+        Q::try_from_usize(digits).map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
     if digits > maximum {
         Err(LimitExceededError {
             resource: limit.resource().clone(),

@@ -37,10 +37,7 @@ fn assert_complete_atomicity_matrix(document: &str, rows: &[&str; 7]) {
         let position = document
             .find(row)
             .expect("documentation must contain every atomicity-matrix row");
-        assert!(
-            position >= previous,
-            "atomicity-matrix rows must be ordered"
-        );
+        assert!(position >= previous, "atomicity-matrix rows must be ordered");
         previous = position;
     }
 }
@@ -48,10 +45,7 @@ fn assert_complete_atomicity_matrix(document: &str, rows: &[&str; 7]) {
 /// Verifies both README files show the public value-transaction example.
 #[test]
 fn test_readmes_document_value_transaction_example() {
-    for readme in [
-        include_str!("../../README.md"),
-        include_str!("../../README.zh_CN.md"),
-    ] {
+    for readme in [include_str!("../../README.md"), include_str!("../../README.zh_CN.md")] {
         let measurement_import = ["use qubit_budget", "::json::JsonMeasurement;"].concat();
         let limits_import = ["use qubit_budget", "::json::JsonValueLimits;"].concat();
         assert!(readme.contains(&measurement_import));
@@ -74,14 +68,8 @@ fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
     let documents = [
         (include_str!("../../README.md"), &ENGLISH_MATRIX_ROWS),
         (include_str!("../../README.zh_CN.md"), &CHINESE_MATRIX_ROWS),
-        (
-            include_str!("../../doc/user_guide.md"),
-            &ENGLISH_MATRIX_ROWS,
-        ),
-        (
-            include_str!("../../doc/user_guide.zh_CN.md"),
-            &CHINESE_MATRIX_ROWS,
-        ),
+        (include_str!("../../doc/user_guide.md"), &ENGLISH_MATRIX_ROWS),
+        (include_str!("../../doc/user_guide.zh_CN.md"), &CHINESE_MATRIX_ROWS),
     ];
     for (document, rows) in documents {
         assert_complete_atomicity_matrix(document, rows);
@@ -89,29 +77,20 @@ fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
         assert!(document.contains("Vec"));
         assert!(document.contains("success-only") || document.contains("只在成功时计费"));
         assert!(document.contains("accepted prefix"));
-        assert!(
-            normalized_document.contains("raw input")
-                || normalized_document.contains("raw and normalized input")
-        );
+        assert!(normalized_document.contains("raw input") || normalized_document.contains("raw and normalized input"));
         assert!(normalized_document.contains("normalized input"));
         assert!(document.contains("callback"));
         assert!(document.contains("Hasher"));
         assert!(normalized_document.contains("higher-level"));
         assert!(document.contains("transaction"));
         assert!(document.contains("commit"));
-        assert!(
-            normalized_document.contains("drop")
-                || document.contains("丢弃")
-                || document.contains("回滚")
-        );
+        assert!(normalized_document.contains("drop") || document.contains("丢弃") || document.contains("回滚"));
     }
     assert!(
-        include_str!("../../doc/user_guide.md")
-            .contains("Callers create each attempt explicitly with `begin_value()`")
+        include_str!("../../doc/user_guide.md").contains("Callers create each attempt explicitly with `begin_value()`")
     );
     assert!(
-        include_str!("../../doc/user_guide.zh_CN.md")
-            .contains("调用者通过 `begin_value()` 显式创建每个 attempt。")
+        include_str!("../../doc/user_guide.zh_CN.md").contains("调用者通过 `begin_value()` 显式创建每个 attempt。")
     );
 }
 
@@ -179,9 +158,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     );
     {
         let mut attempt = encode.begin_value();
-        attempt
-            .try_consume_output_bytes(2)
-            .expect("accepted output fits");
+        attempt.try_consume_output_bytes(2).expect("accepted output fits");
         attempt
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("staged value fits");

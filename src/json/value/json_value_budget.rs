@@ -79,12 +79,9 @@ where
     #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
-        self.state.remaining_payload_bytes().map(|remaining| {
-            self.limits
-                .max_payload_bytes()
-                .expect("configured payload limit")
-                - remaining
-        })
+        self.state
+            .remaining_payload_bytes()
+            .map(|remaining| self.limits.max_payload_bytes().expect("configured payload limit") - remaining)
     }
 
     /// Returns committed remaining payload capacity when that limit is set.

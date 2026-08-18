@@ -42,9 +42,7 @@ where
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
-        Self {
-            max_utf8_bytes: None,
-        }
+        Self { max_utf8_bytes: None }
     }
 
     /// Creates a builder for string limits.
