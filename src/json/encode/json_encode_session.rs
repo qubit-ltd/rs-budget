@@ -17,10 +17,10 @@ use crate::resource::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON encoding operation.
 ///
-/// Use [`Self::from_limits`] for a session that owns budgets created from immutable
-/// limits, or [`Self::borrowing_output`] when the caller owns the output and
-/// value budgets. Accepted output bytes are charged immediately; value
-/// measurements are staged until [`JsonEncodeAttempt::commit`].
+/// Use [`Self::from_limits`] for a session that owns budgets created from
+/// immutable limits, or [`Self::borrowing_output`] when the caller owns the
+/// output and value budgets. Accepted output bytes are charged immediately;
+/// value measurements are staged until [`JsonEncodeAttempt::commit`].
 ///
 /// # Examples
 ///

@@ -176,13 +176,6 @@ where
         &self.limit
     }
 
-    /// Returns the finite pool limit.
-    #[must_use]
-    #[inline(always)]
-    pub const fn limit(&self) -> Q {
-        self.limit.maximum()
-    }
-
     /// Returns the total finite capacity.
     #[must_use]
     #[inline(always)]

@@ -79,12 +79,6 @@ impl<Q> JsonEncodeLimitsBuilder<JsonResource, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an unconfigured encoding limit set using standard JSON types.
-    #[must_use]
-    pub const fn empty() -> Self {
-        Self::new()
-    }
-
     /// Sets the maximum output-byte count.
     #[inline]
     #[must_use]

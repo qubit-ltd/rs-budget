@@ -17,11 +17,11 @@ use crate::resource::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON decoding operation.
 ///
-/// Use [`Self::from_limits`] for a session that owns budgets created from immutable
-/// limits, or one of the `borrowing_*` constructors when the caller owns the
-/// budgets. Create an attempt with [`Self::begin_value`] for each complete
-/// value; input charges are immediate, while value accounting is committed by
-/// [`JsonDecodeAttempt::commit`].
+/// Use [`Self::from_limits`] for a session that owns budgets created from
+/// immutable limits, or one of the `borrowing_*` constructors when the caller
+/// owns the budgets. Create an attempt with [`Self::begin_value`] for each
+/// complete value; input charges are immediate, while value accounting is
+/// committed by [`JsonDecodeAttempt::commit`].
 ///
 /// # Examples
 ///

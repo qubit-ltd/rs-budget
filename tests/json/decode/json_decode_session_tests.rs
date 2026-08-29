@@ -49,7 +49,8 @@ fn test_decode_attempt_drop_keeps_input_and_rolls_back_value() {
 /// Verifies that an owned decode session can commit successive value attempts.
 #[test]
 fn test_decode_session_begin_value_commits_and_reuses_value_budget() {
-    let mut session = JsonDecodeSession::from_limits(JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(2).build());
+    let mut session =
+        JsonDecodeSession::from_limits(JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(2).build());
 
     let mut first = session.begin_value();
     first

@@ -101,7 +101,6 @@ fn test_invalid_release_is_atomic() {
 fn test_pool_accessors_report_the_finite_capacity() {
     let pool = ResourcePool::new(TestResource::OpenFiles, 2_u64);
     assert_eq!(pool.resource(), &TestResource::OpenFiles);
-    assert_eq!(pool.limit(), 2_u64);
     assert_eq!(pool.resource_limit().resource(), &TestResource::OpenFiles);
     assert_eq!(pool.resource_limit().maximum(), 2_u64);
     assert_eq!(pool.capacity(), 2);

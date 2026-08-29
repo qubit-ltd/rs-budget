@@ -53,8 +53,8 @@ fn test_value_limits_expresses_borrowing_and_ownership() {
 }
 
 #[test]
-fn test_empty_decode_limits_report_unconfigured_maxima() {
-    let limits = JsonDecodeLimits::<JsonResource, usize>::builder().build();
+fn test_new_decode_limits_report_unconfigured_maxima() {
+    let limits = JsonDecodeLimits::<JsonResource, usize>::new();
     assert_eq!(limits.max_input_bytes(), None);
     assert_eq!(limits.max_normalized_input_bytes(), None);
 }

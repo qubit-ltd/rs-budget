@@ -36,7 +36,7 @@ impl<R, Q> JsonEncodeLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an unconfigured generic encoding limit set.
+    /// Creates an empty encoding limit set with no configured resource limits.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -99,13 +99,5 @@ where
     /// Replaces the JSON value limits during builder composition.
     pub(super) fn set_value_limits(&mut self, limits: JsonValueLimits<R, Q>) {
         self.value = limits;
-    }
-}
-
-impl JsonEncodeLimits<JsonResource, usize> {
-    /// Creates an unconfigured encoding limit set using standard JSON types.
-    #[must_use]
-    pub const fn empty() -> Self {
-        Self::new()
     }
 }

@@ -91,8 +91,8 @@ fn test_structure_limits_expresses_borrowing_and_ownership() {
 }
 
 #[test]
-fn test_empty_value_limits_report_unconfigured_maxima() {
-    let limits = JsonValueLimits::<JsonResource, usize>::builder().build();
+fn test_new_value_limits_report_unconfigured_maxima() {
+    let limits = JsonValueLimits::<JsonResource, usize>::new();
     assert_eq!(limits.max_depth(), None);
     assert_eq!(limits.max_string_bytes(), None);
     assert_eq!(limits.max_number_bytes(), None);

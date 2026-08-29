@@ -51,13 +51,8 @@ fn test_value_limits_expresses_borrowing_and_ownership() {
 }
 
 #[test]
-fn test_empty_encode_limits_report_unconfigured_maximum() {
-    assert_eq!(
-        JsonEncodeLimits::<JsonResource, usize>::builder()
-            .build()
-            .max_output_bytes(),
-        None
-    );
+fn test_new_encode_limits_report_unconfigured_maximum() {
+    assert_eq!(JsonEncodeLimits::<JsonResource, usize>::new().max_output_bytes(), None);
 }
 
 #[test]

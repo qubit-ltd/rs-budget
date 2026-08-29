@@ -66,7 +66,7 @@ impl<R, Q> JsonValueLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an unconfigured generic value limit set.
+    /// Creates an empty value limit set with no configured resource limits.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -212,15 +212,6 @@ where
     /// Replaces the structural limits.
     pub(super) fn set_structure_limits(&mut self, limits: StructureLimits<R, Q>) {
         self.structure = limits;
-    }
-}
-
-impl JsonValueLimits<JsonResource, usize> {
-    /// Creates an unconfigured value limit set using the standard JSON
-    /// resource types and `usize` measurements.
-    #[must_use]
-    pub const fn empty() -> Self {
-        Self::new()
     }
 }
 
