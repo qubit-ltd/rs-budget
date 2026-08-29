@@ -8,6 +8,15 @@
 //! Defines native measurements collected while traversing JSON values.
 
 /// Native dimensions measured for one JSON value or object key.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonMeasurement;
+///
+/// let measurement = JsonMeasurement::String { depth: 2, bytes: 5 };
+/// assert!(matches!(measurement, JsonMeasurement::String { bytes: 5, .. }));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum JsonMeasurement {
     /// A null value measured by its root-inclusive nesting depth.

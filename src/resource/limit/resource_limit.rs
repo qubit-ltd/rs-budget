@@ -64,12 +64,20 @@ where
     }
 
     /// Returns the resource bound to this limit.
+    ///
+    /// # Returns
+    ///
+    /// Returns the resource bound to this limit.
     #[inline(always)]
     #[must_use]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
+    /// Returns this limit's inclusive maximum measurement.
+    ///
+    /// # Returns
+    ///
     /// Returns this limit's inclusive maximum measurement.
     #[inline(always)]
     #[must_use]
@@ -167,6 +175,11 @@ where
 }
 
 /// Checks an optional point limit.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 ///
 /// # Parameters
 ///

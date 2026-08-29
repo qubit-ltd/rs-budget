@@ -17,6 +17,25 @@ use crate::resource::ResourceQuantity;
 ///
 /// Dropping an attempt rolls back JSON value accounting. Accepted output
 /// charges remain committed, including while unwinding from a panic.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonEncodeLimits;
+/// use qubit_budget::json::JsonEncodeSession;
+/// use qubit_budget::json::JsonMeasurement;
+///
+/// let limits = JsonEncodeLimits::builder().max_nodes(1_usize).build();
+/// let mut session = JsonEncodeSession::from_limits(limits);
+/// let mut attempt = session.begin_value();
+/// attempt.try_admit(JsonMeasurement::Null { depth: 1 }).expect("null should fit");
+/// attempt.commit();
+/// ```
 pub struct JsonEncodeAttempt<'a, R, Q>
 where
     Q: ResourceQuantity,
@@ -33,6 +52,15 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an attempt from the budgets split out of an encode session.
+    ///
+    /// # Parameters
+    ///
+    /// * `output` - Output supplied to this operation.
+    /// * `value` - Value to measure or validate.
+    ///
+    /// # Returns
+    ///
+    /// Creates an attempt from the budgets split out of an encode session.
     #[inline(always)]
     #[must_use]
     pub(crate) const fn new(
@@ -46,6 +74,19 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured output budget. An absent output budget is ignored.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Quantity involved in this accounting operation.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     #[inline]
     pub fn check_output_bytes(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref() {
@@ -58,6 +99,19 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured output budget on failure. An absent budget is ignored.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Quantity involved in this accounting operation.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     #[inline]
     pub fn try_consume_output_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref_mut() {
@@ -70,12 +124,32 @@ where
     ///
     /// Returns the transaction's conversion or value-limit error. A failure
     /// leaves this attempt's working value state and output charges unchanged.
+    ///
+    /// # Parameters
+    ///
+    /// * `measurement` - Native JSON measurement to convert or admit.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     #[inline]
     pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
         self.value.try_admit(measurement)
     }
 
     /// Returns the output budget while the attempt exclusively owns it.
+    ///
+    /// # Returns
+    ///
+    /// Returns the output budget while the attempt exclusively owns it.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
@@ -88,6 +162,13 @@ where
     /// The returned transaction keeps its value changes staged until this
     /// attempt is committed. Dropping the attempt rolls back only that value
     /// state.
+    ///
+    /// # Returns
+    ///
+    /// Splits this attempt into immediate output and staged value accounting.
+    ///
+    /// A `None` output budget indicates that output-byte accounting is
+    /// unconfigured.
     #[must_use]
     #[inline]
     pub fn split_mut(&mut self) -> (Option<&mut ResourceBudget<R, Q>>, &mut JsonValueTransaction<'a, R, Q>) {
@@ -95,6 +176,13 @@ where
     }
 
     /// Returns staged node usage when the node limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged node usage when the node limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
@@ -102,6 +190,13 @@ where
     }
 
     /// Returns staged remaining node capacity when the node limit is set.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged remaining node capacity when the node limit is set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
@@ -109,6 +204,13 @@ where
     }
 
     /// Returns staged payload usage when the payload limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged payload usage when the payload limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
@@ -116,12 +218,23 @@ where
     }
 
     /// Returns staged remaining payload capacity when the payload limit is set.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged remaining payload capacity when the payload limit is set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.value.remaining_payload_bytes()
     }
 
+    /// Returns the mutable transaction that holds this attempt's value state.
+    ///
+    /// # Returns
+    ///
     /// Returns the mutable transaction that holds this attempt's value state.
     #[must_use]
     #[inline]

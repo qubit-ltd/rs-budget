@@ -14,6 +14,11 @@ use crate::resource::ResourceQuantity;
 
 /// Optional point limit for one UTF-8 string's byte length.
 ///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
 /// # Examples
 ///
 /// ```
@@ -31,6 +36,7 @@ pub struct StringLimits<R, Q = u64>
 where
     Q: ResourceQuantity,
 {
+    /// Optional inclusive maximum for one string's UTF-8 byte length.
     max_utf8_bytes: Option<ResourceLimit<R, Q>>,
 }
 
@@ -39,12 +45,20 @@ where
     Q: ResourceQuantity,
 {
     /// Creates limits with no configured string bound.
+    ///
+    /// # Returns
+    ///
+    /// Creates limits with no configured string bound.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
         Self { max_utf8_bytes: None }
     }
 
+    /// Creates a builder for string limits.
+    ///
+    /// # Returns
+    ///
     /// Creates a builder for string limits.
     #[inline]
     #[must_use]
@@ -53,6 +67,10 @@ where
     }
 
     /// Converts these limits into a builder for further configuration.
+    ///
+    /// # Returns
+    ///
+    /// Converts these limits into a builder for further configuration.
     #[inline]
     #[must_use]
     pub const fn into_builder(self) -> StringLimitsBuilder<R, Q> {
@@ -60,6 +78,13 @@ where
     }
 
     /// Returns the configured UTF-8 byte limit, if any.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured UTF-8 byte limit, if any.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn utf8_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
@@ -70,6 +95,19 @@ where
     ///
     /// The measured quantity is the string's UTF-8 byte length. A configured
     /// limit returns a point budget error when the length is too large.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Value to measure or validate.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     #[inline]
     pub fn check(&self, value: &str) -> Result<(), MeasuredBudgetError<R, Q>>
     where
@@ -84,6 +122,10 @@ where
     }
 
     /// Replaces the UTF-8 byte limit during builder composition.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
     #[inline(always)]
     pub(super) fn set_utf8_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_utf8_bytes = Some(limit);
@@ -94,6 +136,10 @@ impl<R, Q> Default for StringLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates unconfigured string limits.
+    ///
+    /// # Returns
+    ///
     /// Creates unconfigured string limits.
     #[inline]
     fn default() -> Self {

@@ -10,6 +10,10 @@
 use crate::resource::ResourceQuantity;
 
 /// Remaining capacity for the cumulative dimensions of one JSON value budget.
+///
+/// # Type Parameters
+///
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct JsonValueState<Q>
 where
@@ -26,6 +30,16 @@ where
     Q: ResourceQuantity,
 {
     /// Creates the initial zero-used state from configured cumulative maxima.
+    ///
+    /// # Parameters
+    ///
+    /// * `remaining_nodes` - Optional initial cumulative node capacity.
+    /// * `remaining_payload_bytes` - Optional initial cumulative payload-byte
+    ///   capacity.
+    ///
+    /// # Returns
+    ///
+    /// Creates the initial zero-used state from configured cumulative maxima.
     #[inline(always)]
     #[must_use]
     pub(crate) const fn new(remaining_nodes: Option<Q>, remaining_payload_bytes: Option<Q>) -> Self {
@@ -36,18 +50,37 @@ where
     }
 
     /// Returns remaining value-node capacity when that limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns remaining value-node capacity when that limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[inline(always)]
     pub(crate) const fn remaining_nodes(&self) -> Option<Q> {
         self.remaining_nodes
     }
 
     /// Returns remaining payload-byte capacity when that limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns remaining payload-byte capacity when that limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[inline(always)]
     pub(crate) const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.remaining_payload_bytes
     }
 
     /// Decreases the checked cumulative capacities for one admitted event.
+    ///
+    /// # Parameters
+    ///
+    /// * `node` - Whether the event consumes one JSON node.
+    /// * `payload_bytes` - Payload bytes consumed by the event.
     pub(crate) fn apply(&mut self, node: bool, payload_bytes: Q) {
         if node && let Some(remaining) = &mut self.remaining_nodes {
             *remaining = *remaining - Q::ONE;

@@ -22,6 +22,17 @@ use crate::resource::ResourceLimit;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
+///
+/// # Examples
+///
+/// ```
+/// use std::time::Duration;
+/// use qubit_budget::DurationBudget;
+///
+/// let mut budget = DurationBudget::new("active work", Duration::from_secs(3));
+/// budget.try_consume(Duration::from_secs(1)).expect("one second should fit");
+/// assert_eq!(budget.remaining(), Duration::from_secs(2));
+/// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct DurationBudget<R> {
     /// Finite maximum active duration of the budget.
@@ -153,12 +164,20 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns the associated resource.
+    ///
+    /// # Returns
+    ///
+    /// Returns the associated resource.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
 
+    /// Returns the immutable resource limit that configures this budget.
+    ///
+    /// # Returns
+    ///
     /// Returns the immutable resource limit that configures this budget.
     #[must_use]
     #[inline(always)]
@@ -167,6 +186,10 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns the finite duration limit.
+    ///
+    /// # Returns
+    ///
+    /// Returns the finite duration limit.
     #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Duration {
@@ -174,12 +197,20 @@ impl<R> DurationBudget<R> {
     }
 
     /// Returns remaining duration.
+    ///
+    /// # Returns
+    ///
+    /// Returns remaining duration.
     #[must_use]
     #[inline(always)]
     pub const fn remaining(&self) -> Duration {
         self.remaining
     }
 
+    /// Returns explicitly consumed duration.
+    ///
+    /// # Returns
+    ///
     /// Returns explicitly consumed duration.
     #[must_use]
     #[inline(always)]

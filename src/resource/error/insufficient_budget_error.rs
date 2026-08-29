@@ -17,6 +17,17 @@ use thiserror::Error;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `Q` - Copyable measurement value used by the failed constraint.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourceBudget;
+///
+/// let mut budget = ResourceBudget::new("bytes", 2_u64);
+/// let error = budget.try_consume(3).expect_err("three bytes should not fit");
+/// assert_eq!(error.remaining(), 2);
+/// assert_eq!(error.requested(), 3);
+/// ```
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 #[error("resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains")]
 pub struct InsufficientBudgetError<R, Q = u64>
@@ -38,12 +49,20 @@ where
     Q: Copy + Debug,
 {
     /// Returns the resource associated with this failure.
+    ///
+    /// # Returns
+    ///
+    /// Returns the resource associated with this failure.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
+    /// Consumes this error and returns its associated resource.
+    ///
+    /// # Returns
+    ///
     /// Consumes this error and returns its associated resource.
     #[must_use]
     #[inline(always)]
@@ -52,6 +71,10 @@ where
     }
 
     /// Returns the configured finite limit.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured finite limit.
     #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Q {
@@ -59,12 +82,20 @@ where
     }
 
     /// Returns the capacity remaining before the failed request.
+    ///
+    /// # Returns
+    ///
+    /// Returns the capacity remaining before the failed request.
     #[must_use]
     #[inline(always)]
     pub const fn remaining(&self) -> Q {
         self.remaining
     }
 
+    /// Returns the quantity requested by the failed operation.
+    ///
+    /// # Returns
+    ///
     /// Returns the quantity requested by the failed operation.
     #[must_use]
     #[inline(always)]
@@ -77,6 +108,10 @@ impl<R, Q> InsufficientBudgetError<R, Q>
 where
     Q: crate::ResourceQuantity,
 {
+    /// Returns the amount already consumed before the failed request.
+    ///
+    /// # Returns
+    ///
     /// Returns the amount already consumed before the failed request.
     #[must_use]
     #[inline]

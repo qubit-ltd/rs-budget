@@ -15,11 +15,27 @@ use crate::resource::ResourceQuantity;
 use crate::structure::StructureLimits;
 
 /// Builder for [`JsonValueLimits`].
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonValueLimitsBuilder;
+///
+/// let limits = JsonValueLimitsBuilder::new().max_nodes(8_usize).max_string_bytes(32_usize).build();
+/// assert_eq!(limits.max_nodes(), Some(8));
+/// assert_eq!(limits.max_string_bytes(), Some(32));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JsonValueLimitsBuilder<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Limit configuration accumulated by chained builder calls.
     limits: JsonValueLimits<R, Q>,
 }
 
@@ -27,6 +43,11 @@ impl<R, Q> Default for JsonValueLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates an empty builder through the standard [`Default`] interface.
+    ///
+    /// # Returns
+    ///
+    /// Creates an empty builder through the standard [`Default`] interface.
     fn default() -> Self {
         Self::new()
     }
@@ -37,6 +58,10 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an empty JSON value-limits builder.
+    ///
+    /// # Returns
+    ///
+    /// Creates an empty JSON value-limits builder.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -46,6 +71,14 @@ where
     }
 
     /// Restores a builder from an existing limit set.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    ///
+    /// # Returns
+    ///
+    /// Restores a builder from an existing limit set.
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: JsonValueLimits<R, Q>) -> Self {
@@ -53,6 +86,14 @@ where
     }
 
     /// Sets the string-byte limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn string_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -61,6 +102,14 @@ where
     }
 
     /// Sets the number-byte limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn number_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -69,6 +118,14 @@ where
     }
 
     /// Sets the payload-byte limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn payload_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -77,6 +134,18 @@ where
     }
 
     /// Sets the structural limits.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `S` - Closure used to transform the structural-limit builder.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn structure_limits<S>(mut self, limits: S) -> Self
@@ -88,12 +157,20 @@ where
     }
 
     /// Builds the configured JSON value limits.
+    ///
+    /// # Returns
+    ///
+    /// Builds the configured JSON value limits.
     #[inline]
     #[must_use]
     pub fn build(self) -> JsonValueLimits<R, Q> {
         self.limits
     }
 
+    /// Creates a mutable JSON value budget from this builder.
+    ///
+    /// # Returns
+    ///
     /// Creates a mutable JSON value budget from this builder.
     #[inline]
     #[must_use]
@@ -107,6 +184,14 @@ where
     Q: ResourceQuantity,
 {
     /// Sets the maximum nesting depth.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_depth(mut self, maximum: Q) -> Self {
@@ -121,6 +206,14 @@ where
     }
 
     /// Sets the maximum number of JSON nodes.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_nodes(mut self, maximum: Q) -> Self {
@@ -135,6 +228,14 @@ where
     }
 
     /// Sets the maximum number of items in one JSON array.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_sequence_items(mut self, maximum: Q) -> Self {
@@ -149,6 +250,14 @@ where
     }
 
     /// Sets the maximum number of entries in one JSON object.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_map_entries(mut self, maximum: Q) -> Self {
@@ -163,6 +272,14 @@ where
     }
 
     /// Sets the maximum UTF-8 byte length of one JSON object key.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_key_bytes(mut self, maximum: Q) -> Self {
@@ -177,6 +294,14 @@ where
     }
 
     /// Sets the maximum UTF-8 byte length of one JSON string.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_string_bytes(mut self, maximum: Q) -> Self {
@@ -186,6 +311,14 @@ where
     }
 
     /// Sets the maximum byte length of one JSON number representation.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_number_bytes(mut self, maximum: Q) -> Self {
@@ -195,6 +328,14 @@ where
     }
 
     /// Sets the cumulative payload-byte maximum.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn max_payload_bytes(mut self, maximum: Q) -> Self {

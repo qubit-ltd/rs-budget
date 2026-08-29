@@ -22,6 +22,11 @@ use crate::resource::ResourceQuantity;
 /// output and value budgets. Accepted output bytes are charged immediately;
 /// value measurements are staged until [`JsonEncodeAttempt::commit`].
 ///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
 /// # Examples
 ///
 /// ```
@@ -59,6 +64,14 @@ where
     Q: ResourceQuantity,
 {
     /// Creates a session borrowing only a caller-owned value budget.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Value to measure or validate.
+    ///
+    /// # Returns
+    ///
+    /// Creates a session borrowing only a caller-owned value budget.
     #[inline]
     #[must_use]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
@@ -67,6 +80,15 @@ where
         }
     }
 
+    /// Creates a session borrowing caller-owned output and value budgets.
+    ///
+    /// # Parameters
+    ///
+    /// * `output` - Output supplied to this operation.
+    /// * `value` - Value to measure or validate.
+    ///
+    /// # Returns
+    ///
     /// Creates a session borrowing caller-owned output and value budgets.
     #[inline]
     #[must_use]
@@ -84,6 +106,10 @@ where
     /// The returned attempt charges accepted output immediately, but publishes
     /// staged JSON value accounting only after `commit`. Dropping it rolls back
     /// only the staged value state.
+    ///
+    /// # Returns
+    ///
+    /// Starts accounting for one complete JSON value.
     #[must_use]
     pub fn begin_value(&mut self) -> JsonEncodeAttempt<'_, R, Q> {
         let (output, value) = self.storage.split();
@@ -91,6 +117,13 @@ where
     }
 
     /// Returns the output budget when configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns the output budget when configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
@@ -101,12 +134,23 @@ where
     }
 
     /// Returns the configured output-byte maximum.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured output-byte maximum.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub fn max_output_bytes(&self) -> Option<Q> {
         self.output_budget().map(ResourceBudget::limit)
     }
 
+    /// Returns the value budget for read-only inspection.
+    ///
+    /// # Returns
+    ///
     /// Returns the value budget for read-only inspection.
     #[must_use]
     #[inline(always)]
@@ -123,6 +167,14 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
+    /// Creates a session that owns budgets initialized from immutable limits.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    ///
+    /// # Returns
+    ///
     /// Creates a session that owns budgets initialized from immutable limits.
     #[inline]
     #[must_use]

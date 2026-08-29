@@ -25,6 +25,19 @@ use super::TimeBudgetError;
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
 /// * `C` - Monotonic clock implementation used to sample the budget.
+///
+/// # Examples
+///
+/// ```
+/// use std::time::Duration;
+/// use qubit_budget::TimeBudget;
+/// use qubit_clock::ManualMonotonicClock;
+///
+/// let clock = ManualMonotonicClock::new_shared();
+/// let budget = TimeBudget::for_duration("request", clock, Duration::from_secs(1))
+///     .expect("the deadline should be representable");
+/// assert!(!budget.is_expired());
+/// ```
 #[derive(Debug)]
 pub struct TimeBudget<R, C> {
     /// Resource value retained in deadline errors.
@@ -125,6 +138,10 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
 
 impl<R, C> TimeBudget<R, C> {
     /// Returns the associated resource.
+    ///
+    /// # Returns
+    ///
+    /// Returns the associated resource.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
@@ -132,12 +149,20 @@ impl<R, C> TimeBudget<R, C> {
     }
 
     /// Returns the instant sampled at construction.
+    ///
+    /// # Returns
+    ///
+    /// Returns the instant sampled at construction.
     #[must_use = "inspect the construction instant"]
     #[inline(always)]
     pub const fn started_at(&self) -> MonotonicInstant {
         self.started_at
     }
 
+    /// Returns the fixed deadline.
+    ///
+    /// # Returns
+    ///
     /// Returns the fixed deadline.
     #[must_use = "inspect the deadline instant"]
     #[inline(always)]
@@ -166,6 +191,10 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     /// clock.advance(Duration::from_secs(1)).expect("clock should advance");
     /// assert!(budget.is_expired());
     /// ```
+    ///
+    /// # Returns
+    ///
+    /// Reports whether the current instant has reached the deadline.
     #[inline]
     #[must_use]
     pub fn is_expired(&self) -> bool {

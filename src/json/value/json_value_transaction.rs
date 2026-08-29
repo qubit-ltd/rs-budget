@@ -20,6 +20,24 @@ use crate::resource::ResourceQuantity;
 ///
 /// Dropping this value, including during unwinding, discards its fixed-size
 /// working state and leaves the target budget's committed state unchanged.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonMeasurement;
+/// use qubit_budget::json::JsonValueLimits;
+///
+/// let mut budget = JsonValueLimits::builder().max_nodes(1_usize).budget();
+/// let mut transaction = budget.transaction();
+/// transaction.try_admit(JsonMeasurement::Null { depth: 1 }).expect("null should fit");
+/// transaction.commit();
+/// assert_eq!(budget.used_nodes(), Some(1));
+/// ```
 pub struct JsonValueTransaction<'a, R, Q>
 where
     Q: ResourceQuantity,
@@ -35,6 +53,14 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
+    /// Creates a transaction using a snapshot of `target`'s committed state.
+    ///
+    /// # Parameters
+    ///
+    /// * `target` - Mutable accounting state updated by the operation.
+    ///
+    /// # Returns
+    ///
     /// Creates a transaction using a snapshot of `target`'s committed state.
     #[inline(always)]
     pub(super) const fn new(target: &'a mut JsonValueBudget<R, Q>) -> Self {
@@ -52,6 +78,19 @@ where
     /// Returns conversion, point-limit, or cumulative-budget errors with their
     /// configured resource identity. Any error leaves this transaction's
     /// working state unchanged and does not affect the committed budget.
+    ///
+    /// # Parameters
+    ///
+    /// * `measurement` - Native JSON measurement to convert or admit.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
         let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
         prepared.check_point(self.target.limits())?;
@@ -65,6 +104,20 @@ where
     /// This checks the container depth and consumes its node immediately;
     /// child-count limits remain enforceable through
     /// [`Self::check_container_count`].
+    ///
+    /// # Parameters
+    ///
+    /// * `kind` - JSON container kind whose item count is checked.
+    /// * `depth` - Root-inclusive nesting depth to validate.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     pub fn try_enter_container(
         &mut self,
         kind: JsonContainerKind,
@@ -90,6 +143,10 @@ where
     ///
     /// Returns a quantity conversion error when `prospective` cannot be
     /// represented by `Q`, or a point-limit error for `kind`.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
     pub fn check_container_count(
         &self,
         kind: JsonContainerKind,
@@ -111,6 +168,18 @@ where
     }
 
     /// Returns staged node usage when the cumulative node limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged node usage when the cumulative node limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the private working state contains a node balance
+    /// without the node limit from which it was initialized.
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
@@ -121,6 +190,14 @@ where
 
     /// Returns staged remaining node capacity when the node limit is
     /// configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged remaining node capacity when the node limit is
+    /// configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
@@ -128,6 +205,18 @@ where
     }
 
     /// Returns staged payload usage when the payload limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged payload usage when the payload limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the private working state contains a payload balance
+    /// without the payload limit from which it was initialized.
     #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
@@ -141,6 +230,13 @@ where
     }
 
     /// Returns staged remaining payload capacity when that limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged remaining payload capacity when that limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
@@ -148,6 +244,19 @@ where
     }
 
     /// Checks cumulative capacity for an event without changing working state.
+    ///
+    /// # Parameters
+    ///
+    /// * `prepared` - Converted event whose cumulative cost is checked.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     fn check_cumulative(&self, prepared: PreparedJsonAdmission<Q>) -> Result<(), MeasuredBudgetError<R, Q>> {
         let (node, payload_bytes) = cumulative_cost(prepared);
         if node {
@@ -157,6 +266,20 @@ where
     }
 
     /// Converts and checks one prospective container count without mutation.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Quantity involved in this accounting operation.
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     fn check_container_items(
         &self,
         amount: usize,
@@ -171,6 +294,20 @@ where
     }
 
     /// Checks the configured node budget for one additional value node.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the private working state contains a node balance
+    /// without the node limit from which it was initialized.
     fn check_nodes(&self) -> Result<(), MeasuredBudgetError<R, Q>> {
         let Some(remaining) = self.working.remaining_nodes() else {
             return Ok(());
@@ -194,6 +331,24 @@ where
     }
 
     /// Checks the configured payload budget for one event without mutation.
+    ///
+    /// # Parameters
+    ///
+    /// * `payload_bytes` - Converted payload cost of the event.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the private working state contains a payload balance
+    /// without the payload limit from which it was initialized.
     fn check_payload(&self, payload_bytes: Q) -> Result<(), MeasuredBudgetError<R, Q>> {
         let Some(remaining) = self.working.remaining_payload_bytes() else {
             return Ok(());
@@ -216,12 +371,28 @@ where
     }
 
     /// Applies a previously checked event to the fixed-size working state.
+    ///
+    /// # Parameters
+    ///
+    /// * `prepared` - Previously validated event to apply to working state.
     fn apply(&mut self, prepared: PreparedJsonAdmission<Q>) {
         let (node, payload_bytes) = cumulative_cost(prepared);
         self.working.apply(node, payload_bytes);
     }
 }
 
+/// Returns the cumulative node and payload cost of a prepared JSON event.
+///
+/// # Type Parameters
+///
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Parameters
+///
+/// * `prepared` - Converted event whose node and payload costs are extracted.
+///
+/// # Returns
+///
 /// Returns the cumulative node and payload cost of a prepared JSON event.
 fn cumulative_cost<Q>(prepared: PreparedJsonAdmission<Q>) -> (bool, Q)
 where

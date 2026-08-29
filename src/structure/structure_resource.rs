@@ -8,6 +8,16 @@
 //! Defines resource identities for structural input limits.
 
 /// A structural quantity constrained while processing nested data.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourceLimit;
+/// use qubit_budget::StructureResource;
+///
+/// let limit = ResourceLimit::new(StructureResource::Depth, 4_usize);
+/// assert_eq!(limit.maximum(), 4);
+/// ```
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StructureResource {

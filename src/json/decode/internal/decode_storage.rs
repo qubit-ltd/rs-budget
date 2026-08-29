@@ -13,6 +13,11 @@ use crate::resource::ResourceBudget;
 use crate::resource::ResourceQuantity;
 
 /// Mutable budgets borrowed by one decode attempt.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 type DecodeStorageSplit<'a, R, Q> = (
     Option<&'a mut ResourceBudget<R, Q>>,
     Option<&'a mut ResourceBudget<R, Q>>,
@@ -20,6 +25,11 @@ type DecodeStorageSplit<'a, R, Q> = (
 );
 
 /// Backing storage for owned and caller-borrowed decode budgets.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 #[derive(Debug)]
 pub(crate) enum DecodeStorage<'a, R, Q>
 where
@@ -50,6 +60,13 @@ where
     Q: ResourceQuantity,
 {
     /// Splits storage into the budgets borrowed by one decode attempt.
+    ///
+    /// # Returns
+    ///
+    /// Splits storage into the budgets borrowed by one decode attempt.
+    ///
+    /// A `None` I/O budget indicates that the corresponding byte dimension is
+    /// unconfigured.
     #[inline]
     pub(crate) fn split(&mut self) -> DecodeStorageSplit<'_, R, Q> {
         match self {

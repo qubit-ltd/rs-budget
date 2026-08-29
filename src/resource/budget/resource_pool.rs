@@ -163,12 +163,20 @@ where
     }
 
     /// Returns the associated resource.
+    ///
+    /// # Returns
+    ///
+    /// Returns the associated resource.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
 
+    /// Returns the immutable resource limit that configures this pool.
+    ///
+    /// # Returns
+    ///
     /// Returns the immutable resource limit that configures this pool.
     #[must_use]
     #[inline(always)]
@@ -177,6 +185,10 @@ where
     }
 
     /// Returns the total finite capacity.
+    ///
+    /// # Returns
+    ///
+    /// Returns the total finite capacity.
     #[must_use]
     #[inline(always)]
     pub const fn capacity(&self) -> Q {
@@ -184,12 +196,20 @@ where
     }
 
     /// Returns currently available capacity.
+    ///
+    /// # Returns
+    ///
+    /// Returns currently available capacity.
     #[must_use]
     #[inline(always)]
     pub const fn available(&self) -> Q {
         self.available
     }
 
+    /// Returns currently acquired capacity.
+    ///
+    /// # Returns
+    ///
     /// Returns currently acquired capacity.
     #[inline(always)]
     #[must_use]

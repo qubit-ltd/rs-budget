@@ -14,6 +14,11 @@ use crate::resource::ResourceQuantity;
 use crate::string::BudgetedStringWriter;
 
 /// Formatting adapter that appends through a budgeted string writer.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 pub(crate) struct FmtWriter<'writer, 'budget, R, Q>
 where
     Q: ResourceQuantity,
@@ -32,6 +37,14 @@ where
     /// # Errors
     ///
     /// Returns `fmt::Error` when the enclosing budget rejects the append.
+    ///
+    /// # Parameters
+    ///
+    /// * `value` - Value to measure or validate.
+    ///
+    /// # Returns
+    ///
+    /// Appends one formatted string when the budget permits it.
     fn write_str(&mut self, value: &str) -> fmt::Result {
         if self.writer.append(value.as_bytes()) {
             Ok(())

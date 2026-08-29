@@ -18,6 +18,23 @@ use crate::resource::LimitExceededError;
 use crate::resource::QuantityConversionError;
 
 /// Error returned when native measurement or budget validation rejects a value.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::MeasuredBudgetError;
+/// use qubit_budget::QuantityConversionError;
+/// use qubit_budget::QuantityMeasurement;
+///
+/// let source = QuantityConversionError::new(QuantityMeasurement::Usize(256), "u8");
+/// let error = MeasuredBudgetError::<_, u8>::quantity("bytes", source);
+/// assert!(error.quantity_error().is_some());
+/// ```
 #[derive(Clone, Debug, Error)]
 pub enum MeasuredBudgetError<R, Q = u64>
 where
@@ -35,7 +52,11 @@ where
 
     /// A representable measurement exceeded its configured resource budget.
     #[error(transparent)]
-    Budget(#[from] BudgetError<R, Q>),
+    Budget(
+        /// Exact point-limit or cumulative-budget failure.
+        #[from]
+        BudgetError<R, Q>,
+    ),
 }
 
 impl<R, Q> MeasuredBudgetError<R, Q>
@@ -91,6 +112,10 @@ where
     /// The resource is present for both budget validation and quantity
     /// conversion failures, so callers do not need to match the error variant
     /// merely to attach resource context.
+    ///
+    /// # Returns
+    ///
+    /// Returns the resource associated with this failure.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
@@ -100,6 +125,10 @@ where
         }
     }
 
+    /// Consumes this failure and returns its associated resource.
+    ///
+    /// # Returns
+    ///
     /// Consumes this failure and returns its associated resource.
     #[inline(always)]
     #[must_use]
@@ -116,6 +145,14 @@ where
     Q: Copy + Debug,
 {
     /// Wraps a point-limit failure in a measured-budget failure.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Precise point-limit failure to wrap.
+    ///
+    /// # Returns
+    ///
+    /// Wraps a point-limit failure in a measured-budget failure.
     #[inline(always)]
     fn from(error: LimitExceededError<R, Q>) -> Self {
         Self::Budget(error.into())
@@ -126,6 +163,14 @@ impl<R, Q> From<InsufficientBudgetError<R, Q>> for MeasuredBudgetError<R, Q>
 where
     Q: Copy + Debug,
 {
+    /// Wraps a cumulative-budget failure in a measured-budget failure.
+    ///
+    /// # Parameters
+    ///
+    /// * `error` - Precise cumulative-budget failure to wrap.
+    ///
+    /// # Returns
+    ///
     /// Wraps a cumulative-budget failure in a measured-budget failure.
     #[inline(always)]
     fn from(error: InsufficientBudgetError<R, Q>) -> Self {

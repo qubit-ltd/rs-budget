@@ -12,6 +12,23 @@ use std::fmt::Debug;
 use thiserror::Error;
 
 /// Structured facts describing a pool release that exceeds current usage.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourcePool;
+///
+/// let mut pool = ResourcePool::new("workers", 2_u64);
+/// pool.try_acquire(1).expect("one worker should fit");
+/// let error = pool.release(2).expect_err("only one worker is in use");
+/// assert_eq!(error.in_use(), 1);
+/// assert_eq!(error.requested(), 2);
+/// ```
 #[non_exhaustive]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ResourceReleaseError<R, Q = u64>
@@ -37,6 +54,10 @@ where
     Q: Copy + Debug,
 {
     /// Returns the resource associated with this failure.
+    ///
+    /// # Returns
+    ///
+    /// Returns the resource associated with this failure.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
@@ -45,6 +66,10 @@ where
         }
     }
 
+    /// Consumes this error and returns its associated resource.
+    ///
+    /// # Returns
+    ///
     /// Consumes this error and returns its associated resource.
     #[inline(always)]
     #[must_use]
@@ -55,6 +80,10 @@ where
     }
 
     /// Returns the finite pool limit.
+    ///
+    /// # Returns
+    ///
+    /// Returns the finite pool limit.
     #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Q {
@@ -64,6 +93,10 @@ where
     }
 
     /// Returns the amount in use before the invalid release.
+    ///
+    /// # Returns
+    ///
+    /// Returns the amount in use before the invalid release.
     #[must_use]
     #[inline(always)]
     pub const fn in_use(&self) -> Q {
@@ -72,6 +105,10 @@ where
         }
     }
 
+    /// Returns the requested release amount.
+    ///
+    /// # Returns
+    ///
     /// Returns the requested release amount.
     #[must_use]
     #[inline(always)]

@@ -8,6 +8,15 @@
 //! Defines the JSON container dimensions checked during traversal.
 
 /// Identifies the point-limited count of a JSON container.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonContainerKind;
+///
+/// let kind = JsonContainerKind::Sequence;
+/// assert!(matches!(kind, JsonContainerKind::Sequence));
+/// ```
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum JsonContainerKind {

@@ -14,6 +14,11 @@ use crate::resource::ResourceQuantity;
 use crate::string::BudgetedStringWriter;
 
 /// I/O adapter that appends through a budgeted string writer.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 pub(crate) struct IoWriter<'writer, 'budget, R, Q>
 where
     Q: ResourceQuantity,
@@ -32,6 +37,14 @@ where
     /// # Errors
     ///
     /// Returns an I/O error when the enclosing budget rejects the append.
+    ///
+    /// # Parameters
+    ///
+    /// * `bytes` - Native byte count to validate or charge.
+    ///
+    /// # Returns
+    ///
+    /// Appends bytes when the budget permits them.
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         if self.writer.append(bytes) {
             Ok(bytes.len())
@@ -45,6 +58,10 @@ where
     /// # Errors
     ///
     /// This in-memory adapter never fails while flushing.
+    ///
+    /// # Returns
+    ///
+    /// Flushes the in-memory adapter.
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }

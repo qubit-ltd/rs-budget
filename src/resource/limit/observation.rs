@@ -14,13 +14,33 @@ use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
 
 /// A resource observation that may be exact or only a safe lower bound.
+///
+/// # Type Parameters
+///
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::Observation;
+///
+/// let observation = Observation::AtLeast(4_u64);
+/// assert_eq!(observation.exact(), None);
+/// assert_eq!(observation.lower_bound(), 4);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Observation<Q> {
     /// The measured quantity is exact.
-    Exact(Q),
+    Exact(
+        /// Exact observed quantity.
+        Q,
+    ),
 
     /// The measured quantity is at least the contained lower bound.
-    AtLeast(Q),
+    AtLeast(
+        /// Proven lower bound for the observed quantity.
+        Q,
+    ),
 }
 
 impl<Q> Display for Observation<Q>
@@ -28,6 +48,18 @@ where
     Q: Display,
 {
     /// Formats the observation with its precision qualifier.
+    ///
+    /// # Parameters
+    ///
+    /// * `formatter` - Formatter receiving the textual representation.
+    ///
+    /// # Returns
+    ///
+    /// Formats the observation with its precision qualifier.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`std::fmt::Error`] when the formatter rejects the output.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> FmtResult {
         match self {
             Self::Exact(value) => write!(formatter, "exactly {value}"),
@@ -41,6 +73,10 @@ where
     Q: Copy + Debug,
 {
     /// Returns the exact quantity, or `None` for a lower-bound observation.
+    ///
+    /// # Returns
+    ///
+    /// Returns the exact quantity, or `None` for a lower-bound observation.
     #[inline(always)]
     #[must_use]
     pub const fn exact(self) -> Option<Q> {
@@ -50,6 +86,10 @@ where
         }
     }
 
+    /// Returns the safe lower bound represented by this observation.
+    ///
+    /// # Returns
+    ///
     /// Returns the safe lower bound represented by this observation.
     #[inline(always)]
     #[must_use]

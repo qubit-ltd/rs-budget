@@ -322,12 +322,20 @@ where
     }
 
     /// Returns the associated resource.
+    ///
+    /// # Returns
+    ///
+    /// Returns the associated resource.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
 
+    /// Returns the immutable resource limit that configures this budget.
+    ///
+    /// # Returns
+    ///
     /// Returns the immutable resource limit that configures this budget.
     #[must_use]
     #[inline(always)]
@@ -336,6 +344,10 @@ where
     }
 
     /// Returns the finite limit.
+    ///
+    /// # Returns
+    ///
+    /// Returns the finite limit.
     #[must_use]
     #[inline(always)]
     pub const fn limit(&self) -> Q {
@@ -343,12 +355,20 @@ where
     }
 
     /// Returns remaining capacity.
+    ///
+    /// # Returns
+    ///
+    /// Returns remaining capacity.
     #[must_use]
     #[inline(always)]
     pub const fn remaining(&self) -> Q {
         self.remaining
     }
 
+    /// Returns the quantity consumed so far.
+    ///
+    /// # Returns
+    ///
     /// Returns the quantity consumed so far.
     #[must_use]
     #[inline(always)]

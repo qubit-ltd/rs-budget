@@ -15,12 +15,20 @@ use crate::resource::QuantityConversionError;
 use crate::resource::ResourceQuantity;
 
 /// Failure state retained until the string transaction is finalized.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 pub(crate) enum WriterFailure<R, Q>
 where
     Q: ResourceQuantity,
 {
     /// The output exceeded the remaining budget.
-    Budget(InsufficientBudgetError<R, Q>),
+    Budget(
+        /// Exact resource, capacity, balance, and rejected request.
+        InsufficientBudgetError<R, Q>,
+    ),
     /// The output length could not be represented by the budget quantity.
     Quantity {
         /// Resource whose accounting required the conversion.
@@ -29,7 +37,10 @@ where
         source: QuantityConversionError,
     },
     /// The output buffer could not reserve the requested capacity.
-    Allocation(TryReserveError),
+    Allocation(
+        /// Allocation failure returned by the output byte buffer.
+        TryReserveError,
+    ),
     /// The buffered output length overflowed `usize`.
     LengthOverflow,
 }

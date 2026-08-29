@@ -21,6 +21,17 @@ use crate::resource::QuantityMeasurement;
 /// Implementations are limited to Rust's unsigned integer types. This excludes
 /// signed values, floating-point `NaN`/infinity, and rounding-based arithmetic
 /// from the accounting invariants.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::ResourceQuantity;
+///
+/// fn add_one<Q: ResourceQuantity>(value: Q) -> Option<Q> {
+///     value.checked_add(Q::ONE)
+/// }
+/// assert_eq!(add_one(2_u8), Some(3));
+/// ```
 pub trait ResourceQuantity:
     ResourceQuantitySealed + Copy + Debug + Display + Eq + Ord + Add<Output = Self> + Sub<Output = Self>
 {
@@ -76,20 +87,46 @@ pub trait ResourceQuantity:
     fn try_from_u64(value: u64) -> Result<Self, QuantityConversionError>;
 }
 
+/// Implements exact accounting operations for the supported unsigned types.
 macro_rules! impl_resource_quantity {
     ($($quantity:ty),+ $(,)?) => {
         $(
             impl ResourceQuantitySealed for $quantity {}
 
             impl ResourceQuantity for $quantity {
+                /// Zero in the concrete unsigned quantity type.
                 const ZERO: Self = 0;
+                /// One in the concrete unsigned quantity type.
                 const ONE: Self = 1;
 
+                /// Delegates overflow-aware addition to the unsigned integer.
+                ///
+                /// # Parameters
+                ///
+                /// * `other` - Concrete unsigned quantity to add.
+                ///
+                /// # Returns
+                ///
+                /// `Some(sum)` when the addition fits, or `None` on overflow.
                 #[inline]
                 fn checked_add(self, other: Self) -> Option<Self> {
                     Self::checked_add(self, other)
                 }
 
+                /// Performs an exact conversion from a machine-sized value.
+                ///
+                /// # Parameters
+                ///
+                /// * `value` - Native machine-sized measurement to convert.
+                ///
+                /// # Returns
+                ///
+                /// The exactly represented concrete unsigned quantity.
+                ///
+                /// # Errors
+                ///
+                /// Returns [`QuantityConversionError`] when `value` exceeds
+                /// the concrete unsigned type's range.
                 #[inline]
                 fn try_from_usize(value: usize) -> Result<Self, QuantityConversionError> {
                     <$quantity>::try_from(value).map_err(|_| {
@@ -100,6 +137,20 @@ macro_rules! impl_resource_quantity {
                     })
                 }
 
+                /// Performs an exact conversion from a 64-bit value.
+                ///
+                /// # Parameters
+                ///
+                /// * `value` - Native 64-bit measurement to convert.
+                ///
+                /// # Returns
+                ///
+                /// The exactly represented concrete unsigned quantity.
+                ///
+                /// # Errors
+                ///
+                /// Returns [`QuantityConversionError`] when `value` exceeds
+                /// the concrete unsigned type's range.
                 #[inline]
                 fn try_from_u64(value: u64) -> Result<Self, QuantityConversionError> {
                     <$quantity>::try_from(value).map_err(|_| {

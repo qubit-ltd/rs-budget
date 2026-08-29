@@ -14,25 +14,58 @@ use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
 
 /// Native JSON measurement converted for the dimensions configured by limits.
+///
+/// # Type Parameters
+///
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::json) enum PreparedJsonAdmission<Q>
 where
     Q: ResourceQuantity,
 {
     /// A null value with its converted depth.
-    Null { depth: Q },
+    Null {
+        /// Root-inclusive nesting depth used for the point check.
+        depth: Q,
+    },
     /// A boolean value with its converted depth.
-    Boolean { depth: Q },
+    Boolean {
+        /// Root-inclusive nesting depth used for the point check.
+        depth: Q,
+    },
     /// A string value with its converted depth and byte length.
-    String { depth: Q, bytes: Q },
+    String {
+        /// Root-inclusive nesting depth used for the point check.
+        depth: Q,
+        /// UTF-8 byte length used for point and cumulative checks.
+        bytes: Q,
+    },
     /// A number value with its converted depth and byte length.
-    Number { depth: Q, bytes: Q },
+    Number {
+        /// Root-inclusive nesting depth used for the point check.
+        depth: Q,
+        /// Representation byte length used for point and cumulative checks.
+        bytes: Q,
+    },
     /// An array with its converted depth and item count.
-    Array { depth: Q, items: Q },
+    Array {
+        /// Root-inclusive nesting depth used for the point check.
+        depth: Q,
+        /// Number of direct array items used for the point check.
+        items: Q,
+    },
     /// An object with its converted depth and entry count.
-    Object { depth: Q, entries: Q },
+    Object {
+        /// Root-inclusive nesting depth used for the point check.
+        depth: Q,
+        /// Number of direct object entries used for the point check.
+        entries: Q,
+    },
     /// An object key with its converted byte length.
-    Key { bytes: Q },
+    Key {
+        /// UTF-8 byte length used for point and cumulative checks.
+        bytes: Q,
+    },
 }
 
 impl<Q> PreparedJsonAdmission<Q>
@@ -43,6 +76,24 @@ where
     ///
     /// Returns a conversion error associated with the first configured
     /// resource whose native measurement does not fit `Q`.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `R` - Caller-defined resource identity retained by limits and errors.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `measurement` - Native JSON measurement to convert or admit.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(prepared)` with every configured native dimension converted to `Q`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     pub(in crate::json) fn prepare<R>(
         limits: &JsonValueLimits<R, Q>,
         measurement: JsonMeasurement,
@@ -84,6 +135,23 @@ where
     ///
     /// Returns the first depth or variant-specific limit error. This method
     /// neither creates nor mutates a budget.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `R` - Caller-defined resource identity retained by limits and errors.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     pub(in crate::json) fn check_point<R>(
         &self,
         limits: &JsonValueLimits<R, Q>,
@@ -119,6 +187,25 @@ where
 ///
 /// Returns a conversion error carrying the configured limit's resource when
 /// `amount` cannot be represented by `Q`.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Parameters
+///
+/// * `amount` - Quantity involved in this accounting operation.
+/// * `limit` - Resource-bound limit to inspect or install.
+///
+/// # Returns
+///
+/// `Ok(converted)` when the limit is configured, or `Ok(Q::ZERO)` when the
+/// dimension is unconfigured.
+///
+/// # Errors
+///
+/// Returns [`MeasuredBudgetError`] when `amount` cannot be represented by `Q`.
 fn convert<R, Q>(amount: usize, limit: Option<&ResourceLimit<R, Q>>) -> Result<Q, MeasuredBudgetError<R, Q>>
 where
     R: Clone,
@@ -135,6 +222,28 @@ where
 ///
 /// Returns a conversion error carrying the point-limit resource when present,
 /// otherwise the cumulative payload-limit resource.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Parameters
+///
+/// * `amount` - Quantity involved in this accounting operation.
+/// * `point_limit` - Optional point limit whose resource takes precedence in
+///   conversion errors.
+/// * `payload_limit` - Optional cumulative limit used when no point limit is
+///   configured.
+///
+/// # Returns
+///
+/// `Ok(converted)` when a relevant limit exists, or `Ok(Q::ZERO)` when the
+/// byte dimension is entirely unconfigured.
+///
+/// # Errors
+///
+/// Returns [`MeasuredBudgetError`] when `amount` cannot be represented by `Q`.
 fn convert_payload<R, Q>(
     amount: usize,
     point_limit: Option<&ResourceLimit<R, Q>>,
@@ -155,6 +264,25 @@ where
 ///
 /// Returns the configured resource-limit error when `actual` exceeds its
 /// inclusive maximum.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Parameters
+///
+/// * `limit` - Resource-bound limit to inspect or install.
+/// * `actual` - Observed quantity to validate.
+///
+/// # Returns
+///
+/// `Ok(())` when the operation completes successfully.
+///
+/// # Errors
+///
+/// Returns [`MeasuredBudgetError`] when a configured point limit rejects
+/// `actual`.
 fn check_limit<R, Q>(limit: Option<&ResourceLimit<R, Q>>, actual: Q) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     R: Clone,

@@ -13,11 +13,27 @@ use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
 
 /// Builder for [`StructureLimits`].
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::StructureLimitsBuilder;
+///
+/// let limits = StructureLimitsBuilder::new().max_depth(4).max_nodes(16).build();
+/// assert_eq!(limits.max_depth(), Some(4));
+/// assert_eq!(limits.max_nodes(), Some(16));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StructureLimitsBuilder<R = StructureResource, Q = usize>
 where
     Q: ResourceQuantity,
 {
+    /// Limit configuration accumulated by chained builder calls.
     limits: StructureLimits<R, Q>,
 }
 
@@ -25,6 +41,11 @@ impl<R, Q> Default for StructureLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates an empty builder through the standard [`Default`] interface.
+    ///
+    /// # Returns
+    ///
+    /// Creates an empty builder through the standard [`Default`] interface.
     fn default() -> Self {
         Self::new()
     }
@@ -34,6 +55,15 @@ impl<R, Q> From<StructureLimitsBuilder<R, Q>> for StructureLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Finishes the builder and returns its structural limit configuration.
+    ///
+    /// # Parameters
+    ///
+    /// * `builder` - Builder whose accumulated configuration is consumed.
+    ///
+    /// # Returns
+    ///
+    /// Finishes the builder and returns its structural limit configuration.
     fn from(builder: StructureLimitsBuilder<R, Q>) -> Self {
         builder.build()
     }
@@ -44,6 +74,10 @@ where
     Q: ResourceQuantity,
 {
     /// Creates an empty structural-limits builder.
+    ///
+    /// # Returns
+    ///
+    /// Creates an empty structural-limits builder.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -53,6 +87,14 @@ where
     }
 
     /// Creates a builder retaining an existing limit configuration.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    ///
+    /// # Returns
+    ///
+    /// Creates a builder retaining an existing limit configuration.
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: StructureLimits<R, Q>) -> Self {
@@ -60,6 +102,14 @@ where
     }
 
     /// Sets the depth limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn depth_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -68,6 +118,14 @@ where
     }
 
     /// Sets the node limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn nodes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -76,6 +134,14 @@ where
     }
 
     /// Sets the sequence-item limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn sequence_items_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -84,6 +150,14 @@ where
     }
 
     /// Sets the map-entry limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn map_entries_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -92,6 +166,14 @@ where
     }
 
     /// Sets the structural-key limit.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub fn key_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -99,6 +181,10 @@ where
         self
     }
 
+    /// Builds the configured structural limits.
+    ///
+    /// # Returns
+    ///
     /// Builds the configured structural limits.
     #[inline]
     #[must_use]
@@ -109,6 +195,14 @@ where
 
 impl StructureLimitsBuilder<StructureResource, usize> {
     /// Sets the maximum nesting depth.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub const fn max_depth(mut self, maximum: usize) -> Self {
@@ -117,6 +211,14 @@ impl StructureLimitsBuilder<StructureResource, usize> {
     }
 
     /// Sets the maximum number of processed nodes.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub const fn max_nodes(mut self, maximum: usize) -> Self {
@@ -125,6 +227,14 @@ impl StructureLimitsBuilder<StructureResource, usize> {
     }
 
     /// Sets the maximum number of items in one sequence.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub const fn max_sequence_items(mut self, maximum: usize) -> Self {
@@ -133,6 +243,14 @@ impl StructureLimitsBuilder<StructureResource, usize> {
     }
 
     /// Sets the maximum number of entries in one map.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub const fn max_map_entries(mut self, maximum: usize) -> Self {
@@ -141,6 +259,14 @@ impl StructureLimitsBuilder<StructureResource, usize> {
     }
 
     /// Sets the maximum byte length of one structural key.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
+    ///
+    /// # Returns
+    ///
+    /// The builder with the described setting applied.
     #[inline]
     #[must_use]
     pub const fn max_key_bytes(mut self, maximum: usize) -> Self {

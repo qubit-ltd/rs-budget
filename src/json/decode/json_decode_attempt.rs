@@ -17,6 +17,25 @@ use crate::resource::ResourceQuantity;
 ///
 /// Dropping an attempt rolls back JSON value accounting. Raw and normalized
 /// input charges remain committed, including while unwinding from a panic.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonDecodeLimits;
+/// use qubit_budget::json::JsonDecodeSession;
+/// use qubit_budget::json::JsonMeasurement;
+///
+/// let limits = JsonDecodeLimits::builder().max_nodes(1_usize).build();
+/// let mut session = JsonDecodeSession::from_limits(limits);
+/// let mut attempt = session.begin_value();
+/// attempt.try_admit(JsonMeasurement::Null { depth: 1 }).expect("null should fit");
+/// attempt.commit();
+/// ```
 pub struct JsonDecodeAttempt<'a, R, Q>
 where
     Q: ResourceQuantity,
@@ -34,6 +53,17 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
+    /// Creates an attempt from the budgets split out of a decode session.
+    ///
+    /// # Parameters
+    ///
+    /// * `input` - Input supplied to this operation.
+    /// * `normalized_input` - Optional normalized-input budget borrowed for
+    ///   immediate charges.
+    /// * `value` - Value to measure or validate.
+    ///
+    /// # Returns
+    ///
     /// Creates an attempt from the budgets split out of a decode session.
     #[inline(always)]
     #[must_use]
@@ -53,6 +83,19 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured input budget on failure. An absent input budget is ignored.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Quantity involved in this accounting operation.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     #[inline]
     pub fn try_consume_input_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         consume_bytes(self.input.as_deref_mut(), amount)
@@ -62,6 +105,19 @@ where
     ///
     /// Returns a quantity-conversion or budget error without changing the
     /// configured normalized budget on failure. An absent budget is ignored.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Quantity involved in this accounting operation.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     #[inline]
     pub fn try_consume_normalized_input_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         consume_bytes(self.normalized_input.as_deref_mut(), amount)
@@ -71,12 +127,32 @@ where
     ///
     /// Returns the transaction's conversion or value-limit error. A failure
     /// leaves this attempt's working value state and all I/O charges unchanged.
+    ///
+    /// # Parameters
+    ///
+    /// * `measurement` - Native JSON measurement to convert or admit.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
+    /// or a configured limit rejects it.
     #[inline]
     pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
         self.value.try_admit(measurement)
     }
 
     /// Returns the raw input budget while the attempt exclusively owns it.
+    ///
+    /// # Returns
+    ///
+    /// Returns the raw input budget while the attempt exclusively owns it.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
@@ -84,6 +160,13 @@ where
     }
 
     /// Returns the normalized input budget while the attempt owns it.
+    ///
+    /// # Returns
+    ///
+    /// Returns the normalized input budget while the attempt owns it.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
@@ -91,6 +174,13 @@ where
     }
 
     /// Returns staged node usage when the node limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged node usage when the node limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
@@ -98,6 +188,13 @@ where
     }
 
     /// Returns staged remaining node capacity when the node limit is set.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged remaining node capacity when the node limit is set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
@@ -105,6 +202,13 @@ where
     }
 
     /// Returns staged payload usage when the payload limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged payload usage when the payload limit is configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
@@ -112,12 +216,23 @@ where
     }
 
     /// Returns staged remaining payload capacity when the payload limit is set.
+    ///
+    /// # Returns
+    ///
+    /// Returns staged remaining payload capacity when the payload limit is set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.value.remaining_payload_bytes()
     }
 
+    /// Returns the mutable transaction that holds this attempt's value state.
+    ///
+    /// # Returns
+    ///
     /// Returns the mutable transaction that holds this attempt's value state.
     #[must_use]
     #[inline]
@@ -132,6 +247,25 @@ where
 }
 
 /// Converts and immediately consumes native bytes when a budget is present.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
+/// # Parameters
+///
+/// * `budget` - Optional cumulative byte budget to charge.
+/// * `amount` - Quantity involved in this accounting operation.
+///
+/// # Returns
+///
+/// `Ok(())` when the operation completes successfully.
+///
+/// # Errors
+///
+/// Returns [`MeasuredBudgetError`] when `amount` cannot fit `Q` or exceeds the
+/// budget's remaining capacity.
 #[inline]
 fn consume_bytes<R, Q>(
     budget: Option<&mut ResourceBudget<R, Q>>,

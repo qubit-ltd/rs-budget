@@ -18,6 +18,21 @@ use thiserror::Error;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource value retained for diagnostics.
+///
+/// # Examples
+///
+/// ```
+/// use std::time::Duration;
+/// use qubit_budget::TimeBudget;
+/// use qubit_budget::TimeBudgetError;
+/// use qubit_clock::ManualMonotonicClock;
+///
+/// let clock = ManualMonotonicClock::new_shared();
+/// let budget = TimeBudget::for_duration("request", clock.clone(), Duration::from_secs(1))
+///     .expect("the deadline should be representable");
+/// clock.advance(Duration::from_secs(1)).expect("the clock should advance");
+/// assert!(matches!(budget.check(), Err(TimeBudgetError::Expired { .. })));
+/// ```
 #[derive(Debug, Error)]
 pub enum TimeBudgetError<R> {
     /// The clock rejected a domain or instant operation.
@@ -55,6 +70,10 @@ pub enum TimeBudgetError<R> {
 
 impl<R> TimeBudgetError<R> {
     /// Returns the resource by reference.
+    ///
+    /// # Returns
+    ///
+    /// Returns the resource by reference.
     #[must_use]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
@@ -65,6 +84,10 @@ impl<R> TimeBudgetError<R> {
         }
     }
 
+    /// Consumes the error and returns its resource.
+    ///
+    /// # Returns
+    ///
     /// Consumes the error and returns its resource.
     #[inline(always)]
     #[must_use]

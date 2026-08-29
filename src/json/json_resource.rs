@@ -8,6 +8,16 @@
 //! Defines resource identities for JSON processing limits.
 
 /// A JSON quantity constrained while processing one JSON input.
+///
+/// # Examples
+///
+/// ```
+/// use qubit_budget::json::JsonResource;
+/// use qubit_budget::ResourceLimit;
+///
+/// let limit = ResourceLimit::new(JsonResource::InputBytes, 128_usize);
+/// assert_eq!(limit.maximum(), 128);
+/// ```
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum JsonResource {

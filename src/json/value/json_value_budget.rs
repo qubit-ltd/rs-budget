@@ -19,6 +19,11 @@ use crate::resource::ResourceQuantity;
 /// [`JsonValueTransaction`] for each complete value and call `commit` only
 /// after every measurement for that value has been admitted.
 ///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
 /// # Examples
 ///
 /// ```
@@ -53,12 +58,28 @@ where
     Q: ResourceQuantity,
 {
     /// Starts an all-or-nothing accounting transaction for one JSON value.
+    ///
+    /// # Returns
+    ///
+    /// Starts an all-or-nothing accounting transaction for one JSON value.
     #[must_use]
     pub fn transaction(&mut self) -> JsonValueTransaction<'_, R, Q> {
         JsonValueTransaction::new(self)
     }
 
     /// Returns committed node usage when the cumulative node limit is set.
+    ///
+    /// # Returns
+    ///
+    /// Returns committed node usage when the cumulative node limit is set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the private accounting state contains a node balance
+    /// without the node limit from which it was initialized.
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
@@ -68,6 +89,13 @@ where
     }
 
     /// Returns committed remaining node capacity when that limit is set.
+    ///
+    /// # Returns
+    ///
+    /// Returns committed remaining node capacity when that limit is set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_nodes(&self) -> Option<Q> {
@@ -76,6 +104,19 @@ where
 
     /// Returns committed payload usage when the cumulative payload limit is
     /// set.
+    ///
+    /// # Returns
+    ///
+    /// Returns committed payload usage when the cumulative payload limit is
+    /// set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if the private accounting state contains a payload balance
+    /// without the payload limit from which it was initialized.
     #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
@@ -85,6 +126,13 @@ where
     }
 
     /// Returns committed remaining payload capacity when that limit is set.
+    ///
+    /// # Returns
+    ///
+    /// Returns committed remaining payload capacity when that limit is set.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
@@ -96,6 +144,14 @@ impl<R, Q> JsonValueBudget<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates an empty committed ledger for `limits`.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    ///
+    /// # Returns
+    ///
     /// Creates an empty committed ledger for `limits`.
     #[inline]
     #[must_use]
@@ -109,6 +165,10 @@ where
         self.state = JsonValueState::new(self.limits.max_nodes(), self.limits.max_payload_bytes());
     }
 
+    /// Returns the immutable limits shared by all transactions.
+    ///
+    /// # Returns
+    ///
     /// Returns the immutable limits shared by all transactions.
     #[must_use]
     #[inline(always)]

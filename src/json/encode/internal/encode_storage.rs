@@ -13,6 +13,11 @@ use crate::resource::ResourceBudget;
 use crate::resource::ResourceQuantity;
 
 /// Backing storage for owned and caller-borrowed encode budgets.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
 #[derive(Debug)]
 pub(crate) enum EncodeStorage<'a, R, Q>
 where
@@ -39,6 +44,13 @@ where
     Q: ResourceQuantity,
 {
     /// Splits storage into the budgets borrowed by one encode attempt.
+    ///
+    /// # Returns
+    ///
+    /// Splits storage into the budgets borrowed by one encode attempt.
+    ///
+    /// A `None` I/O budget indicates that the corresponding byte dimension is
+    /// unconfigured.
     #[inline]
     pub(crate) fn split(&mut self) -> (Option<&mut ResourceBudget<R, Q>>, &mut JsonValueBudget<R, Q>) {
         match self {
