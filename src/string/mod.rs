@@ -13,3 +13,4 @@ mod internal;
 
 pub use budgeted_string_error::BudgetedStringError;
 pub use budgeted_string_writer::BudgetedStringWriter;
+pub(crate) use budgeted_string_writer::render_budgeted_string;

@@ -179,63 +179,69 @@ const fn checked_output_len(current: usize, additional: usize) -> Option<usize> 
     current.checked_add(additional)
 }
 
-impl<R, Q> ResourceBudget<R, Q>
+/// Renders a UTF-8 string and commits its byte length to a resource budget.
+///
+/// This crate-internal implementation keeps string buffering and writer error
+/// precedence in the string domain. [`ResourceBudget::try_write_string`]
+/// exposes the public type-owned forwarding method.
+///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for byte accounting.
+/// * `E` - Error type returned by the caller-provided renderer.
+/// * `F` - Closure that renders into the transactional writer.
+///
+/// # Parameters
+///
+/// * `budget` - Finite byte budget charged only after rendering succeeds.
+/// * `render` - Caller-provided renderer writing into the transactional
+///   adapter.
+///
+/// # Returns
+///
+/// `Ok(rendered)` after the complete UTF-8 output is charged and committed.
+///
+/// # Errors
+///
+/// Returns [`BudgetedStringError`] when rendering, allocation, UTF-8
+/// validation, measurement, or budget accounting fails.
+pub(crate) fn render_budgeted_string<R, Q, E, F>(
+    budget: &mut ResourceBudget<R, Q>,
+    render: F,
+) -> Result<String, BudgetedStringError<R, E, Q>>
 where
     R: Clone + fmt::Debug,
     Q: ResourceQuantity,
+    E: fmt::Debug + fmt::Display,
+    F: FnOnce(&mut BudgetedStringWriter<'_, R, Q>) -> Result<(), E>,
 {
-    /// Renders and transactionally commits a UTF-8 string under this budget.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `E` - Error type returned by the caller-provided renderer.
-    /// * `F` - Closure used to configure or render the nested value.
-    ///
-    /// # Parameters
-    ///
-    /// * `render` - Caller-provided renderer writing into the transactional
-    ///   adapter.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(rendered)` after the complete UTF-8 output is charged and committed.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BudgetedStringError`] when rendering, allocation, UTF-8
-    /// validation, measurement, or budget accounting fails.
-    pub fn try_write_string<E, F>(&mut self, render: F) -> Result<String, BudgetedStringError<R, E, Q>>
-    where
-        E: fmt::Debug + fmt::Display,
-        F: FnOnce(&mut BudgetedStringWriter<'_, R, Q>) -> Result<(), E>,
-    {
-        let mut writer = BudgetedStringWriter::new(self);
-        let rendered = render(&mut writer);
-        let (bytes, failure) = writer.into_parts();
-        match failure {
-            Some(WriterFailure::Budget(error)) => {
-                return Err(BudgetedStringError::Budget(error));
-            }
-            Some(WriterFailure::Quantity { resource, source }) => {
-                return Err(BudgetedStringError::Quantity { resource, source });
-            }
-            Some(WriterFailure::LengthOverflow) => {
-                return Err(BudgetedStringError::LengthOverflow);
-            }
-            Some(WriterFailure::Allocation(source)) => {
-                return Err(BudgetedStringError::Allocation(source));
-            }
-            None => {}
+    let mut writer = BudgetedStringWriter::new(budget);
+    let rendered = render(&mut writer);
+    let (bytes, failure) = writer.into_parts();
+    match failure {
+        Some(WriterFailure::Budget(error)) => {
+            return Err(BudgetedStringError::Budget(error));
         }
-        if let Err(error) = rendered {
-            return Err(BudgetedStringError::Render(error));
+        Some(WriterFailure::Quantity { resource, source }) => {
+            return Err(BudgetedStringError::Quantity { resource, source });
         }
-        let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
-        let output_length = Q::try_from_usize(output.len()).map_err(|source| BudgetedStringError::Quantity {
-            resource: self.resource().clone(),
-            source,
-        })?;
-        self.try_consume(output_length).map_err(BudgetedStringError::Budget)?;
-        Ok(output)
+        Some(WriterFailure::LengthOverflow) => {
+            return Err(BudgetedStringError::LengthOverflow);
+        }
+        Some(WriterFailure::Allocation(source)) => {
+            return Err(BudgetedStringError::Allocation(source));
+        }
+        None => {}
     }
+    if let Err(error) = rendered {
+        return Err(BudgetedStringError::Render(error));
+    }
+    let output = String::from_utf8(bytes).map_err(BudgetedStringError::InvalidUtf8)?;
+    let output_length = Q::try_from_usize(output.len()).map_err(|source| BudgetedStringError::Quantity {
+        resource: budget.resource().clone(),
+        source,
+    })?;
+    budget.try_consume(output_length).map_err(BudgetedStringError::Budget)?;
+    Ok(output)
 }

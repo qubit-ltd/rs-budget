@@ -13,6 +13,9 @@ use crate::resource::MeasuredBudgetError;
 use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
 
+// Implements transactional UTF-8 output backed by this resource budget.
+mod string_output;
+
 /// A finite, non-releasable resource budget.
 ///
 /// The budget stores remaining capacity and only subtracts after a request has
