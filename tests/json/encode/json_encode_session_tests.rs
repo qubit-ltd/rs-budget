@@ -18,7 +18,7 @@ use qubit_budget::json::JsonValueLimits;
 /// back staged JSON value accounting.
 #[test]
 fn test_encode_attempt_drop_keeps_output_and_rolls_back_value() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(8)
             .max_nodes(2)
@@ -40,7 +40,7 @@ fn test_encode_attempt_drop_keeps_output_and_rolls_back_value() {
 /// can commit successive value attempts.
 #[test]
 fn test_encode_attempt_checks_output_and_reuses_session() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(4)
             .max_nodes(2)
@@ -68,7 +68,7 @@ fn test_encode_attempt_checks_output_and_reuses_session() {
 /// Verifies that an attempt exposes its underlying working transaction.
 #[test]
 fn test_encode_attempt_value_transaction_mut_exposes_working_state() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_payload_bytes(4)
             .build(),
@@ -87,7 +87,7 @@ fn test_encode_attempt_value_transaction_mut_exposes_working_state() {
 /// Verifies that an attempt can lend output and value accounting together.
 #[test]
 fn test_encode_attempt_split_mut_allows_output_and_value_accounting() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(4)
             .max_nodes(1)
@@ -132,7 +132,7 @@ fn test_encode_session_borrowing_value_reuses_committed_budget() {
 /// storage.
 #[test]
 fn test_encode_session_accessors_report_configured_budgets() {
-    let session = JsonEncodeSession::owned(
+    let session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(8)
             .build(),
@@ -172,7 +172,7 @@ fn test_encode_session_borrowing_output_keeps_charge_after_attempt_drop() {
 /// unchanged.
 #[test]
 fn test_encode_attempt_output_error_is_atomic() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(2)
             .max_nodes(1)
@@ -193,7 +193,7 @@ fn test_encode_attempt_output_error_is_atomic() {
 /// value state while preserving already accepted output.
 #[test]
 fn test_encode_attempt_panic_keeps_output_and_rolls_back_value() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(3)
             .max_nodes(1)

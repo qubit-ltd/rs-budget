@@ -15,7 +15,7 @@ use qubit_budget::json::JsonResource;
 /// Verifies dropping an attempt keeps accepted output and rolls back values.
 #[test]
 fn test_encode_attempt_drop_preserves_output_only() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(4)
             .max_nodes(1)
@@ -35,7 +35,7 @@ fn test_encode_attempt_drop_preserves_output_only() {
 
 #[test]
 fn test_encode_attempt_can_consume_output_bytes() {
-    let mut session = JsonEncodeSession::owned(
+    let mut session = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(4)
             .build(),

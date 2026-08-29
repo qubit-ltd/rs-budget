@@ -123,7 +123,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     transaction.commit();
     assert_eq!(budget.used_nodes(), Some(1));
 
-    let mut decode = JsonDecodeSession::owned(
+    let mut decode = JsonDecodeSession::from_limits(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(4)
             .max_normalized_input_bytes(4)
@@ -150,7 +150,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     );
     assert_eq!(decode.value_budget().used_nodes(), Some(0));
 
-    let mut encode = JsonEncodeSession::owned(
+    let mut encode = JsonEncodeSession::from_limits(
         JsonEncodeLimits::<JsonResource, usize>::builder()
             .max_output_bytes(4)
             .max_nodes(2)

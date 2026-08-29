@@ -17,7 +17,7 @@ use crate::resource::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON encoding operation.
 ///
-/// Use [`Self::owned`] for a session that owns budgets created from immutable
+/// Use [`Self::from_limits`] for a session that owns budgets created from immutable
 /// limits, or [`Self::borrowing_output`] when the caller owns the output and
 /// value budgets. Accepted output bytes are charged immediately; value
 /// measurements are staged until [`JsonEncodeAttempt::commit`].
@@ -33,7 +33,7 @@ use crate::resource::ResourceQuantity;
 ///     .max_output_bytes(4_usize)
 ///     .max_nodes(1_usize)
 ///     .build();
-/// let mut session = JsonEncodeSession::owned(limits);
+/// let mut session = JsonEncodeSession::from_limits(limits);
 /// let mut attempt = session.begin_value();
 /// attempt
 ///     .try_consume_output_bytes(4)
@@ -123,10 +123,10 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    /// Creates an owned session from immutable limits.
+    /// Creates a session that owns budgets initialized from immutable limits.
     #[inline]
     #[must_use]
-    pub fn owned(limits: JsonEncodeLimits<R, Q>) -> Self {
+    pub fn from_limits(limits: JsonEncodeLimits<R, Q>) -> Self {
         let output = limits.output_bytes_limit().cloned().map(ResourceBudget::from_limit);
         let value = JsonValueBudget::new(limits.into_value_limits());
         Self {

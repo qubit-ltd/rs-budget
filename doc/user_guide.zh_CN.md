@@ -188,7 +188,7 @@ use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonResource;
 
-let mut session = JsonDecodeSession::owned(
+let mut session = JsonDecodeSession::from_limits(
     JsonDecodeLimits::<JsonResource, usize>::builder()
         .max_input_bytes(64 * 1024)
         .max_normalized_input_bytes(64 * 1024)

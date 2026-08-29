@@ -15,7 +15,7 @@ use qubit_budget::json::JsonResource;
 /// Verifies dropping an attempt keeps input charges and rolls back value state.
 #[test]
 fn test_decode_attempt_drop_preserves_input_only() {
-    let mut session = JsonDecodeSession::owned(
+    let mut session = JsonDecodeSession::from_limits(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(4)
             .max_nodes(1)
@@ -35,7 +35,7 @@ fn test_decode_attempt_drop_preserves_input_only() {
 
 #[test]
 fn test_decode_attempt_can_consume_input_bytes() {
-    let mut session = JsonDecodeSession::owned(
+    let mut session = JsonDecodeSession::from_limits(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(4)
             .max_normalized_input_bytes(4)

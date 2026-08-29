@@ -18,7 +18,7 @@ use qubit_budget::json::JsonValueLimits;
 /// staged JSON value accounting.
 #[test]
 fn test_decode_attempt_drop_keeps_input_and_rolls_back_value() {
-    let mut session = JsonDecodeSession::owned(
+    let mut session = JsonDecodeSession::from_limits(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(8)
             .max_normalized_input_bytes(7)
@@ -49,7 +49,7 @@ fn test_decode_attempt_drop_keeps_input_and_rolls_back_value() {
 /// Verifies that an owned decode session can commit successive value attempts.
 #[test]
 fn test_decode_session_begin_value_commits_and_reuses_value_budget() {
-    let mut session = JsonDecodeSession::owned(JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(2).build());
+    let mut session = JsonDecodeSession::from_limits(JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(2).build());
 
     let mut first = session.begin_value();
     first
@@ -73,7 +73,7 @@ fn test_decode_session_begin_value_commits_and_reuses_value_budget() {
 /// Verifies that an attempt exposes its underlying working transaction.
 #[test]
 fn test_decode_attempt_value_transaction_mut_exposes_working_state() {
-    let mut session = JsonDecodeSession::owned(
+    let mut session = JsonDecodeSession::from_limits(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_payload_bytes(4)
             .build(),
@@ -115,7 +115,7 @@ fn test_decode_session_borrowing_value_reuses_committed_budget() {
 /// storage.
 #[test]
 fn test_decode_session_accessors_report_configured_budgets() {
-    let session = JsonDecodeSession::owned(
+    let session = JsonDecodeSession::from_limits(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(8)
             .max_normalized_input_bytes(7)
@@ -187,7 +187,7 @@ fn test_decode_session_borrowing_all_commits_io_and_value() {
 /// state while preserving already consumed input.
 #[test]
 fn test_decode_attempt_panic_keeps_input_and_rolls_back_value() {
-    let mut session = JsonDecodeSession::owned(
+    let mut session = JsonDecodeSession::from_limits(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(3)
             .max_nodes(1)

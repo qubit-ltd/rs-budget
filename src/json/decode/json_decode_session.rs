@@ -17,7 +17,7 @@ use crate::resource::ResourceQuantity;
 
 /// Mutable resource accounting for one JSON decoding operation.
 ///
-/// Use [`Self::owned`] for a session that owns budgets created from immutable
+/// Use [`Self::from_limits`] for a session that owns budgets created from immutable
 /// limits, or one of the `borrowing_*` constructors when the caller owns the
 /// budgets. Create an attempt with [`Self::begin_value`] for each complete
 /// value; input charges are immediate, while value accounting is committed by
@@ -34,7 +34,7 @@ use crate::resource::ResourceQuantity;
 ///     .max_input_bytes(4_usize)
 ///     .max_nodes(1_usize)
 ///     .build();
-/// let mut session = JsonDecodeSession::owned(limits);
+/// let mut session = JsonDecodeSession::from_limits(limits);
 /// let mut attempt = session.begin_value();
 /// attempt
 ///     .try_consume_input_bytes(4)
@@ -163,10 +163,10 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    /// Creates an owned session from immutable limits.
+    /// Creates a session that owns budgets initialized from immutable limits.
     #[inline]
     #[must_use]
-    pub fn owned(limits: JsonDecodeLimits<R, Q>) -> Self {
+    pub fn from_limits(limits: JsonDecodeLimits<R, Q>) -> Self {
         let input = limits.input_bytes_limit().cloned().map(ResourceBudget::from_limit);
         let normalized_input = limits
             .normalized_input_bytes_limit()
