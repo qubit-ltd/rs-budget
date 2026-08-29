@@ -57,6 +57,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
+    #[must_use]
     #[inline(always)]
     pub(crate) const fn remaining_nodes(&self) -> Option<Q> {
         self.remaining_nodes
@@ -70,6 +71,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
+    #[must_use]
     #[inline(always)]
     pub(crate) const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.remaining_payload_bytes
