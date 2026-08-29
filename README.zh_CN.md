@@ -16,14 +16,14 @@
 
 ```toml
 [dependencies]
-qubit-budget = "0.3"
+qubit-budget = "0.4"
 ```
 
 本 crate 默认不启用 feature。只有需要集成能力时才按需开启：
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.3", features = ["json"] }
+qubit-budget = { version = "0.4", features = ["json"] }
 ```
 
 可选 feature 为 `json`、`big-integer`、`big-decimal`（会同时启用

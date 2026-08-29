@@ -3,7 +3,7 @@
 [English user guide](user_guide.md) · [中文 README](../README.zh_CN.md) ·
 [API 文档](https://docs.rs/qubit-budget)
 
-本手册适用于 `qubit-budget` 0.3.x 和 Rust 1.94 或更高版本。文中的例子提炼自
+本手册适用于 `qubit-budget` 0.4.x 和 Rust 1.94 或更高版本。文中的例子提炼自
 Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 
 ## 这个 crate 解决什么问题？
@@ -171,7 +171,7 @@ assert_eq!(snapshot.attempts(), 1);
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.3", features = ["time"] }
+qubit-budget = { version = "0.4", features = ["time"] }
 ```
 
 ## 场景五：`qubit-json` 让一个已解码 JSON value 具备事务性
