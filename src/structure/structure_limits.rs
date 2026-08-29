@@ -37,7 +37,7 @@ use crate::resource::ResourceQuantity;
 ///
 /// budget.check_depth(4).expect("the inclusive depth limit should fit");
 /// budget.charge_node().expect("the first node should fit");
-/// assert_eq!(budget.used_nodes(), 1);
+/// assert_eq!(budget.used_nodes(), Some(1));
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StructureLimits<R = StructureResource, Q = usize>

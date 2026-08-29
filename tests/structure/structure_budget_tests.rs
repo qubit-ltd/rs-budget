@@ -46,7 +46,7 @@ fn test_unconfigured_structure_limits_allow_all_checks() {
 
     assert!(!budget.has_nodes_limit());
     assert_eq!(budget.remaining_nodes(), None);
-    assert_eq!(budget.used_nodes(), 0);
+    assert_eq!(budget.used_nodes(), None);
 
     budget.check_depth(usize::MAX).expect("depth is unconfigured");
     budget
@@ -65,12 +65,12 @@ fn test_structure_budget_reports_configured_node_capacity() {
 
     assert!(budget.has_nodes_limit());
     assert_eq!(budget.remaining_nodes(), Some(3));
-    assert_eq!(budget.used_nodes(), 0);
+    assert_eq!(budget.used_nodes(), Some(0));
 
     budget.charge_node().expect("the first node should fit");
 
     assert_eq!(budget.remaining_nodes(), Some(2));
-    assert_eq!(budget.used_nodes(), 1);
+    assert_eq!(budget.used_nodes(), Some(1));
 }
 
 #[test]
@@ -158,7 +158,7 @@ fn test_enter_node_depth_failure_does_not_charge_nodes() {
     let mut budget = limits.budget();
 
     assert!(matches!(budget.enter_node(2), Err(BudgetError::LimitExceeded { .. })));
-    assert_eq!(budget.used_nodes(), 0);
+    assert_eq!(budget.used_nodes(), Some(0));
 }
 
 /// Verifies sequence item failures do not charge nodes after depth passes.
@@ -175,7 +175,7 @@ fn test_enter_sequence_items_failure_does_not_charge_nodes() {
         budget.enter_sequence(1, 2),
         Err(BudgetError::LimitExceeded { .. })
     ));
-    assert_eq!(budget.used_nodes(), 0);
+    assert_eq!(budget.used_nodes(), Some(0));
 }
 
 /// Verifies map entry failures do not charge nodes after depth passes.
@@ -189,7 +189,7 @@ fn test_enter_map_entries_failure_does_not_charge_nodes() {
     let mut budget = limits.budget();
 
     assert!(matches!(budget.enter_map(1, 2), Err(BudgetError::LimitExceeded { .. })));
-    assert_eq!(budget.used_nodes(), 0);
+    assert_eq!(budget.used_nodes(), Some(0));
 }
 
 /// Verifies node entry, key checks, and node usage share one budget session.
@@ -204,5 +204,5 @@ fn test_structure_budget_tracks_nodes_and_checks_key_bytes() {
     budget.check_key_bytes(2).expect("an exact key byte limit should fit");
     budget.enter_node(1).expect("the first node should fit the node budget");
 
-    assert_eq!(budget.used_nodes(), 1);
+    assert_eq!(budget.used_nodes(), Some(1));
 }

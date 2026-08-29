@@ -36,7 +36,7 @@ use crate::resource::check_limit;
 /// let mut budget = limits.budget();
 /// budget.charge_node().expect("first node should fit");
 /// budget.charge_node().expect("second node should fit");
-/// assert_eq!(budget.used_nodes(), 2);
+/// assert_eq!(budget.used_nodes(), Some(2));
 /// assert!(budget.charge_node().is_err());
 /// ```
 #[derive(Debug, PartialEq, Eq)]
@@ -289,17 +289,15 @@ where
         }
     }
 
-    /// Returns the number of nodes consumed by this session.
+    /// Returns the number of nodes consumed by this session when configured.
     ///
     /// # Returns
     ///
-    /// Returns the number of nodes consumed by this session.
-    #[inline(always)]
+    /// `Some(used)` contains the cumulative node usage when a node limit is
+    /// configured. `None` indicates an unconfigured node dimension.
     #[must_use]
-    pub fn used_nodes(&self) -> Q {
-        match &self.nodes {
-            Some(nodes) => nodes.used(),
-            None => Q::ZERO,
-        }
+    #[inline(always)]
+    pub fn used_nodes(&self) -> Option<Q> {
+        self.nodes.as_ref().map(ResourceBudget::used)
     }
 }
