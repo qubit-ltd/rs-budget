@@ -19,6 +19,11 @@ use crate::resource::ResourceQuantity;
 /// `Q` is the exact unsigned quantity used for all measurements. The default
 /// configuration uses [`StructureResource`] and [`usize`].
 ///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
 /// # Examples
 ///
 /// ```
@@ -59,6 +64,11 @@ impl<R, Q> Default for StructureLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
+    /// Creates structural limits with every dimension unconfigured.
+    ///
+    /// # Returns
+    ///
+    /// Creates structural limits with every dimension unconfigured.
     fn default() -> Self {
         Self::new()
     }
@@ -73,6 +83,10 @@ where
     /// The default [`StructureResource`]/`usize` configuration is constructed
     /// with [`Self::new`]. Custom resource sets use this constructor because
     /// their resource identity is supplied by each `*_limit` method.
+    ///
+    /// # Returns
+    ///
+    /// Creates an unconfigured custom-resource limit set.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -86,6 +100,10 @@ where
     }
 
     /// Creates a builder for structural limits.
+    ///
+    /// # Returns
+    ///
+    /// Creates a builder for structural limits.
     #[inline]
     #[must_use]
     pub const fn builder() -> StructureLimitsBuilder<R, Q> {
@@ -93,13 +111,41 @@ where
     }
 
     /// Converts these limits into a builder for further configuration.
+    ///
+    /// # Returns
+    ///
+    /// Converts these limits into a builder for further configuration.
     #[inline]
     #[must_use]
     pub const fn into_builder(self) -> StructureLimitsBuilder<R, Q> {
         StructureLimitsBuilder::from_limits(self)
     }
 
+    /// Creates a builder by cloning this limit configuration.
+    ///
+    /// Unlike [`Self::into_builder`], this method leaves the original limits
+    /// available for reuse.
+    ///
+    /// # Returns
+    ///
+    /// A builder initialized with a clone of every configured limit.
+    #[inline]
+    #[must_use]
+    pub fn to_builder(&self) -> StructureLimitsBuilder<R, Q>
+    where
+        R: Clone,
+    {
+        StructureLimitsBuilder::from_limits(self.clone())
+    }
+
     /// Returns the complete depth limit, when configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns the complete depth limit, when configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn depth_limit(&self) -> Option<&ResourceLimit<R, Q>> {
@@ -107,6 +153,13 @@ where
     }
 
     /// Returns the complete node limit, when configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns the complete node limit, when configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn nodes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
@@ -114,6 +167,13 @@ where
     }
 
     /// Returns the complete sequence-item limit, when configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns the complete sequence-item limit, when configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn sequence_items_limit(&self) -> Option<&ResourceLimit<R, Q>> {
@@ -121,6 +181,13 @@ where
     }
 
     /// Returns the complete map-entry limit, when configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns the complete map-entry limit, when configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn map_entries_limit(&self) -> Option<&ResourceLimit<R, Q>> {
@@ -128,6 +195,13 @@ where
     }
 
     /// Returns the complete structural-key limit, when configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns the complete structural-key limit, when configured.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn key_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
@@ -135,6 +209,13 @@ where
     }
 
     /// Returns the configured maximum nesting depth.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured maximum nesting depth.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn max_depth(&self) -> Option<Q> {
@@ -145,6 +226,13 @@ where
     }
 
     /// Returns the configured maximum number of processed nodes.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured maximum number of processed nodes.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn max_nodes(&self) -> Option<Q> {
@@ -155,6 +243,13 @@ where
     }
 
     /// Returns the configured maximum number of items in one sequence.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured maximum number of items in one sequence.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn max_sequence_items(&self) -> Option<Q> {
@@ -165,6 +260,13 @@ where
     }
 
     /// Returns the configured maximum number of entries in one map.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured maximum number of entries in one map.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn max_map_entries(&self) -> Option<Q> {
@@ -175,6 +277,13 @@ where
     }
 
     /// Returns the configured maximum byte length of one structural key.
+    ///
+    /// # Returns
+    ///
+    /// Returns the configured maximum byte length of one structural key.
+    ///
+    /// `None` indicates that the corresponding limit or budget dimension is
+    /// unconfigured.
     #[must_use]
     #[inline(always)]
     pub const fn max_key_bytes(&self) -> Option<Q> {
@@ -184,6 +293,10 @@ where
         }
     }
 
+    /// Creates an independent structural budget session from these limits.
+    ///
+    /// # Returns
+    ///
     /// Creates an independent structural budget session from these limits.
     #[inline]
     #[must_use]
@@ -195,30 +308,50 @@ where
     }
 
     /// Replaces the depth limit during builder composition.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
     #[inline(always)]
     pub(super) fn set_depth_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_depth = Some(limit);
     }
 
     /// Replaces the node limit during builder composition.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
     #[inline(always)]
     pub(super) fn set_nodes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_nodes = Some(limit);
     }
 
     /// Replaces the sequence-item limit during builder composition.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
     #[inline(always)]
     pub(super) fn set_sequence_items_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_sequence_items = Some(limit);
     }
 
     /// Replaces the map-entry limit during builder composition.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
     #[inline(always)]
     pub(super) fn set_map_entries_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_map_entries = Some(limit);
     }
 
     /// Replaces the key-byte limit during builder composition.
+    ///
+    /// # Parameters
+    ///
+    /// * `limit` - Resource-bound limit to inspect or install.
     #[inline(always)]
     pub(super) fn set_key_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_key_bytes = Some(limit);
@@ -227,30 +360,50 @@ where
 
 impl StructureLimits<StructureResource, usize> {
     /// Replaces the standard depth limit in a const builder operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
     #[inline(always)]
     pub(super) const fn set_max_depth(&mut self, maximum: usize) {
         self.max_depth = Some(ResourceLimit::new(StructureResource::Depth, maximum));
     }
 
     /// Replaces the standard node limit in a const builder operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
     #[inline(always)]
     pub(super) const fn set_max_nodes(&mut self, maximum: usize) {
         self.max_nodes = Some(ResourceLimit::new(StructureResource::Nodes, maximum));
     }
 
     /// Replaces the standard sequence-item limit in a const builder operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
     #[inline(always)]
     pub(super) const fn set_max_sequence_items(&mut self, maximum: usize) {
         self.max_sequence_items = Some(ResourceLimit::new(StructureResource::SequenceItems, maximum));
     }
 
     /// Replaces the standard map-entry limit in a const builder operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
     #[inline(always)]
     pub(super) const fn set_max_map_entries(&mut self, maximum: usize) {
         self.max_map_entries = Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
     }
 
     /// Replaces the standard key-byte limit in a const builder operation.
+    ///
+    /// # Parameters
+    ///
+    /// * `maximum` - Inclusive maximum to configure.
     #[inline(always)]
     pub(super) const fn set_max_key_bytes(&mut self, maximum: usize) {
         self.max_key_bytes = Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));

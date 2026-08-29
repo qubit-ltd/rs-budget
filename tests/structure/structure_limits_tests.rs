@@ -91,3 +91,28 @@ fn test_builder_max_methods_bind_each_limit_to_its_structure_resource() {
         })
     ));
 }
+
+#[test]
+fn test_to_builder_clones_non_copy_limits_without_consuming_the_original() {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct OwnedResource(String);
+
+    let depth = OwnedResource("depth".to_owned());
+    let nodes = OwnedResource("nodes".to_owned());
+    let limits = StructureLimits::<OwnedResource, usize>::builder()
+        .depth_limit(ResourceLimit::new(depth.clone(), 2))
+        .build();
+
+    let rebuilt = limits
+        .to_builder()
+        .nodes_limit(ResourceLimit::new(nodes.clone(), 3))
+        .build();
+
+    assert_eq!(limits.depth_limit().unwrap().resource(), &depth);
+    assert_eq!(limits.max_depth(), Some(2));
+    assert_eq!(limits.max_nodes(), None);
+    assert_eq!(rebuilt.depth_limit().unwrap().resource(), &depth);
+    assert_eq!(rebuilt.nodes_limit().unwrap().resource(), &nodes);
+    assert_eq!(rebuilt.max_depth(), Some(2));
+    assert_eq!(rebuilt.max_nodes(), Some(3));
+}

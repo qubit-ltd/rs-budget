@@ -22,6 +22,11 @@ use crate::resource::check_limit;
 /// Obtain a `StructureBudget` from [`StructureLimits::budget`] after building
 /// the limits. The budget is intended to be kept for one processing session.
 ///
+/// # Type Parameters
+///
+/// * `R` - Caller-defined resource identity retained by limits and errors.
+/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+///
 /// # Examples
 ///
 /// ```
@@ -52,6 +57,14 @@ where
     Q: ResourceQuantity,
 {
     /// Creates a fresh budget session from one structural limit configuration.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limit configuration used by the operation.
+    ///
+    /// # Returns
+    ///
+    /// Creates a fresh budget session from one structural limit configuration.
     #[inline]
     #[must_use]
     pub(crate) fn new(limits: StructureLimits<R, Q>) -> Self {
@@ -62,18 +75,53 @@ where
     }
 
     /// Checks one nesting depth against its configured maximum.
+    ///
+    /// # Parameters
+    ///
+    /// * `actual` - Observed quantity to validate.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn check_depth(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.depth_limit(), actual)
     }
 
     /// Charges one processed node to this session's cumulative node budget.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn charge_node(&mut self) -> Result<(), BudgetError<R, Q>> {
         self.charge_nodes(Q::ONE)
     }
 
     /// Charges several processed nodes atomically.
+    ///
+    /// # Parameters
+    ///
+    /// * `amount` - Quantity involved in this accounting operation.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn charge_nodes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         match &mut self.nodes {
@@ -83,24 +131,76 @@ where
     }
 
     /// Checks one sequence item count against its configured maximum.
+    ///
+    /// # Parameters
+    ///
+    /// * `actual` - Observed quantity to validate.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.sequence_items_limit(), actual)
     }
 
     /// Checks one map entry count against its configured maximum.
+    ///
+    /// # Parameters
+    ///
+    /// * `actual` - Observed quantity to validate.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.map_entries_limit(), actual)
     }
 
     /// Checks one structural key byte length against its configured maximum.
+    ///
+    /// # Parameters
+    ///
+    /// * `actual` - Observed quantity to validate.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn check_key_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.key_bytes_limit(), actual)
     }
 
     /// Checks a value depth and charges one node as one atomic traversal step.
+    ///
+    /// # Parameters
+    ///
+    /// * `depth` - Root-inclusive nesting depth to validate.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn enter_node(&mut self, depth: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;
@@ -109,6 +209,20 @@ where
 
     /// Checks a sequence size and charges one node as one atomic traversal
     /// step.
+    ///
+    /// # Parameters
+    ///
+    /// * `depth` - Root-inclusive nesting depth to validate.
+    /// * `items` - Number of direct sequence or array items.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn enter_sequence(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;
@@ -117,6 +231,20 @@ where
     }
 
     /// Checks a map size and charges one node as one atomic traversal step.
+    ///
+    /// # Parameters
+    ///
+    /// * `depth` - Root-inclusive nesting depth to validate.
+    /// * `entries` - Number of direct map or object entries.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`BudgetError`] when a configured point limit or remaining
+    /// cumulative capacity rejects the operation.
     #[inline]
     pub fn enter_map(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;
@@ -125,12 +253,46 @@ where
     }
 
     /// Returns the immutable limits copied into this session.
+    ///
+    /// # Returns
+    ///
+    /// Returns the immutable limits copied into this session.
     #[must_use]
     #[inline(always)]
     pub const fn limits(&self) -> &StructureLimits<R, Q> {
         &self.limits
     }
 
+    /// Returns whether this session has a finite node limit.
+    ///
+    /// # Returns
+    ///
+    /// `true` when the source limits configured a cumulative node maximum.
+    #[must_use]
+    #[inline(always)]
+    pub const fn has_nodes_limit(&self) -> bool {
+        self.nodes.is_some()
+    }
+
+    /// Returns the node capacity remaining in this session.
+    ///
+    /// # Returns
+    ///
+    /// The remaining capacity when a node limit is configured, or `None` for
+    /// an unconfigured node dimension.
+    #[must_use]
+    #[inline(always)]
+    pub const fn remaining_nodes(&self) -> Option<Q> {
+        match &self.nodes {
+            Some(nodes) => Some(nodes.remaining()),
+            None => None,
+        }
+    }
+
+    /// Returns the number of nodes consumed by this session.
+    ///
+    /// # Returns
+    ///
     /// Returns the number of nodes consumed by this session.
     #[inline(always)]
     #[must_use]

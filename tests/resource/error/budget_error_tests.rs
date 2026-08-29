@@ -37,6 +37,32 @@ fn test_limit_exceeded_error_exposes_point_limit_facts() {
 }
 
 #[test]
+fn test_limit_exceeded_error_exact_constructor_preserves_observation() {
+    let error = LimitExceededError::exact(TestResource::Depth, 4_usize, 3);
+
+    assert_eq!(error.resource(), &TestResource::Depth);
+    assert_eq!(error.observation(), Observation::Exact(4));
+    assert_eq!(error.exact_observed(), Some(4));
+    assert_eq!(error.observed_lower_bound(), 4);
+    assert_eq!(error.maximum(), 3);
+}
+
+#[test]
+fn test_limit_exceeded_error_at_least_constructor_converts_to_budget_error() {
+    let error = LimitExceededError::at_least(TestResource::Depth, 4_usize, 3);
+    let budget_error = BudgetError::from(error);
+
+    assert!(matches!(
+        budget_error,
+        BudgetError::LimitExceeded {
+            resource: TestResource::Depth,
+            observed: Observation::AtLeast(4),
+            maximum: 3,
+        }
+    ));
+}
+
+#[test]
 fn test_insufficient_budget_error_exposes_consumption_facts() {
     let error = InsufficientBudgetError {
         resource: TestResource::Depth,

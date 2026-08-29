@@ -44,12 +44,33 @@ fn test_structure_budget_distinguishes_point_and_cumulative_limits() {
 fn test_unconfigured_structure_limits_allow_all_checks() {
     let mut budget = StructureLimits::<StructureResource, usize>::builder().build().budget();
 
+    assert!(!budget.has_nodes_limit());
+    assert_eq!(budget.remaining_nodes(), None);
+    assert_eq!(budget.used_nodes(), 0);
+
     budget.check_depth(usize::MAX).expect("depth is unconfigured");
     budget
         .check_sequence_items(usize::MAX)
         .expect("sequence size is unconfigured");
     budget.check_map_entries(usize::MAX).expect("map size is unconfigured");
     budget.charge_node().expect("node count is unconfigured");
+}
+
+#[test]
+fn test_structure_budget_reports_configured_node_capacity() {
+    let mut budget = StructureLimits::<StructureResource, usize>::builder()
+        .max_nodes(3)
+        .build()
+        .budget();
+
+    assert!(budget.has_nodes_limit());
+    assert_eq!(budget.remaining_nodes(), Some(3));
+    assert_eq!(budget.used_nodes(), 0);
+
+    budget.charge_node().expect("the first node should fit");
+
+    assert_eq!(budget.remaining_nodes(), Some(2));
+    assert_eq!(budget.used_nodes(), 1);
 }
 
 #[test]
