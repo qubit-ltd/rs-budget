@@ -37,6 +37,8 @@ pub use resource::BudgetError;
 pub use resource::BudgetGroupError;
 pub use resource::InsufficientBudgetError;
 pub use resource::LimitExceededError;
+pub use resource::ManagedResourcePermit;
+pub use resource::ManagedResourcePool;
 pub use resource::MeasuredBudgetError;
 pub use resource::Observation;
 pub use resource::QuantityConversionError;

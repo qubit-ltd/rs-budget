@@ -12,6 +12,8 @@ mod error;
 mod limit;
 mod quantity;
 
+pub use budget::ManagedResourcePermit;
+pub use budget::ManagedResourcePool;
 pub use budget::ResourceBudget;
 pub use budget::ResourcePool;
 pub use error::BudgetError;

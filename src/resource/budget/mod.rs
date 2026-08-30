@@ -7,8 +7,13 @@
 // =============================================================================
 //! Finite resource budgets and releasable pools.
 
+mod internal;
+mod managed_resource_permit;
+mod managed_resource_pool;
 mod resource_budget;
 mod resource_pool;
 
+pub use managed_resource_permit::ManagedResourcePermit;
+pub use managed_resource_pool::ManagedResourcePool;
 pub use resource_budget::ResourceBudget;
 pub use resource_pool::ResourcePool;
