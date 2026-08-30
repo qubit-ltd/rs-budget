@@ -61,10 +61,12 @@ assert_eq!(response.used(), 5);
 | 校验一次独立测量，例如嵌套深度 | `ResourceLimit` | 不修改状态 | 返回测量值和上限 |
 | 消耗不可归还的额度 | `ResourceBudget` | 扣减 `remaining` | 预算保持不变 |
 | 使用后会显式归还的容量 | `ResourcePool` | 获取或释放会改变资源池 | 资源池保持不变 |
+| 将可复用容量绑定到所有权生命周期 | `ManagedResourcePool` | 返回 RAII permit | 资源池保持不变 |
 
 `ResourceBudget` 不实现 `Clone`，避免一份有限额度被复制成两份。
-`ResourcePool` 只是内存中的记账对象：它不等待、不提供同步或 RAII permit，也不保证
-公平性。
+`ResourcePool` 只是内存中的手工记账对象：它不等待、不提供同步，也不保证公平性。
+`ManagedResourcePool` 是可克隆的同步句柄，permit 会在 Drop 时归还容量；它同样不等待、
+不保证公平性。
 
 ## 核心能力
 
@@ -118,9 +120,13 @@ raw input 和 normalized input 会立即入账。丢弃 transaction 无法撤销
 callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可以选择更宽的
 transaction 边界，但暂存的 value 用量只有 `commit` 才会发布。
 
+一次失败的 admission 不会使 transaction 进入 poisoned 状态，此前已成功暂存的 admission 仍然保留
+在 working state 中。调用者可以继续尝试 admission、丢弃整个 transaction 以回滚所有暂存结果，或
+显式 `commit` 已成功暂存的部分。用 `?` 向上传播错误会丢弃 transaction，因此不会发布任何暂存状态。
+
 ## 不负责什么
 
-本 crate 不解析 JSON，不执行 I/O，不替应用选择限额，不分配 permit，不等待资源池
+本 crate 不解析 JSON，不执行 I/O，不替应用选择限额，不等待资源池
 容量，也不定义错误后的恢复策略。JSON 解析和 Serde 集成应交给
 [`qubit-json`](https://crates.io/crates/qubit-json) 等适配层。
 

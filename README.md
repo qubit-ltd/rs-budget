@@ -63,10 +63,13 @@ error.
 | Check one value, such as nesting depth | `ResourceLimit` | No state changes | Reports the observed value and limit |
 | Spend an allowance that cannot return | `ResourceBudget` | Reduces `remaining` | Budget is unchanged |
 | Reuse capacity that callers return | `ResourcePool` | Acquire or release changes the pool | Pool is unchanged |
+| Tie reusable capacity to an owned lifetime | `ManagedResourcePool` | Returns an RAII permit | Pool is unchanged |
 
 `ResourceBudget` is not cloneable: copying it would duplicate a finite
 allowance. `ResourcePool` is only in-memory accounting; it does not wait,
-synchronize access, issue RAII permits, or enforce fairness.
+synchronize access, or enforce fairness. `ManagedResourcePool` is a cloneable,
+synchronized handle whose permits return capacity on Drop; it does not wait or
+enforce fairness.
 
 ## What it provides
 
@@ -126,10 +129,16 @@ cannot undo an accepted prefix, callback effect, `Hasher` update, or object
 mutation. A higher-level operation may select a wider transaction boundary, but
 only `commit` publishes staged value accounting.
 
+A failed admission does not poison the transaction: previously staged admissions remain
+in its working state. The caller may continue admitting measurements, drop the transaction
+to roll back every staged admission, or explicitly `commit` the successful admissions
+already staged. Propagating the error with `?` drops the transaction, so none of its staged
+state is published.
+
 ## What it does not do
 
 This crate does not parse JSON, perform I/O, choose application limit values,
-allocate permits, wait for pool capacity, or define recovery policy. For JSON
+wait for pool capacity, or define recovery policy. For JSON
 parsing and Serde integration, use an adapter such as
 [`qubit-json`](https://crates.io/crates/qubit-json).
 

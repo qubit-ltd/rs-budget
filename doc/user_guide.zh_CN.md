@@ -21,7 +21,7 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 | --- | --- | --- | --- |
 | `qubit-http` | 从流式 HTTP 响应收集的字节 | `ResourceBudget` | 每个已接受的分块都会永久消耗响应体额度。 |
 | `qubit-config` | 配置源的字节、属性、节点和包含的子源 | `ResourceBudget`、`ResourceLimit`、预算组 | 子源必须同时满足自身和所有父源的限制。 |
-| `qubit-local-files` | 复制或遍历时打开的目录读取器 | `ResourcePool` | 读取器打开时占用容量，关闭后显式归还。 |
+| `qubit-local-files` | 复制或遍历时打开的目录读取器 | `ManagedResourcePool` | 读取器打开期间持有 permit，Drop 自动归还容量。 |
 | `qubit-retry` | 重试次数、累计操作耗时和总耗时 | `ResourceBudget`、`DurationBudget`、`TimeBudget` | 三者的生命周期不同，必须分别记账。 |
 | `qubit-json` | 原始输入、规范化输入和一个 JSON value | JSON session 与 transaction | 已接受的 I/O 必须保留计费；失败的 value 不能占用结构容量。 |
 
@@ -32,7 +32,8 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 | 校验一个事实，不消耗容量 | `ResourceLimit` | 不修改状态 | 不修改状态；错误包含测量值和上限。 |
 | 消耗不会归还的容量 | `ResourceBudget` | `used` 增加，`remaining` 减少 | 预算不变。 |
 | 多项限制必须作为一次决策 | `ResourceBudget::try_consume_group` | 所有预算一起扣减 | 所有预算都不扣减。 |
-| 容量有真实的归还事件 | `ResourcePool` | 获取或释放会改变占用量 | 资源池不变。 |
+| 通过显式 release 复用容量 | `ResourcePool` | 获取或释放会改变占用量 | 资源池不变。 |
+| 通过所有权生命周期复用容量 | `ManagedResourcePool` | 返回基于 Drop 的 permit | 资源池不变。 |
 | 限制时间 | `DurationBudget` 或 `TimeBudget` | 记录已消耗时长或检查时钟截止时间 | 被拒绝的检查不改变状态。 |
 
 资源标识 `R` 应当能直接用于错误和指标，例如 `"response body"` 或业务枚举。
@@ -101,27 +102,26 @@ depth.check(current_depth)?;
 
 ## 场景三：`qubit-local-files` 复用目录句柄容量
 
-复制目录树时可能同时打开多个目录读取器。`qubit-local-files` 用 `ResourcePool` 管理它们：
-读取器打开时获取一个名额，关闭时准确归还一个名额。其 `CopyBudget` 的核心模式如下：
+复制目录树时可能同时打开多个目录读取器。`qubit-local-files` 用 `ManagedResourcePool`
+管理它们：每个读取器持有一个 permit，因此正常结束、错误返回和 panic unwinding 都会归还容量：
 
 ```rust
-use qubit_budget::ResourcePool;
+use qubit_budget::ManagedResourcePool;
 
-let mut directories = ResourcePool::new("open directory", 32_usize);
-directories.try_acquire(1)?;
+let directories = ManagedResourcePool::new("open directory", 32_usize);
+let permit = directories.try_acquire(1)?;
 
 // Read this directory and possibly descend into it.
 
-directories.release(1)?;
+drop(permit);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-与 `ResourceBudget` 不同，`release` 后容量会回来。归还量大于已获取量时，操作会被
-拒绝，资源池保持不变。目录遍历器还可以选择 `Reopen` 策略：资源池满时先关闭保留的
-读取器、归还名额，再重试获取。
+与 `ResourceBudget` 不同，permit 被 Drop 后容量会回来。目录遍历器还可以选择 `Reopen`
+策略：资源池满时先关闭保留的读取器、Drop 对应 permit，再重试获取。
 
-只有业务中存在可信、明确的归还事件时才使用资源池。它不提供锁或 RAII permit；需要
-这些能力时，应由你的同步或所有权模型在外层提供。
+需要显式、受检查的 `release` 调用时使用 `ResourcePool`；需要让所有权自动归还容量时
+使用 `ManagedResourcePool`。两者都表示有限容量，均不会等待容量或保证公平性。
 
 ## 场景四：`qubit-retry` 同时维护三种不同的限制
 
@@ -232,6 +232,10 @@ raw input 和 normalized input 会立即入账。丢弃 transaction 无法撤销
 callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可以有意让一个
 transaction 覆盖更宽的业务边界，但暂存 value 用量只有 `commit` 才会发布。
 调用者通过 `begin_value()` 显式创建每个 attempt。
+
+一次失败的 admission 不会使 transaction 进入 poisoned 状态，此前已成功暂存的 admission 仍然保留
+在 working state 中。调用者可以继续尝试 admission、丢弃整个 transaction 以回滚所有暂存结果，或
+显式 `commit` 已成功暂存的部分。用 `?` 向上传播错误会丢弃 transaction，因此不会发布任何暂存状态。
 
 ## 专用辅助类型
 

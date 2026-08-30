@@ -20,6 +20,12 @@ use crate::resource::ResourceQuantity;
 ///
 /// Dropping this value, including during unwinding, discards its fixed-size
 /// working state and leaves the target budget's committed state unchanged.
+/// A failed admission changes neither the working nor committed state and does
+/// not poison the transaction: previously staged admissions remain available.
+/// The caller may continue admitting measurements, drop the transaction to
+/// roll back all staged work, or commit the successful admissions already
+/// staged. Consequently, returning an admission error with `?` drops the
+/// transaction and publishes none of its staged state.
 ///
 /// # Type Parameters
 ///

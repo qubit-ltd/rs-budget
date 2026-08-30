@@ -61,6 +61,39 @@ fn test_readmes_document_value_transaction_example() {
     }
 }
 
+/// Verifies every public document explains that a rejected admission leaves
+/// the transaction usable instead of poisoning it.
+#[test]
+fn test_all_documents_explain_non_poisoning_transaction_errors() {
+    let english_documents = [include_str!("../../README.md"), include_str!("../../doc/user_guide.md")];
+    for document in english_documents {
+        assert!(document.contains("does not poison the transaction"));
+        assert!(document.contains("previously staged admissions remain"));
+        assert!(document.contains("continue admitting"));
+        assert!(document.contains("drop") && document.contains("commit"));
+    }
+
+    let chinese_documents = [
+        include_str!("../../README.zh_CN.md"),
+        include_str!("../../doc/user_guide.zh_CN.md"),
+    ];
+    for document in chinese_documents {
+        assert!(document.contains("不会使 transaction 进入 poisoned 状态"));
+        assert!(document.contains("此前已成功暂存的 admission 仍然保留"));
+        assert!(document.contains("继续尝试 admission"));
+        assert!(document.contains("丢弃") && document.contains("commit"));
+    }
+
+    let rustdoc = include_str!("../../src/json/value/json_value_transaction.rs")
+        .replace("///", " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(rustdoc.contains("does not poison the transaction"));
+    assert!(rustdoc.contains("previously staged admissions remain"));
+    assert!(rustdoc.contains("continue admitting"));
+}
+
 /// Verifies all documents state the complete matrix and its critical
 /// boundaries.
 #[test]

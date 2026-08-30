@@ -24,7 +24,7 @@ application error.
 | --- | --- | --- | --- |
 | `qubit-http` | Bytes collected from a streaming HTTP response | `ResourceBudget` | Each accepted chunk permanently consumes response-body capacity. |
 | `qubit-config` | Source bytes, properties, nodes, and included sources | `ResourceBudget`, `ResourceLimit`, grouped charge | A child source must satisfy both its own and every ancestor’s limit. |
-| `qubit-local-files` | Open directory readers during a copy or walk | `ResourcePool` | A reader occupies capacity while open, then explicitly returns it. |
+| `qubit-local-files` | Open directory readers during a copy or walk | `ManagedResourcePool` | A reader owns a permit while open; Drop returns capacity. |
 | `qubit-retry` | Retry count, cumulative operation time, and total elapsed time | `ResourceBudget`, `DurationBudget`, `TimeBudget` | These are three different lifetimes, so they are accounted separately. |
 | `qubit-json` | Raw input, normalized input, and one decoded JSON value | JSON sessions and transactions | I/O already accepted must remain charged; a failed value must not consume structural capacity. |
 
@@ -35,7 +35,8 @@ application error.
 | Check one fact without spending capacity | `ResourceLimit` | No mutation | No mutation; error carries the observed value and maximum. |
 | Spend capacity that cannot return | `ResourceBudget` | `used` rises and `remaining` falls | The budget is unchanged. |
 | Charge several limits as one decision | `ResourceBudget::try_consume_group` | Every budget is charged | No budget is charged. |
-| Reuse capacity that has a real release event | `ResourcePool` | Acquire or release changes occupancy | The pool is unchanged. |
+| Reuse capacity with explicit release | `ResourcePool` | Acquire or release changes occupancy | The pool is unchanged. |
+| Reuse capacity through an owned lifetime | `ManagedResourcePool` | Returns a Drop-based permit | The pool is unchanged. |
 | Bound time | `DurationBudget` or `TimeBudget` | Records consumed duration or checks a clock deadline | Does not change a rejected check. |
 
 Use a resource identity `R` that your application can show in errors and
@@ -110,30 +111,28 @@ depth.check(current_depth)?;
 ## Scenario 3: `qubit-local-files` reuses directory-handle capacity
 
 Copying a directory tree can require several directory readers at once.
-`qubit-local-files` uses a `ResourcePool` for open readers: acquire once a reader
-opens, then release exactly once it closes. Its `CopyBudget` follows this
-pattern:
+`qubit-local-files` uses a `ManagedResourcePool` for open readers. Each reader
+owns a permit, so normal completion, errors, and panic unwinding return capacity:
 
 ```rust
-use qubit_budget::ResourcePool;
+use qubit_budget::ManagedResourcePool;
 
-let mut directories = ResourcePool::new("open directory", 32_usize);
-directories.try_acquire(1)?;
+let directories = ManagedResourcePool::new("open directory", 32_usize);
+let permit = directories.try_acquire(1)?;
 
 // Read this directory and possibly descend into it.
 
-directories.release(1)?;
+drop(permit);
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-Unlike a `ResourceBudget`, capacity returns after `release`. Releasing more
-than was acquired is rejected and does not change the pool. The downstream
-directory walker can also apply a `Reopen` policy: when the pool is full, it
-closes retained readers, releases their slots, and retries acquisition.
+Unlike a `ResourceBudget`, capacity returns when a permit is dropped. The
+downstream directory walker can also apply a `Reopen` policy: when the pool is
+full, it closes retained readers, drops their permits, and retries acquisition.
 
-Use a pool only when the application has a trustworthy, explicit release event.
-It does not provide locking or RAII permits; wrap it in your own synchronization
-or ownership model when those are required.
+Use `ResourcePool` when the application needs explicit checked `release` calls.
+Use `ManagedResourcePool` when ownership should make release automatic. Both
+represent finite capacity and neither waits for capacity or enforces fairness.
 
 ## Scenario 4: `qubit-retry` keeps three independent limits
 
@@ -251,6 +250,12 @@ cannot undo an accepted prefix, callback effect, `Hasher` update, or object
 mutation. A higher-level operation may intentionally choose one transaction for
 a wider business boundary, while only `commit` publishes staged value usage.
 Callers create each attempt explicitly with `begin_value()`.
+
+A failed admission does not poison the transaction: previously staged admissions remain
+in its working state. The caller may continue admitting measurements, drop the transaction
+to roll back every staged admission, or explicitly `commit` the successful admissions
+already staged. Propagating the error with `?` drops the transaction, so none of its staged
+state is published.
 
 ## Specialized helpers
 
