@@ -12,6 +12,36 @@ use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
+/// Verifies direct and nested value limits are reported by their owner.
+#[test]
+fn test_has_limits_reports_direct_and_nested_dimensions() {
+    assert!(!JsonValueLimits::<JsonResource, usize>::new().has_limits());
+    assert!(
+        JsonValueLimits::<JsonResource, usize>::builder()
+            .max_string_bytes(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        JsonValueLimits::<JsonResource, usize>::builder()
+            .max_number_bytes(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        JsonValueLimits::<JsonResource, usize>::builder()
+            .max_payload_bytes(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        JsonValueLimits::<JsonResource, usize>::builder()
+            .max_depth(1)
+            .build()
+            .has_limits()
+    );
+}
+
 /// Verifies that JSON value limits use machine-sized quantities by default.
 #[test]
 fn test_default_uses_usize_quantity() {

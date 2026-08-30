@@ -111,6 +111,22 @@ where
     pub const fn into_builder(self) -> JsonValueLimitsBuilder<R, Q> {
         JsonValueLimitsBuilder::from_limits(self)
     }
+
+    /// Returns whether any JSON value or structural limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// `true` when at least one value or nested structural dimension has a
+    /// finite limit; otherwise `false`.
+    #[must_use]
+    #[inline(always)]
+    pub const fn has_limits(&self) -> bool {
+        self.structure.has_limits()
+            || self.max_string_bytes.is_some()
+            || self.max_number_bytes.is_some()
+            || self.max_payload_bytes.is_some()
+    }
+
     /// Borrows the structural limits used by this value configuration.
     ///
     /// # Returns

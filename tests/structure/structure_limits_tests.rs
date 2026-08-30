@@ -14,6 +14,41 @@ use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
 
 #[test]
+fn test_has_limits_reports_each_configured_dimension() {
+    assert!(!StructureLimits::<StructureResource, usize>::new().has_limits());
+    assert!(
+        StructureLimits::<StructureResource, usize>::builder()
+            .max_depth(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        StructureLimits::<StructureResource, usize>::builder()
+            .max_nodes(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        StructureLimits::<StructureResource, usize>::builder()
+            .max_sequence_items(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        StructureLimits::<StructureResource, usize>::builder()
+            .max_map_entries(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        StructureLimits::<StructureResource, usize>::builder()
+            .max_key_bytes(1)
+            .build()
+            .has_limits()
+    );
+}
+
+#[test]
 fn test_structure_limits_expose_configured_values() {
     let limits = StructureLimits::<StructureResource, usize>::builder()
         .max_depth(1)

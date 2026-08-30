@@ -138,6 +138,22 @@ where
         StructureLimitsBuilder::from_limits(self.clone())
     }
 
+    /// Returns whether any structural limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// `true` when at least one structural dimension has a finite limit;
+    /// otherwise `false`.
+    #[must_use]
+    #[inline(always)]
+    pub const fn has_limits(&self) -> bool {
+        self.max_depth.is_some()
+            || self.max_nodes.is_some()
+            || self.max_sequence_items.is_some()
+            || self.max_map_entries.is_some()
+            || self.max_key_bytes.is_some()
+    }
+
     /// Returns the complete depth limit, when configured.
     ///
     /// # Returns

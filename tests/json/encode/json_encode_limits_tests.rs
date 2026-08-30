@@ -9,6 +9,24 @@ use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
+/// Verifies direct and nested encode limits are reported by their owner.
+#[test]
+fn test_has_limits_reports_direct_and_nested_dimensions() {
+    assert!(!JsonEncodeLimits::<JsonResource, usize>::new().has_limits());
+    assert!(
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_output_bytes(1)
+            .build()
+            .has_limits()
+    );
+    assert!(
+        JsonEncodeLimits::<JsonResource, usize>::builder()
+            .max_depth(1)
+            .build()
+            .has_limits()
+    );
+}
+
 /// Verifies that JSON encode limits use machine-sized quantities by default.
 #[test]
 fn test_default_uses_usize_quantity() {

@@ -94,6 +94,18 @@ where
         JsonEncodeLimitsBuilder::from_limits(self)
     }
 
+    /// Returns whether any encoding or nested value limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// `true` when the output limit or at least one nested value limit is
+    /// configured; otherwise `false`.
+    #[must_use]
+    #[inline(always)]
+    pub const fn has_limits(&self) -> bool {
+        self.output.is_some() || self.value.has_limits()
+    }
+
     /// Returns the complete output-byte limit, when configured.
     ///
     /// # Returns

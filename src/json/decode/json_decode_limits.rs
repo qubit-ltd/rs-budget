@@ -97,6 +97,18 @@ where
         JsonDecodeLimitsBuilder::from_limits(self)
     }
 
+    /// Returns whether any decoding or nested value limit is configured.
+    ///
+    /// # Returns
+    ///
+    /// `true` when at least one input or nested value dimension has a finite
+    /// limit; otherwise `false`.
+    #[must_use]
+    #[inline(always)]
+    pub const fn has_limits(&self) -> bool {
+        self.input.is_some() || self.normalized_input.is_some() || self.value.has_limits()
+    }
+
     /// Returns the complete raw input-byte limit, when configured.
     ///
     /// # Returns
