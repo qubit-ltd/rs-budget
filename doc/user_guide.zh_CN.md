@@ -33,6 +33,7 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 | --- | --- | --- | --- |
 | 校验一个事实，不消耗容量 | `ResourceLimit` | 不修改状态 | 不修改状态；错误包含测量值和上限。 |
 | 消耗不会归还的容量 | `ResourceBudget` | `used` 增加，`remaining` 减少 | 预算不变。 |
+| 记录通用结构 | `StructureBudget` | 每个已接受的测量立即扣减 | 只有被拒绝的测量不改变状态。 |
 | 多项限制必须作为一次决策 | `ResourceBudget::try_consume_group` | 所有预算一起扣减 | 所有预算都不扣减。 |
 | 通过显式 release 复用容量 | `ResourcePool` | 获取或释放会改变占用量 | 资源池不变。 |
 | 通过所有权生命周期复用容量 | `ManagedResourcePool` | 返回基于 Drop 的 permit | 资源池不变。 |
@@ -239,7 +240,7 @@ attempt.try_admit(JsonMeasurement::String {
 })?;
 
 // Parse, normalize, and deserialize the complete value here.
-attempt.commit();
+attempt.commit()?;
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
@@ -260,9 +261,11 @@ callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可�
 transaction 覆盖更宽的业务边界，但暂存 value 用量只有 `commit` 才会发布。
 调用者通过 `begin_value()` 显式创建每个 attempt。
 
-一次失败的 admission 不会使 transaction 进入 poisoned 状态，此前已成功暂存的 admission 仍然保留
-在 working state 中。调用者可以继续尝试 admission、丢弃整个 transaction 以回滚所有暂存结果，或
-显式 `commit` 已成功暂存的部分。用 `?` 向上传播错误会丢弃 transaction，因此不会发布任何暂存状态。
+第一次 value admission 失败会使 transaction 进入 poisoned 状态。之后的每次
+admission 和 `commit` 都返回首次错误，poisoned transaction 的 `commit` 不会发布
+暂存的 value 状态；丢弃它会回滚全部暂存用量。raw input、normalized input 或 writer
+I/O 失败本身不会毒化 value transaction；已经接受的 I/O 计费和 output prefix 仍然
+立即生效。
 
 ## 专用辅助类型
 

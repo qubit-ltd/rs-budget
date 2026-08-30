@@ -20,11 +20,10 @@ use crate::resource::ResourceQuantity;
 ///
 /// Dropping this value, including during unwinding, discards its fixed-size
 /// working state and leaves the target budget's committed state unchanged.
-/// A failed admission changes neither the working nor committed state and does
-/// not poison the transaction: previously staged admissions remain available.
-/// The caller may continue admitting measurements, drop the transaction to
-/// roll back all staged work, or commit the successful admissions already
-/// staged. Consequently, returning an admission error with `?` drops the
+/// A failed admission changes neither the working nor committed state and
+/// permanently poisons the transaction. Every later admission returns the
+/// first error, and [`Self::commit`] returns that error without publishing any
+/// staged state. Returning an admission error with `?` therefore drops the
 /// transaction and publishes none of its staged state.
 ///
 /// # Type Parameters
@@ -38,11 +37,13 @@ use crate::resource::ResourceQuantity;
 /// use qubit_budget::json::JsonMeasurement;
 /// use qubit_budget::json::JsonValueLimits;
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut budget = JsonValueLimits::builder().max_nodes(1_usize).budget();
 /// let mut transaction = budget.transaction();
 /// transaction.try_admit(JsonMeasurement::Null { depth: 1 }).expect("null should fit");
-/// transaction.commit();
+/// transaction.commit()?;
 /// assert_eq!(budget.used_nodes(), Some(1));
+/// # Ok(()) }
 /// ```
 pub struct JsonValueTransaction<'a, R, Q>
 where
@@ -52,6 +53,8 @@ where
     target: &'a mut JsonValueBudget<R, Q>,
     /// Fixed-size state changed by successful staged admissions.
     working: JsonValueState<Q>,
+    /// First admission failure, retained to prevent partial publication.
+    failure: Option<MeasuredBudgetError<R, Q>>,
 }
 
 impl<'a, R, Q> JsonValueTransaction<'a, R, Q>
@@ -72,6 +75,7 @@ where
     pub(super) const fn new(target: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             working: target.state,
+            failure: None,
             target,
         }
     }
@@ -83,7 +87,8 @@ where
     ///
     /// Returns conversion, point-limit, or cumulative-budget errors with their
     /// configured resource identity. Any error leaves this transaction's
-    /// working state unchanged and does not affect the committed budget.
+    /// working state unchanged, poisons the transaction, and does not affect
+    /// the committed budget.
     ///
     /// # Parameters
     ///
@@ -98,11 +103,25 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
-        let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
-        prepared.check_point(self.target.limits())?;
-        self.check_cumulative(prepared)?;
-        self.apply(prepared);
-        Ok(())
+        if let Some(error) = &self.failure {
+            return Err(error.clone());
+        }
+        let result: Result<PreparedJsonAdmission<Q>, MeasuredBudgetError<R, Q>> = (|| {
+            let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
+            prepared.check_point(self.target.limits())?;
+            self.check_cumulative(prepared)?;
+            Ok(prepared)
+        })();
+        match result {
+            Ok(prepared) => {
+                self.apply(prepared);
+                Ok(())
+            }
+            Err(error) => {
+                self.failure = Some(error.clone());
+                Err(error)
+            }
+        }
     }
 
     /// Stages admission of a container before traversing its children.
@@ -136,8 +155,8 @@ where
         self.try_admit(measurement)
     }
 
-    /// Checks one prospective JSON container count without mutating this
-    /// transaction.
+    /// Checks one prospective JSON container count without changing staged
+    /// accounting.
     ///
     /// # Parameters
     ///
@@ -153,9 +172,9 @@ where
     ///
     /// Returns a quantity conversion error when `prospective` cannot be
     /// represented by `Q`, or a point-limit error when the configured limit
-    /// for `kind` rejects it.
+    /// for `kind` rejects it. The first failure poisons the transaction.
     pub fn check_container_count(
-        &self,
+        &mut self,
         kind: JsonContainerKind,
         prospective: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
@@ -163,15 +182,35 @@ where
             JsonContainerKind::Sequence => self.target.limits().structure_limits().sequence_items_limit(),
             JsonContainerKind::Map => self.target.limits().structure_limits().map_entries_limit(),
         };
-        self.check_container_items(prospective, limit)
+        if let Some(error) = &self.failure {
+            return Err(error.clone());
+        }
+        let result = self.check_container_items(prospective, limit);
+        if let Err(error) = &result {
+            self.failure = Some(error.clone());
+        }
+        result
     }
 
     /// Publishes every successful staged admission to the target budget.
     ///
     /// Consumes this transaction. Dropping an uncommitted transaction has no
     /// effect on the target budget.
-    pub fn commit(self) {
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after publishing an active transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first retained admission error when the transaction is
+    /// poisoned. No staged state is published.
+    pub fn commit(self) -> Result<(), MeasuredBudgetError<R, Q>> {
+        if let Some(error) = self.failure {
+            return Err(error);
+        }
         self.target.state = self.working;
+        Ok(())
     }
 
     /// Returns staged node usage when the cumulative node limit is configured.
@@ -182,17 +221,13 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    ///
-    /// # Panics
-    ///
-    /// Panics only if the private working state contains a node balance
-    /// without the node limit from which it was initialized.
     #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.working
             .remaining_nodes()
-            .map(|remaining| self.target.limits().max_nodes().expect("configured nodes limit") - remaining)
+            .zip(self.target.limits().max_nodes())
+            .map(|(remaining, maximum)| maximum - remaining)
     }
 
     /// Returns staged remaining node capacity when the node limit is
@@ -219,21 +254,13 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    ///
-    /// # Panics
-    ///
-    /// Panics only if the private working state contains a payload balance
-    /// without the payload limit from which it was initialized.
     #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
-        self.working.remaining_payload_bytes().map(|remaining| {
-            self.target
-                .limits()
-                .max_payload_bytes()
-                .expect("configured payload limit")
-                - remaining
-        })
+        self.working
+            .remaining_payload_bytes()
+            .zip(self.target.limits().max_payload_bytes())
+            .map(|(remaining, maximum)| maximum - remaining)
     }
 
     /// Returns staged remaining payload capacity when that limit is configured.
@@ -311,11 +338,6 @@ where
     ///
     /// Returns [`MeasuredBudgetError::Budget`] when the configured node budget
     /// has no remaining unit.
-    ///
-    /// # Panics
-    ///
-    /// Panics only if the private working state contains a node balance
-    /// without the node limit from which it was initialized.
     fn check_nodes(&self) -> Result<(), MeasuredBudgetError<R, Q>> {
         let Some(remaining) = self.working.remaining_nodes() else {
             return Ok(());
@@ -323,12 +345,9 @@ where
         if Q::ONE <= remaining {
             return Ok(());
         }
-        let limit = self
-            .target
-            .limits()
-            .structure_limits()
-            .nodes_limit()
-            .expect("working node state requires a configured limit");
+        let Some(limit) = self.target.limits().structure_limits().nodes_limit() else {
+            return Ok(());
+        };
         Err(InsufficientBudgetError {
             resource: limit.resource().clone(),
             limit: limit.maximum(),
@@ -352,11 +371,6 @@ where
     ///
     /// Returns [`MeasuredBudgetError::Budget`] when the configured payload
     /// budget has insufficient remaining capacity.
-    ///
-    /// # Panics
-    ///
-    /// Panics only if the private working state contains a payload balance
-    /// without the payload limit from which it was initialized.
     fn check_payload(&self, payload_bytes: Q) -> Result<(), MeasuredBudgetError<R, Q>> {
         let Some(remaining) = self.working.remaining_payload_bytes() else {
             return Ok(());
@@ -364,11 +378,9 @@ where
         if payload_bytes <= remaining {
             return Ok(());
         }
-        let limit = self
-            .target
-            .limits()
-            .payload_bytes_limit()
-            .expect("working payload state requires a configured limit");
+        let Some(limit) = self.target.limits().payload_bytes_limit() else {
+            return Ok(());
+        };
         Err(InsufficientBudgetError {
             resource: limit.resource().clone(),
             limit: limit.maximum(),

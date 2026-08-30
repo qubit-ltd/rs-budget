@@ -30,6 +30,7 @@ use crate::resource::ResourceQuantity;
 /// use qubit_budget::json::JsonMeasurement;
 /// use qubit_budget::json::JsonValueLimits;
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut budget = JsonValueLimits::builder()
 ///     .max_nodes(1_usize)
 ///     .build()
@@ -38,8 +39,9 @@ use crate::resource::ResourceQuantity;
 /// transaction
 ///     .try_admit(JsonMeasurement::Null { depth: 1 })
 ///     .expect("the value should fit");
-/// transaction.commit();
+/// transaction.commit()?;
 /// assert_eq!(budget.used_nodes(), Some(1));
+/// # Ok(()) }
 /// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct JsonValueBudget<R = JsonResource, Q = usize>

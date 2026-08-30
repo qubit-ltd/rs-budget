@@ -107,7 +107,7 @@ fn test_standard_builder_creates_budget() {
     transaction
         .try_admit(JsonMeasurement::Null { depth: 0 })
         .expect("one node fits");
-    transaction.commit();
+    transaction.commit().expect("transaction commits");
     assert_eq!(budget.used_nodes(), Some(1));
 }
 
@@ -178,7 +178,7 @@ fn test_custom_resources_create_value_budget() {
     transaction
         .try_admit(JsonMeasurement::Null { depth: 0 })
         .expect("one node fits");
-    transaction.commit();
+    transaction.commit().expect("transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(1));
 }

@@ -35,6 +35,7 @@ use crate::resource::ResourceQuantity;
 /// use qubit_budget::json::JsonDecodeSession;
 /// use qubit_budget::json::JsonMeasurement;
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let limits = JsonDecodeLimits::builder()
 ///     .max_input_bytes(4_usize)
 ///     .max_nodes(1_usize)
@@ -47,8 +48,9 @@ use crate::resource::ResourceQuantity;
 /// attempt
 ///     .try_admit(JsonMeasurement::Null { depth: 1 })
 ///     .expect("the value should fit");
-/// attempt.commit();
+/// attempt.commit()?;
 /// assert_eq!(session.input_budget().expect("input budget").used(), 4);
+/// # Ok(()) }
 /// ```
 #[derive(Debug)]
 pub struct JsonDecodeSession<'a, R = JsonResource, Q = usize>
@@ -140,8 +142,9 @@ where
     /// Starts accounting for one complete JSON value.
     ///
     /// The returned attempt charges raw and normalized input immediately, but
-    /// publishes staged JSON value accounting only after `commit`. Dropping it
-    /// rolls back only the staged value state.
+    /// publishes staged JSON value accounting only after a successful `commit`.
+    /// A value-admission failure poisons commit; dropping the attempt rolls
+    /// back only the staged value state.
     ///
     /// # Returns
     ///

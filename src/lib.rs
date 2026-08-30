@@ -18,12 +18,12 @@
 //! A failed single-budget operation is non-mutating, and
 //! [`ResourceBudget::try_consume_group`] checks every member before charging
 //! any member. Higher-level sessions may deliberately retain charges for work
-//! already attempted: JSON input bytes and accepted structural traversal are
-//! consumed as they are admitted. JSON value accounting is transactional and
-//! commits only after the complete value succeeds. JSON output charges accepted
-//! prefixes immediately; buffered output commits only after the complete
-//! document succeeds. These are separate guarantees; output transactionality
-//! does not imply whole-operation rollback for input or structure accounting.
+//! already attempted. Generic [`StructureBudget`] measurements are consumed
+//! immediately, while JSON value measurements are staged and commit only after
+//! the complete value succeeds. JSON raw and normalized input bytes, plus
+//! accepted output prefixes, are charged immediately. These are separate
+//! guarantees; an I/O failure does not itself poison a JSON value transaction,
+//! and output transactionality does not imply whole-operation rollback.
 
 mod resource;
 pub mod string;

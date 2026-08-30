@@ -50,7 +50,7 @@ fn test_payload_limit_accepts_exact_total_and_rejects_next_byte() {
 }
 
 #[test]
-fn test_rejected_point_measurement_does_not_consume_payload() {
+fn test_rejected_point_measurement_poisons_without_consuming_payload() {
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
         .max_string_bytes(3)
         .max_payload_bytes(4)
@@ -61,9 +61,11 @@ fn test_rejected_point_measurement_does_not_consume_payload() {
         .try_admit(JsonMeasurement::String { depth: 1, bytes: 4 })
         .expect_err("the string point limit must reject first");
     assert_eq!(error.resource(), &JsonResource::StringBytes);
-    transaction
+    assert_eq!(transaction.used_payload_bytes(), Some(0));
+    let repeated_error = transaction
         .try_admit(JsonMeasurement::Number { depth: 1, bytes: 4 })
-        .expect("the rejected string must not consume shared payload");
+        .expect_err("poisoned transaction rejects later measurements");
+    assert_eq!(repeated_error.resource(), error.resource());
 }
 
 #[test]
@@ -125,7 +127,7 @@ fn test_commit_publishes_nodes_and_payload() {
     assert_eq!(transaction.remaining_nodes(), Some(1));
     assert_eq!(transaction.used_payload_bytes(), Some(4));
     assert_eq!(transaction.remaining_payload_bytes(), Some(0));
-    transaction.commit();
+    transaction.commit().expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(1));
     assert_eq!(budget.remaining_nodes(), Some(1));
@@ -174,9 +176,9 @@ fn test_panic_drop_rolls_back_working_state() {
     assert_eq!(budget.used_payload_bytes(), Some(0));
 }
 
-/// Verifies a failed event leaves a transaction able to admit later events.
+/// Verifies the first failed event poisons the transaction until it is dropped.
 #[test]
-fn test_try_admit_failure_keeps_transaction_usable() {
+fn test_try_admit_failure_poisons_transaction() {
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
         .max_nodes(2)
         .max_payload_bytes(2)
@@ -187,19 +189,23 @@ fn test_try_admit_failure_keeps_transaction_usable() {
         .try_admit(JsonMeasurement::Null { depth: 1 })
         .expect("first node fits");
 
-    assert!(
-        transaction
-            .try_admit(JsonMeasurement::String { depth: 1, bytes: 3 })
-            .is_err()
-    );
+    let first_error = transaction
+        .try_admit(JsonMeasurement::String { depth: 1, bytes: 3 })
+        .expect_err("oversized string poisons the transaction");
     assert_eq!(transaction.used_nodes(), Some(1));
     assert_eq!(transaction.used_payload_bytes(), Some(0));
 
-    transaction
+    let repeated_error = transaction
         .try_admit(JsonMeasurement::Null { depth: 1 })
-        .expect("later node fits after rejection");
-    transaction.commit();
-    assert_eq!(budget.used_nodes(), Some(2));
+        .expect_err("poisoned transaction rejects later admissions");
+    assert_eq!(repeated_error.resource(), first_error.resource());
+    assert_eq!(repeated_error.to_string(), first_error.to_string());
+    assert_eq!(transaction.used_nodes(), Some(1));
+
+    let commit_error = transaction.commit().expect_err("poisoned transaction cannot commit");
+    assert_eq!(commit_error.resource(), first_error.resource());
+    assert_eq!(commit_error.to_string(), first_error.to_string());
+    assert_eq!(budget.used_nodes(), Some(0));
     assert_eq!(budget.used_payload_bytes(), Some(0));
 }
 
@@ -215,7 +221,7 @@ fn test_try_admit_key_consumes_only_payload() {
     transaction
         .try_admit(JsonMeasurement::Key { bytes: 2 })
         .expect("key fits");
-    transaction.commit();
+    transaction.commit().expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(0));
     assert_eq!(budget.used_payload_bytes(), Some(2));
@@ -235,7 +241,7 @@ fn test_try_admit_array_and_object_consume_nodes() {
     transaction
         .try_admit(JsonMeasurement::Object { depth: 1, entries: 0 })
         .expect("object fits");
-    transaction.commit();
+    transaction.commit().expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(2));
 }
@@ -292,7 +298,7 @@ fn test_reset_clears_committed_state() {
     transaction
         .try_admit(JsonMeasurement::String { depth: 1, bytes: 1 })
         .expect("string fits");
-    transaction.commit();
+    transaction.commit().expect("transaction commits");
 
     budget.reset();
 

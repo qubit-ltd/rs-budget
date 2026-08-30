@@ -36,6 +36,7 @@ how to turn a typed failure into an application error.
 | --- | --- | --- | --- |
 | Check one fact without spending capacity | `ResourceLimit` | No mutation | No mutation; error carries the observed value and maximum. |
 | Spend capacity that cannot return | `ResourceBudget` | `used` rises and `remaining` falls | The budget is unchanged. |
+| Account generic structure | `StructureBudget` | Each accepted measurement is charged immediately | Only the rejected measurement is unchanged. |
 | Charge several limits as one decision | `ResourceBudget::try_consume_group` | Every budget is charged | No budget is charged. |
 | Reuse capacity with explicit release | `ResourcePool` | Acquire or release changes occupancy | The pool is unchanged. |
 | Reuse capacity through an owned lifetime | `ManagedResourcePool` | Returns a Drop-based permit | The pool is unchanged. |
@@ -258,7 +259,7 @@ attempt.try_admit(JsonMeasurement::String {
 })?;
 
 // Parse, normalize, and deserialize the complete value here.
-attempt.commit();
+attempt.commit()?;
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
@@ -280,11 +281,12 @@ mutation. A higher-level operation may intentionally choose one transaction for
 a wider business boundary, while only `commit` publishes staged value usage.
 Callers create each attempt explicitly with `begin_value()`.
 
-A failed admission does not poison the transaction: previously staged admissions remain
-in its working state. The caller may continue admitting measurements, drop the transaction
-to roll back every staged admission, or explicitly `commit` the successful admissions
-already staged. Propagating the error with `?` drops the transaction, so none of its staged
-state is published.
+The first failed value admission poisons the transaction. Every later
+admission and `commit` return that retained error, while a poisoned `commit`
+publishes no staged value state. Dropping it rolls back all staged value usage.
+Raw or normalized input failures and writer I/O failures do not independently
+poison the value transaction; accepted I/O charges and output prefixes remain
+immediate.
 
 ## Specialized helpers
 

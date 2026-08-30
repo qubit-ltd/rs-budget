@@ -61,7 +61,7 @@ fuzz_target!(|data: &[u8]| {
             }
         }
         if admitted && commit {
-            transaction.commit();
+            transaction.commit().expect("admitted transaction commits");
         }
         if !admitted || !commit {
             assert_eq!(budget.used_nodes(), before_nodes);

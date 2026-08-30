@@ -57,20 +57,20 @@ fn test_readmes_document_value_transaction_example() {
         assert!(readme.contains("JsonMeasurement::String {"));
         assert!(readme.contains("depth: 1,"));
         assert!(readme.contains("bytes: 5,"));
-        assert!(readme.contains("transaction.commit();"));
+        assert!(readme.contains("transaction.commit()?;"));
     }
 }
 
-/// Verifies every public document explains that a rejected admission leaves
-/// the transaction usable instead of poisoning it.
+/// Verifies every public document explains that the first rejected value
+/// admission poisons commit while I/O failures remain independent.
 #[test]
-fn test_all_documents_explain_non_poisoning_transaction_errors() {
+fn test_all_documents_explain_poisoned_value_transactions() {
     let english_documents = [include_str!("../../README.md"), include_str!("../../doc/user_guide.md")];
     for document in english_documents {
-        assert!(document.contains("does not poison the transaction"));
-        assert!(document.contains("previously staged admissions remain"));
-        assert!(document.contains("continue admitting"));
-        assert!(document.contains("drop") && document.contains("commit"));
+        assert!(document.contains("first failed value admission poisons the transaction"));
+        assert!(document.contains("commit") && document.contains("retained error"));
+        assert!(document.contains("I/O failures do not"));
+        assert!(document.contains("Dropping") && document.contains("staged value"));
     }
 
     let chinese_documents = [
@@ -78,10 +78,10 @@ fn test_all_documents_explain_non_poisoning_transaction_errors() {
         include_str!("../../doc/user_guide.zh_CN.md"),
     ];
     for document in chinese_documents {
-        assert!(document.contains("不会使 transaction 进入 poisoned 状态"));
-        assert!(document.contains("此前已成功暂存的 admission 仍然保留"));
-        assert!(document.contains("继续尝试 admission"));
-        assert!(document.contains("丢弃") && document.contains("commit"));
+        assert!(document.contains("第一次 value admission 失败会使 transaction 进入 poisoned 状态"));
+        assert!(document.contains("commit") && document.contains("首次错误"));
+        assert!(document.contains("I/O 失败本身不会毒化"));
+        assert!(document.contains("丢弃") && document.contains("暂存"));
     }
 
     let rustdoc = include_str!("../../src/json/value/json_value_transaction.rs")
@@ -89,9 +89,9 @@ fn test_all_documents_explain_non_poisoning_transaction_errors() {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
-    assert!(rustdoc.contains("does not poison the transaction"));
-    assert!(rustdoc.contains("previously staged admissions remain"));
-    assert!(rustdoc.contains("continue admitting"));
+    assert!(rustdoc.contains("permanently poisons the transaction"));
+    assert!(rustdoc.contains("returns that error without publishing"));
+    assert!(rustdoc.contains("publishing any staged state"));
 }
 
 /// Verifies all documents state the complete matrix and its critical
@@ -153,7 +153,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     transaction
         .try_admit(JsonMeasurement::Null { depth: 1 })
         .expect("committed value fits");
-    transaction.commit();
+    transaction.commit().expect("transaction commits");
     assert_eq!(budget.used_nodes(), Some(1));
 
     let mut decode = JsonDecodeSession::from_limits(
@@ -202,7 +202,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     attempt
         .try_admit(JsonMeasurement::Null { depth: 1 })
         .expect("committed value fits");
-    attempt.commit();
+    attempt.commit().expect("attempt commits");
     assert_eq!(encode.value_budget().used_nodes(), Some(1));
 }
 

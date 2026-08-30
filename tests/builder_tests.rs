@@ -158,7 +158,7 @@ fn builders_cover_generic_limit_setters() {
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("generic value admission should fit");
         assert_eq!(transaction.used_nodes(), Some(1));
-        transaction.commit();
+        transaction.commit().expect("successful transaction commits");
         assert_eq!(generic_budget.used_nodes(), Some(1));
 
         assert_eq!(value.into_builder().build(), value);

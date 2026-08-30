@@ -100,7 +100,7 @@ transaction.try_admit(JsonMeasurement::String {
     depth: 1,
     bytes: 5,
 })?;
-transaction.commit();
+transaction.commit()?;
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
@@ -120,9 +120,11 @@ raw input 和 normalized input 会立即入账。丢弃 transaction 无法撤销
 callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可以选择更宽的
 transaction 边界，但暂存的 value 用量只有 `commit` 才会发布。
 
-一次失败的 admission 不会使 transaction 进入 poisoned 状态，此前已成功暂存的 admission 仍然保留
-在 working state 中。调用者可以继续尝试 admission、丢弃整个 transaction 以回滚所有暂存结果，或
-显式 `commit` 已成功暂存的部分。用 `?` 向上传播错误会丢弃 transaction，因此不会发布任何暂存状态。
+第一次 value admission 失败会使 transaction 进入 poisoned 状态。此后的每次
+admission 和 `commit` 都返回首次错误，poisoned transaction 的 `commit` 不会发布
+任何暂存状态；丢弃它会回滚全部暂存的 value 用量。raw input、normalized input 或
+writer I/O 失败本身不会毒化 value transaction；已经接受的 I/O 计费或 output prefix
+仍然立即生效。
 
 ## 不负责什么
 

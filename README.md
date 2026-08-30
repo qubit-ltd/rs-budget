@@ -108,7 +108,7 @@ transaction.try_admit(JsonMeasurement::String {
     depth: 1,
     bytes: 5,
 })?;
-transaction.commit();
+transaction.commit()?;
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
@@ -129,11 +129,12 @@ cannot undo an accepted prefix, callback effect, `Hasher` update, or object
 mutation. A higher-level operation may select a wider transaction boundary, but
 only `commit` publishes staged value accounting.
 
-A failed admission does not poison the transaction: previously staged admissions remain
-in its working state. The caller may continue admitting measurements, drop the transaction
-to roll back every staged admission, or explicitly `commit` the successful admissions
-already staged. Propagating the error with `?` drops the transaction, so none of its staged
-state is published.
+The first failed value admission poisons the transaction. Every later
+admission and `commit` return that retained error, and `commit` never publishes
+the staged state of a poisoned transaction. Dropping it rolls back all staged
+value usage. Raw or normalized input failures and writer I/O failures do not by
+themselves poison the value transaction; their already accepted I/O charges or
+output prefixes remain immediate.
 
 ## What it does not do
 

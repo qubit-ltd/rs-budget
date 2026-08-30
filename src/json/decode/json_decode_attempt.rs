@@ -30,11 +30,13 @@ use crate::resource::ResourceQuantity;
 /// use qubit_budget::json::JsonDecodeSession;
 /// use qubit_budget::json::JsonMeasurement;
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let limits = JsonDecodeLimits::builder().max_nodes(1_usize).build();
 /// let mut session = JsonDecodeSession::from_limits(limits);
 /// let mut attempt = session.begin_value();
 /// attempt.try_admit(JsonMeasurement::Null { depth: 1 }).expect("null should fit");
-/// attempt.commit();
+/// attempt.commit()?;
+/// # Ok(()) }
 /// ```
 pub struct JsonDecodeAttempt<'a, R, Q>
 where
@@ -127,7 +129,9 @@ where
     /// Stages one JSON measurement for publication by [`Self::commit`].
     ///
     /// Returns the transaction's conversion or value-limit error. A failure
-    /// leaves this attempt's working value state and all I/O charges unchanged.
+    /// leaves this attempt's working value state and all I/O charges unchanged,
+    /// and poisons later value admissions and commit. I/O failures alone do
+    /// not poison the value transaction.
     ///
     /// # Parameters
     ///
@@ -242,8 +246,16 @@ where
     }
 
     /// Publishes this attempt's staged value state without rolling back I/O.
-    pub fn commit(self) {
-        self.value.commit();
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after publishing the staged value state.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first value-admission error when the attempt is poisoned.
+    pub fn commit(self) -> Result<(), MeasuredBudgetError<R, Q>> {
+        self.value.commit()
     }
 }
 
