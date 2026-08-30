@@ -6,7 +6,7 @@
 This guide applies to `qubit-budget` 0.4.x and Rust 1.94 or newer. Its examples
 distill real uses in Qubit crates while leaving out unrelated application code.
 
-## What problem does this crate solve?
+## Purpose and audience
 
 At a boundary, “too large” can mean different things. A HTTP response can be
 too many bytes; a configuration tree can be too deep; a directory walk can
@@ -14,11 +14,13 @@ hold too many handles; a retry flow can have spent too many attempts or too
 much time. A counter alone does not answer the important follow-up questions:
 did this failed operation change state, and which limit rejected it?
 
-`qubit-budget` provides small accounting primitives. The caller still decides
-what to measure, where the boundary is, and how to turn a typed failure into an
-application error.
+`qubit-budget` provides small accounting primitives for library and service
+authors. The caller still decides what to measure, where the boundary is, and
+how to turn a typed failure into an application error.
 
-## Real Qubit crate use cases
+## Conceptual model
+
+### Representative Qubit integration patterns
 
 | Crate | Protected work | Primitive used | Why it fits |
 | --- | --- | --- | --- |
@@ -28,7 +30,7 @@ application error.
 | `qubit-retry` | Retry count, cumulative operation time, and total elapsed time | `ResourceBudget`, `DurationBudget`, `TimeBudget` | These are three different lifetimes, so they are accounted separately. |
 | `qubit-json` | Raw input, normalized input, and one decoded JSON value | JSON sessions and transactions | I/O already accepted must remain charged; a failed value must not consume structural capacity. |
 
-## The five accounting models
+### Accounting models
 
 | Need | Type | Success | Failure |
 | --- | --- | --- | --- |
@@ -44,12 +46,37 @@ metrics. Quantities `Q` are exact unsigned integers (`u8` through `u128`, or
 `usize`). An optional limit set to `None` is unconfigured; it is not a hidden
 unlimited budget.
 
-## Scenario 1: `qubit-http` reads a bounded response body
+## Installation and minimal configuration
+
+Add the crate with no feature enabled for the core limits, budgets, and pools:
+
+```toml
+[dependencies]
+qubit-budget = "0.4"
+```
+
+Enable only the integrations used by the application. For example, JSON value
+sessions require the `json` feature:
+
+```toml
+[dependencies]
+qubit-budget = { version = "0.4", features = ["json"] }
+```
+
+The crate supports Rust 1.94 or newer. Its optional features are `json`,
+`big-integer`, `big-decimal` (which also enables `big-integer`), and `time`.
+
+## Scenario and core workflow: read a bounded response body
 
 `qubit-http` first rejects an oversized `Content-Length` hint when one is present.
 It still needs a budget while reading chunks, because a server can omit or lie
 about that header. The following is the central pattern from
 `HttpResponse::read_body`, with networking and error mapping removed:
+
+`response_chunks` stands for the chunks supplied by the application's HTTP
+client. Success means every accepted chunk fits and `body` contains their
+concatenation; rejection leaves the current chunk out of both `body` and the
+budget.
 
 ```rust
 use qubit_budget::ResourceBudget;
@@ -73,7 +100,9 @@ report the size that was observed at the rejection.
 This is a **cumulative budget**. Do not use `ResourceLimit` here: each chunk
 may be individually small while their sum is too large.
 
-## Scenario 2: `qubit-config` enforces local and parent limits together
+## Advanced usage
+
+### Scenario 2: enforce local and parent limits together
 
 Configuration sources may include other sources. `qubit-config` gives every source
 its own byte, property, node, and source-count budgets, while also borrowing
@@ -108,7 +137,7 @@ depth.check(current_depth)?;
 # Ok::<(), qubit_budget::LimitExceededError<&str, usize>>(())
 ```
 
-## Scenario 3: `qubit-local-files` reuses directory-handle capacity
+### Scenario 3: reuse directory-handle capacity
 
 Copying a directory tree can require several directory readers at once.
 `qubit-local-files` uses a `ManagedResourcePool` for open readers. Each reader
@@ -134,7 +163,7 @@ Use `ResourcePool` when the application needs explicit checked `release` calls.
 Use `ManagedResourcePool` when ownership should make release automatic. Both
 represent finite capacity and neither waits for capacity or enforces fairness.
 
-## Scenario 4: `qubit-retry` keeps three independent limits
+### Scenario 4: keep three independent limits
 
 `qubit-retry` composes three primitives in `RetryBudget`:
 
@@ -188,7 +217,7 @@ Enable the `time` feature to use `TimeBudget`:
 qubit-budget = { version = "0.4", features = ["time"] }
 ```
 
-## Scenario 5: `qubit-json` makes one decoded value transactional
+### Scenario 5: make one decoded JSON value transactional
 
 `qubit-json` normalizes and decodes untrusted JSON through
 `NormalizingJsonDecoder::decode_with_session`. It must retain I/O work that already
@@ -267,7 +296,7 @@ state is published.
 - `ResourceBudget::try_write_string` buffers rendered text and charges its
   bytes only after rendering and UTF-8 validation both succeed.
 
-## Errors, limits, and a practical rule of thumb
+## Errors and diagnostics
 
 Prefer typed error accessors to parsing `Display` text. `LimitExceededError`
 reports an observed value and inclusive maximum; `InsufficientBudgetError`
@@ -276,11 +305,30 @@ an invalid pool release. Native `usize` and `u64` measurement APIs return
 `MeasuredBudgetError` when conversion to `Q` is not exact—do not cast and
 truncate first.
 
+## Troubleshooting
+
+- If a rejected operation unexpectedly changed state, check whether the work
+  was an immediate charge (such as accepted input or writer output) rather
+  than a staged JSON value admission.
+- If a group charge reports a failure, use `BudgetGroupError::index()` and
+  `source_error()` to inspect the first budget that rejected the amount; do
+  not retry by charging its members one at a time.
+- If a native `usize` or `u64` measurement fails conversion, keep the original
+  value for diagnostics and select a quantity type `Q` that represents the
+  application’s range exactly.
+
+## Limitations and best practices
+
 Choose limits in the application layer; this crate has no universal safe
 defaults. Use a limit for a fact, a budget for irreversible work, a grouped
 budget when several scopes must agree, a pool when capacity genuinely returns,
 and a transaction when only a complete unit of work may consume its value
 allowance.
+
+The crate does not parse data, perform I/O, wait for pool capacity, synchronize
+`ResourcePool`, choose application limits, or define recovery policy.
+`ManagedResourcePool` synchronizes its own accounting and returns permits on
+Drop, but it also does not wait for capacity or guarantee fairness.
 
 ## Further reading
 
