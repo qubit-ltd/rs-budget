@@ -9,6 +9,10 @@
 
 use std::panic::AssertUnwindSafe;
 use std::panic::catch_unwind;
+use std::sync::Arc;
+use std::sync::Barrier;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 use std::thread;
 
 use proptest::prelude::prop;
@@ -79,6 +83,74 @@ fn test_permit_can_move_to_another_thread() {
         .join()
         .expect("permit thread should finish");
     assert_eq!(pool.available(), 1);
+}
+
+/// Verifies contending acquisitions never exceed capacity, failed attempts do
+/// not corrupt the pool, and dropping all permits restores full capacity.
+#[test]
+fn test_contending_acquisitions_preserve_capacity() {
+    const CAPACITY: usize = 3;
+    const THREADS: usize = 8;
+
+    let pool = ManagedResourcePool::new(TestResource::OpenFiles, CAPACITY);
+    let start = Arc::new(Barrier::new(THREADS + 1));
+    let acquired = Arc::new(Barrier::new(THREADS + 1));
+    let release = Arc::new(Barrier::new(THREADS + 1));
+    let held = Arc::new(AtomicUsize::new(0));
+    let maximum_held = Arc::new(AtomicUsize::new(0));
+    let successes = Arc::new(AtomicUsize::new(0));
+    let failures = Arc::new(AtomicUsize::new(0));
+    let mut workers = Vec::with_capacity(THREADS);
+
+    for _ in 0..THREADS {
+        let pool = pool.clone();
+        let start = Arc::clone(&start);
+        let acquired = Arc::clone(&acquired);
+        let release = Arc::clone(&release);
+        let held = Arc::clone(&held);
+        let maximum_held = Arc::clone(&maximum_held);
+        let successes = Arc::clone(&successes);
+        let failures = Arc::clone(&failures);
+        workers.push(thread::spawn(move || {
+            start.wait();
+            let permit = match pool.try_acquire(1) {
+                Ok(permit) => {
+                    successes.fetch_add(1, Ordering::SeqCst);
+                    let current = held.fetch_add(1, Ordering::SeqCst) + 1;
+                    maximum_held.fetch_max(current, Ordering::SeqCst);
+                    Some(permit)
+                }
+                Err(_) => {
+                    failures.fetch_add(1, Ordering::SeqCst);
+                    None
+                }
+            };
+            acquired.wait();
+            release.wait();
+            let acquired_permit = permit.is_some();
+            drop(permit);
+            if acquired_permit {
+                held.fetch_sub(1, Ordering::SeqCst);
+            }
+        }));
+    }
+
+    start.wait();
+    acquired.wait();
+    assert_eq!(successes.load(Ordering::SeqCst), CAPACITY);
+    assert_eq!(failures.load(Ordering::SeqCst), THREADS - CAPACITY);
+    assert_eq!(held.load(Ordering::SeqCst), CAPACITY);
+    assert!(maximum_held.load(Ordering::SeqCst) <= CAPACITY);
+    assert_eq!(pool.available(), 0);
+    assert_eq!(pool.in_use(), CAPACITY);
+
+    release.wait();
+    for worker in workers {
+        worker.join().expect("contention worker should finish");
+    }
+    assert_eq!(held.load(Ordering::SeqCst), 0);
+    assert_eq!(pool.available(), CAPACITY);
+    assert_eq!(pool.in_use(), 0);
 }
 
 #[test]
