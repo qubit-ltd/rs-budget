@@ -102,7 +102,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `bytes` - Native byte count to validate or charge.
+    /// * `bytes` - Bytes to append to the transactional output.
     ///
     /// # Returns
     ///

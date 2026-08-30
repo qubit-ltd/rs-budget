@@ -122,7 +122,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Arbitrary-precision integer whose magnitude and decimal
+    ///   digit counts are compared with the configured limits.
     ///
     /// # Returns
     ///
@@ -152,7 +153,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound magnitude bit-length limit to install.
     #[inline(always)]
     pub(super) fn set_magnitude_bits_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_magnitude_bits = Some(limit);
@@ -162,7 +163,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound significant decimal-digit limit to install.
     #[inline(always)]
     pub(super) fn set_significant_decimal_digits_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_significant_decimal_digits = Some(limit);

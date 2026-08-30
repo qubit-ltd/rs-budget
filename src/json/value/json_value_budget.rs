@@ -148,7 +148,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Immutable JSON value limits used to initialize committed
+    ///   accounting state.
     ///
     /// # Returns
     ///

@@ -114,7 +114,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Arbitrary-precision decimal whose scale and coefficient are
+    ///   compared with the configured limits.
     ///
     /// # Returns
     ///
@@ -142,7 +143,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Coefficient limits to apply to the decimal value.
     #[inline(always)]
     pub(super) fn set_coefficient_limits(&mut self, limits: BigIntegerLimits<R, Q>) {
         self.coefficient = limits;
@@ -152,7 +153,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound absolute scale-magnitude limit to install.
     #[inline(always)]
     pub(super) fn set_scale_magnitude_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_scale_magnitude = Some(limit);

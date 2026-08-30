@@ -113,7 +113,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `kind` - JSON container kind whose item count is checked.
+    /// * `kind` - JSON container kind whose depth and node admission is staged.
     /// * `depth` - Root-inclusive nesting depth to validate.
     ///
     /// # Returns
@@ -141,18 +141,19 @@ where
     ///
     /// # Parameters
     ///
-    /// * `kind` - Container dimension selected for the point-limit check.
-    /// * `prospective` - Count that would result if the next child were
-    ///   entered.
-    ///
-    /// # Errors
-    ///
-    /// Returns a quantity conversion error when `prospective` cannot be
-    /// represented by `Q`, or a point-limit error for `kind`.
+    /// * `kind` - Container dimension whose point limit is checked.
+    /// * `prospective` - Number of direct children that would be present after
+    ///   the next child is entered.
     ///
     /// # Returns
     ///
     /// `Ok(())` when the operation completes successfully.
+    ///
+    /// # Errors
+    ///
+    /// Returns a quantity conversion error when `prospective` cannot be
+    /// represented by `Q`, or a point-limit error when the configured limit
+    /// for `kind` rejects it.
     pub fn check_container_count(
         &self,
         kind: JsonContainerKind,
@@ -261,8 +262,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
-    /// or a configured limit rejects it.
+    /// Returns [`MeasuredBudgetError::Budget`] when the staged node or payload
+    /// capacity cannot accommodate the event.
     fn check_cumulative(&self, prepared: PreparedJsonAdmission<Q>) -> Result<(), MeasuredBudgetError<R, Q>> {
         let (node, payload_bytes) = cumulative_cost(prepared);
         if node {
@@ -275,8 +276,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `amount` - Quantity involved in this accounting operation.
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `amount` - Prospective number of direct container children.
+    /// * `limit` - Optional point limit for that container dimension.
     ///
     /// # Returns
     ///
@@ -284,8 +285,9 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
-    /// or a configured limit rejects it.
+    /// Returns [`MeasuredBudgetError::Quantity`] when `amount` cannot be
+    /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
+    /// the configured point limit.
     fn check_container_items(
         &self,
         amount: usize,
@@ -307,8 +309,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
-    /// or a configured limit rejects it.
+    /// Returns [`MeasuredBudgetError::Budget`] when the configured node budget
+    /// has no remaining unit.
     ///
     /// # Panics
     ///
@@ -348,8 +350,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
-    /// or a configured limit rejects it.
+    /// Returns [`MeasuredBudgetError::Budget`] when the configured payload
+    /// budget has insufficient remaining capacity.
     ///
     /// # Panics
     ///

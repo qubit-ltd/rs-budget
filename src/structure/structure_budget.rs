@@ -60,7 +60,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Immutable structural limits used to initialize this
+    ///   accounting session.
     ///
     /// # Returns
     ///
@@ -78,7 +79,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `actual` - Observed quantity to validate.
+    /// * `actual` - Observed nesting depth to compare with the configured depth
+    ///   limit.
     ///
     /// # Returns
     ///
@@ -86,8 +88,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::LimitExceeded`] when a configured depth limit
+    /// rejects `actual`.
     #[inline]
     pub fn check_depth(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.depth_limit(), actual)
@@ -101,8 +103,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::Insufficient`] when the configured node budget
+    /// has fewer than one unit remaining.
     #[inline]
     pub fn charge_node(&mut self) -> Result<(), BudgetError<R, Q>> {
         self.charge_nodes(Q::ONE)
@@ -112,7 +114,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `amount` - Quantity involved in this accounting operation.
+    /// * `amount` - Number of nodes to charge from the cumulative node budget.
     ///
     /// # Returns
     ///
@@ -120,8 +122,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::Insufficient`] when the configured node budget
+    /// has fewer than `amount` units remaining.
     #[inline]
     pub fn charge_nodes(&mut self, amount: Q) -> Result<(), BudgetError<R, Q>> {
         match &mut self.nodes {
@@ -134,7 +136,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `actual` - Observed quantity to validate.
+    /// * `actual` - Observed number of direct items in the sequence.
     ///
     /// # Returns
     ///
@@ -142,8 +144,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::LimitExceeded`] when a configured sequence-item
+    /// limit rejects `actual`.
     #[inline]
     pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.sequence_items_limit(), actual)
@@ -153,7 +155,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `actual` - Observed quantity to validate.
+    /// * `actual` - Observed number of direct entries in the map.
     ///
     /// # Returns
     ///
@@ -161,8 +163,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::LimitExceeded`] when a configured map-entry
+    /// limit rejects `actual`.
     #[inline]
     pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.map_entries_limit(), actual)
@@ -172,7 +174,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `actual` - Observed quantity to validate.
+    /// * `actual` - Observed UTF-8 byte length of the structural key.
     ///
     /// # Returns
     ///
@@ -180,8 +182,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::LimitExceeded`] when a configured key-byte limit
+    /// rejects `actual`.
     #[inline]
     pub fn check_key_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.key_bytes_limit(), actual)
@@ -199,8 +201,9 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::LimitExceeded`] when the depth limit rejects
+    /// `depth`, or [`BudgetError::Insufficient`] when the node budget has no
+    /// remaining unit.
     #[inline]
     pub fn enter_node(&mut self, depth: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;
@@ -221,8 +224,9 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::LimitExceeded`] when the depth or sequence-item
+    /// limit rejects its measurement, or [`BudgetError::Insufficient`] when
+    /// the node budget has no remaining unit.
     #[inline]
     pub fn enter_sequence(&mut self, depth: Q, items: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;
@@ -243,8 +247,9 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`BudgetError`] when a configured point limit or remaining
-    /// cumulative capacity rejects the operation.
+    /// Returns [`BudgetError::LimitExceeded`] when the depth or map-entry
+    /// limit rejects its measurement, or [`BudgetError::Insufficient`] when
+    /// the node budget has no remaining unit.
     #[inline]
     pub fn enter_map(&mut self, depth: Q, entries: Q) -> Result<(), BudgetError<R, Q>> {
         self.check_depth(depth)?;

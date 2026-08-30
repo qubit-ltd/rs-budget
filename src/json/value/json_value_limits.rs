@@ -337,7 +337,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound per-string byte limit to install.
     pub(super) fn set_string_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_string_bytes = Some(limit);
     }
@@ -346,7 +346,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound per-number byte limit to install.
     pub(super) fn set_number_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_number_bytes = Some(limit);
     }
@@ -355,7 +355,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound cumulative payload-byte limit to install.
     pub(super) fn set_payload_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_payload_bytes = Some(limit);
     }
@@ -364,7 +364,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Structural limits to apply to JSON value processing.
     pub(super) fn set_structure_limits(&mut self, limits: StructureLimits<R, Q>) {
         self.structure = limits;
     }
@@ -379,7 +379,7 @@ where
 ///
 /// # Parameters
 ///
-/// * `limit` - Resource-bound limit to inspect or install.
+/// * `limit` - Optional resource-bound limit whose maximum is requested.
 ///
 /// # Returns
 ///

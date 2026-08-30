@@ -191,7 +191,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound raw input-byte limit to install.
     pub(super) fn set_input_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.input = Some(limit);
     }
@@ -200,7 +200,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound normalized input-byte limit to install.
     pub(super) fn set_normalized_input_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.normalized_input = Some(limit);
     }
@@ -209,7 +209,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - JSON value limits to apply during decoding.
     pub(super) fn set_value_limits(&mut self, limits: JsonValueLimits<R, Q>) {
         self.value = limits;
     }

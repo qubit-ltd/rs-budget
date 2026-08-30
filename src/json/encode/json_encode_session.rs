@@ -67,7 +67,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Caller-owned JSON value budget to update after a successful
+    ///   encode attempt.
     ///
     /// # Returns
     ///
@@ -85,7 +86,8 @@ where
     /// # Parameters
     ///
     /// * `output` - Output supplied to this operation.
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Caller-owned JSON value budget to update after a successful
+    ///   encode attempt.
     ///
     /// # Returns
     ///
@@ -171,7 +173,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Immutable encoding limits used to initialize owned
+    ///   accounting budgets.
     ///
     /// # Returns
     ///

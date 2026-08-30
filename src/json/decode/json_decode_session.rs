@@ -68,7 +68,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Caller-owned JSON value budget to update after a successful
+    ///   decode attempt.
     ///
     /// # Returns
     ///
@@ -90,7 +91,8 @@ where
     /// # Parameters
     ///
     /// * `input` - Input supplied to this operation.
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Caller-owned JSON value budget to update after a successful
+    ///   decode attempt.
     ///
     /// # Returns
     ///
@@ -113,7 +115,8 @@ where
     ///
     /// * `input` - Input supplied to this operation.
     /// * `normalized_input` - Optional caller-owned normalized-input budget.
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Caller-owned JSON value budget to update after a successful
+    ///   decode attempt.
     ///
     /// # Returns
     ///
@@ -235,7 +238,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Immutable decoding limits used to initialize owned
+    ///   accounting budgets.
     ///
     /// # Returns
     ///

@@ -60,6 +60,11 @@ where
     }
 
     /// Returns the resource whose capacity this permit owns.
+    ///
+    /// # Panics
+    ///
+    /// Panics only if an internal invariant is violated and a live permit no
+    /// longer retains its owning pool.
     #[must_use]
     #[inline(always)]
     pub fn resource(&self) -> &R {

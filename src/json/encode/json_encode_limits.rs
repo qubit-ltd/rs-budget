@@ -163,7 +163,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound output-byte limit to install.
     pub(super) fn set_output_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.output = Some(limit);
     }
@@ -172,7 +172,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - JSON value limits to apply during encoding.
     pub(super) fn set_value_limits(&mut self, limits: JsonValueLimits<R, Q>) {
         self.value = limits;
     }

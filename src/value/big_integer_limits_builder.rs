@@ -73,7 +73,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Existing integer limits whose configuration is copied into
+    ///   this builder.
     ///
     /// # Returns
     ///
@@ -88,7 +89,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound magnitude bit-length limit to install.
     ///
     /// # Returns
     ///
@@ -104,7 +105,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound significant decimal-digit limit to install.
     ///
     /// # Returns
     ///

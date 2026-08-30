@@ -83,7 +83,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - JSON value limits that determine which measurements need
+    ///   conversion.
     /// * `measurement` - Native JSON measurement to convert or admit.
     ///
     /// # Returns
@@ -92,8 +93,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
-    /// or a configured limit rejects it.
+    /// Returns [`MeasuredBudgetError::Quantity`] when a configured native
+    /// measurement cannot fit `Q`. This method does not check point limits.
     pub(in crate::json) fn prepare<R>(
         limits: &JsonValueLimits<R, Q>,
         measurement: JsonMeasurement,
@@ -142,7 +143,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - JSON value limits whose configured point dimensions are
+    ///   checked.
     ///
     /// # Returns
     ///
@@ -150,8 +152,8 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
-    /// or a configured limit rejects it.
+    /// Returns [`MeasuredBudgetError::Budget`] when a configured point limit
+    /// rejects the converted measurement.
     pub(in crate::json) fn check_point<R>(
         &self,
         limits: &JsonValueLimits<R, Q>,
@@ -195,8 +197,9 @@ where
 ///
 /// # Parameters
 ///
-/// * `amount` - Quantity involved in this accounting operation.
-/// * `limit` - Resource-bound limit to inspect or install.
+/// * `amount` - Native measurement to convert when `limit` is configured.
+/// * `limit` - Optional resource-bound limit that determines the conversion
+///   error's resource identity.
 ///
 /// # Returns
 ///
@@ -230,7 +233,7 @@ where
 ///
 /// # Parameters
 ///
-/// * `amount` - Quantity involved in this accounting operation.
+/// * `amount` - Native payload byte length to convert.
 /// * `point_limit` - Optional point limit whose resource takes precedence in
 ///   conversion errors.
 /// * `payload_limit` - Optional cumulative limit used when no point limit is
@@ -272,7 +275,7 @@ where
 ///
 /// # Parameters
 ///
-/// * `limit` - Resource-bound limit to inspect or install.
+/// * `limit` - Optional point limit to check.
 /// * `actual` - Observed quantity to validate.
 ///
 /// # Returns

@@ -73,7 +73,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Existing decoding limits whose configuration is copied into
+    ///   this builder.
     ///
     /// # Returns
     ///
@@ -88,7 +89,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound raw input-byte limit to install.
     ///
     /// # Returns
     ///
@@ -104,7 +105,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound normalized input-byte limit to install.
     ///
     /// # Returns
     ///
@@ -120,7 +121,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - JSON value limits to apply during decoding.
     ///
     /// # Returns
     ///
@@ -306,7 +307,7 @@ where
     ///
     /// # Type Parameters
     ///
-    /// * `F` - Closure used to configure or render the nested value.
+    /// * `F` - Closure used to configure the nested value-limit builder.
     ///
     /// # Parameters
     ///

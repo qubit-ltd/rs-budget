@@ -60,7 +60,8 @@ where
     /// * `input` - Input supplied to this operation.
     /// * `normalized_input` - Optional normalized-input budget borrowed for
     ///   immediate charges.
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Transaction holding the JSON value accounting staged by this
+    ///   attempt.
     ///
     /// # Returns
     ///
@@ -86,7 +87,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `amount` - Quantity involved in this accounting operation.
+    /// * `amount` - Number of raw input bytes to charge immediately.
     ///
     /// # Returns
     ///
@@ -108,7 +109,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `amount` - Quantity involved in this accounting operation.
+    /// * `amount` - Number of normalized input bytes to charge immediately.
     ///
     /// # Returns
     ///
@@ -256,7 +257,7 @@ where
 /// # Parameters
 ///
 /// * `budget` - Optional cumulative byte budget to charge.
-/// * `amount` - Quantity involved in this accounting operation.
+/// * `amount` - Native byte count to convert and charge when `budget` exists.
 ///
 /// # Returns
 ///

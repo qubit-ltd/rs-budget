@@ -74,7 +74,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Existing JSON value limits whose configuration is copied
+    ///   into this builder.
     ///
     /// # Returns
     ///
@@ -89,7 +90,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound per-string byte limit to install.
     ///
     /// # Returns
     ///
@@ -105,7 +106,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound per-number byte limit to install.
     ///
     /// # Returns
     ///
@@ -121,7 +122,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound cumulative payload-byte limit to install.
     ///
     /// # Returns
     ///
@@ -137,11 +138,11 @@ where
     ///
     /// # Type Parameters
     ///
-    /// * `S` - Closure used to transform the structural-limit builder.
+    /// * `S` - Type that converts into the structural limits to install.
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Structural limits to apply to JSON value processing.
     ///
     /// # Returns
     ///

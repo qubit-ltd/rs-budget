@@ -327,7 +327,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound nesting-depth limit to install.
     #[inline(always)]
     pub(super) fn set_depth_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_depth = Some(limit);
@@ -337,7 +337,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound cumulative node limit to install.
     #[inline(always)]
     pub(super) fn set_nodes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_nodes = Some(limit);
@@ -347,7 +347,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound sequence-item limit to install.
     #[inline(always)]
     pub(super) fn set_sequence_items_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_sequence_items = Some(limit);
@@ -357,7 +357,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound map-entry limit to install.
     #[inline(always)]
     pub(super) fn set_map_entries_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_map_entries = Some(limit);
@@ -367,7 +367,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound structural-key limit to install.
     #[inline(always)]
     pub(super) fn set_key_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_key_bytes = Some(limit);

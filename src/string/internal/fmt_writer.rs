@@ -34,17 +34,18 @@ where
 {
     /// Appends one formatted string when the budget permits it.
     ///
-    /// # Errors
-    ///
-    /// Returns `fmt::Error` when the enclosing budget rejects the append.
-    ///
     /// # Parameters
     ///
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Formatted text to append to the transactional output.
     ///
     /// # Returns
     ///
-    /// Appends one formatted string when the budget permits it.
+    /// Returns `Ok(())` after appending `value`, or `fmt::Error` when the
+    /// enclosing budget rejects the append.
+    ///
+    /// # Errors
+    ///
+    /// Returns `fmt::Error` when the enclosing budget rejects the append.
     fn write_str(&mut self, value: &str) -> fmt::Result {
         if self.writer.append(value.as_bytes()) {
             Ok(())

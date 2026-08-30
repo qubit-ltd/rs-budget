@@ -98,7 +98,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `value` - Value to measure or validate.
+    /// * `value` - UTF-8 string whose byte length is compared with the limit.
     ///
     /// # Returns
     ///
@@ -125,7 +125,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound UTF-8 byte limit to install.
     #[inline(always)]
     pub(super) fn set_utf8_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_utf8_bytes = Some(limit);

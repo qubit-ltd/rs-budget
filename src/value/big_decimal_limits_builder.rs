@@ -74,7 +74,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Existing decimal limits whose configuration is copied into
+    ///   this builder.
     ///
     /// # Returns
     ///
@@ -89,7 +90,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Coefficient limits to apply to the decimal value.
     ///
     /// # Returns
     ///
@@ -105,7 +106,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound absolute scale-magnitude limit to install.
     ///
     /// # Returns
     ///

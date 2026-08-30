@@ -56,7 +56,8 @@ where
     /// # Parameters
     ///
     /// * `output` - Output supplied to this operation.
-    /// * `value` - Value to measure or validate.
+    /// * `value` - Transaction holding the JSON value accounting staged by this
+    ///   attempt.
     ///
     /// # Returns
     ///
@@ -77,7 +78,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `amount` - Quantity involved in this accounting operation.
+    /// * `amount` - Number of output bytes to check without charging.
     ///
     /// # Returns
     ///
@@ -102,7 +103,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `amount` - Quantity involved in this accounting operation.
+    /// * `amount` - Number of accepted output bytes to charge immediately.
     ///
     /// # Returns
     ///

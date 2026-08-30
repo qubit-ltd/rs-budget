@@ -90,7 +90,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Immutable limit configuration used by the operation.
+    /// * `limits` - Existing structural limits whose configuration is copied
+    ///   into this builder.
     ///
     /// # Returns
     ///
@@ -105,7 +106,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound nesting-depth limit to install.
     ///
     /// # Returns
     ///
@@ -121,7 +122,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound cumulative node limit to install.
     ///
     /// # Returns
     ///
@@ -137,7 +138,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound sequence-item limit to install.
     ///
     /// # Returns
     ///
@@ -153,7 +154,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound map-entry limit to install.
     ///
     /// # Returns
     ///
@@ -169,7 +170,7 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound limit to inspect or install.
+    /// * `limit` - Resource-bound structural-key limit to install.
     ///
     /// # Returns
     ///

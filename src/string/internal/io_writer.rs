@@ -34,17 +34,18 @@ where
 {
     /// Appends bytes when the budget permits them.
     ///
-    /// # Errors
-    ///
-    /// Returns an I/O error when the enclosing budget rejects the append.
-    ///
     /// # Parameters
     ///
-    /// * `bytes` - Native byte count to validate or charge.
+    /// * `bytes` - Bytes to append to the transactional output.
     ///
     /// # Returns
     ///
-    /// Appends bytes when the budget permits them.
+    /// Returns the number of appended bytes, or an I/O error when the
+    /// enclosing budget rejects the append.
+    ///
+    /// # Errors
+    ///
+    /// Returns an I/O error when the enclosing budget rejects the append.
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         if self.writer.append(bytes) {
             Ok(bytes.len())
@@ -55,13 +56,14 @@ where
 
     /// Flushes the in-memory adapter.
     ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())`; flushing only affects this in-memory adapter and
+    /// never writes to an external sink.
+    ///
     /// # Errors
     ///
     /// This in-memory adapter never fails while flushing.
-    ///
-    /// # Returns
-    ///
-    /// Flushes the in-memory adapter.
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
