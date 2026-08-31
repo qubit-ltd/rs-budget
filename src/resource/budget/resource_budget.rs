@@ -129,6 +129,7 @@ where
     ///
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity.
+    #[must_use = "the availability check result must be handled"]
     pub fn check_available(&self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
@@ -186,6 +187,7 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
+    #[must_use = "the availability check result must be handled"]
     pub fn check_available_usize(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
@@ -211,6 +213,7 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
+    #[must_use = "the availability check result must be handled"]
     pub fn check_available_u64(&self, amount: u64) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,

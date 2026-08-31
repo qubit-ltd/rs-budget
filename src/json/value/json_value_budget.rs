@@ -64,7 +64,7 @@ where
     /// # Returns
     ///
     /// Starts an all-or-nothing accounting transaction for one JSON value.
-    #[must_use]
+    #[must_use = "the transaction must be committed or dropped intentionally"]
     pub fn transaction(&mut self) -> JsonValueTransaction<'_, R, Q> {
         JsonValueTransaction::new(self)
     }

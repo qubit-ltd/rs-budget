@@ -65,7 +65,7 @@ impl<R> DurationBudget<R> {
     /// assert_eq!(budget.remaining(), Duration::from_secs(3));
     /// ```
     #[inline]
-    #[must_use]
+    #[must_use = "the availability check result must be handled"]
     pub const fn new(resource: R, limit: Duration) -> Self {
         Self {
             limit: ResourceLimit::new(resource, limit),
@@ -104,6 +104,7 @@ impl<R> DurationBudget<R> {
     ///
     /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
     /// remaining duration.
+    #[must_use = "the availability check result must be handled"]
     pub fn check_available(&self, duration: Duration) -> Result<(), InsufficientBudgetError<R, Duration>>
     where
         R: Clone,

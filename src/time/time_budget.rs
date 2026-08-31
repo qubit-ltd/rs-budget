@@ -89,6 +89,7 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// Returns [`TimeBudgetError::Clock`] when adding `duration` to the
     /// construction sample cannot be represented by the clock instant type.
+    #[must_use = "the time budget result must be handled"]
     pub fn for_duration(resource: R, clock: C, duration: Duration) -> Result<Self, TimeBudgetError<R>> {
         let started_at = clock.now();
         let deadline = match started_at.checked_add(duration) {
@@ -122,6 +123,7 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// Returns [`TimeBudgetError::Clock`] when `deadline` belongs to another
     /// clock domain.
+    #[must_use = "the time budget result must be handled"]
     pub fn until(resource: R, clock: C, deadline: MonotonicInstant) -> Result<Self, TimeBudgetError<R>> {
         if let Err(source) = deadline.validate_domain(clock.domain()) {
             return Err(TimeBudgetError::Clock { resource, source });
@@ -142,7 +144,7 @@ impl<R, C> TimeBudget<R, C> {
     /// # Returns
     ///
     /// Returns the associated resource.
-    #[must_use]
+    #[must_use = "the elapsed-time result must be handled"]
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         &self.resource
@@ -196,7 +198,7 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// Reports whether the current instant has reached the deadline.
     #[inline]
-    #[must_use]
+    #[must_use = "the remaining-time result must be handled"]
     pub fn is_expired(&self) -> bool {
         self.clock.now() >= self.deadline
     }
@@ -214,6 +216,7 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// Returns [`TimeBudgetError::Clock`] when the current sample cannot be
     /// subtracted from `started_at` in the clock domain.
+    #[must_use = "the time budget check result must be handled"]
     pub fn elapsed(&self) -> Result<Duration, TimeBudgetError<R>> {
         self.clock
             .now()
@@ -236,6 +239,7 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// Returns [`TimeBudgetError::Clock`] when the current sample and deadline
     /// cannot be compared or subtracted in the clock domain.
+    #[must_use = "the time budget check result must be handled"]
     pub fn remaining(&self) -> Result<Duration, TimeBudgetError<R>> {
         let now = self.clock.now();
         if now >= self.deadline {
@@ -261,6 +265,7 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// Returns [`TimeBudgetError::Expired`] when the current sample is at or
     /// after the deadline.
+    #[must_use = "the time budget check result must be handled"]
     pub fn check(&self) -> Result<(), TimeBudgetError<R>> {
         let now = self.clock.now();
         if now >= self.deadline {
@@ -292,6 +297,7 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
     /// past its deadline, [`TimeBudgetError::WouldExpire`] when the operation
     /// would reach or pass the deadline, or [`TimeBudgetError::Clock`] when
     /// calculating the prospective end instant overflows.
+    #[must_use = "the time budget check result must be handled"]
     pub fn check_after(&self, duration: Duration) -> Result<(), TimeBudgetError<R>> {
         let now = self.clock.now();
         if now >= self.deadline {

@@ -33,6 +33,7 @@ use thiserror::Error;
 /// clock.advance(Duration::from_secs(1)).expect("the clock should advance");
 /// assert!(matches!(budget.check(), Err(TimeBudgetError::Expired { .. })));
 /// ```
+#[must_use]
 #[derive(Debug, Error)]
 pub enum TimeBudgetError<R> {
     /// The clock rejected a domain or instant operation.

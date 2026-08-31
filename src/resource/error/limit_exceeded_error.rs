@@ -30,6 +30,7 @@ use crate::resource::Observation;
 /// assert_eq!(error.observation(), Observation::Exact(3));
 /// assert_eq!(error.maximum(), 2);
 /// ```
+#[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 #[error("resource {resource:?} measured {observed}, exceeding the maximum of {maximum:?}")]
 pub struct LimitExceededError<R, Q = u64>
@@ -59,7 +60,6 @@ where
     /// # Returns
     ///
     /// A structured failure containing an [`Observation::Exact`] measurement.
-    #[must_use]
     #[inline(always)]
     pub const fn exact(resource: R, observed: Q, maximum: Q) -> Self {
         Self {
@@ -81,7 +81,6 @@ where
     ///
     /// A structured failure containing an [`Observation::AtLeast`]
     /// measurement.
-    #[must_use]
     #[inline(always)]
     pub const fn at_least(resource: R, lower_bound: Q, maximum: Q) -> Self {
         Self {

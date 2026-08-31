@@ -30,6 +30,7 @@ use thiserror::Error;
 /// assert_eq!(error.requested(), 2);
 /// ```
 #[non_exhaustive]
+#[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum ResourceReleaseError<R, Q = u64>
 where

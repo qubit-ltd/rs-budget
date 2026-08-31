@@ -35,6 +35,7 @@ use crate::resource::QuantityConversionError;
 /// let error = MeasuredBudgetError::<_, u8>::quantity("bytes", source);
 /// assert!(error.quantity_error().is_some());
 /// ```
+#[must_use]
 #[derive(Clone, Debug, Error)]
 pub enum MeasuredBudgetError<R, Q = u64>
 where
@@ -74,7 +75,6 @@ where
     ///
     /// A quantity representation failure retaining its resource identity.
     #[inline(always)]
-    #[must_use]
     pub const fn quantity(resource: R, source: QuantityConversionError) -> Self {
         Self::Quantity { resource, source }
     }

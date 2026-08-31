@@ -67,7 +67,7 @@ where
     ///
     /// Creates a fresh budget session from one structural limit configuration.
     #[inline]
-    #[must_use]
+    #[must_use = "the budget check result must be handled"]
     pub(crate) fn new(limits: StructureLimits<R, Q>) -> Self {
         Self {
             nodes: limits.nodes_limit().cloned().map(ResourceBudget::from_limit),
@@ -91,6 +91,7 @@ where
     /// Returns [`BudgetError::LimitExceeded`] when a configured depth limit
     /// rejects `actual`.
     #[inline]
+    #[must_use = "the budget check result must be handled"]
     pub fn check_depth(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.depth_limit(), actual)
     }
@@ -147,6 +148,7 @@ where
     /// Returns [`BudgetError::LimitExceeded`] when a configured sequence-item
     /// limit rejects `actual`.
     #[inline]
+    #[must_use = "the budget check result must be handled"]
     pub fn check_sequence_items(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.sequence_items_limit(), actual)
     }
@@ -166,6 +168,7 @@ where
     /// Returns [`BudgetError::LimitExceeded`] when a configured map-entry
     /// limit rejects `actual`.
     #[inline]
+    #[must_use = "the budget check result must be handled"]
     pub fn check_map_entries(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.map_entries_limit(), actual)
     }
@@ -185,6 +188,7 @@ where
     /// Returns [`BudgetError::LimitExceeded`] when a configured key-byte limit
     /// rejects `actual`.
     #[inline]
+    #[must_use = "the budget check result must be handled"]
     pub fn check_key_bytes(&self, actual: Q) -> Result<(), BudgetError<R, Q>> {
         check_limit(self.limits.key_bytes_limit(), actual)
     }

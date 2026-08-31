@@ -65,7 +65,7 @@ where
     ///
     /// Creates an attempt from the budgets split out of an encode session.
     #[inline(always)]
-    #[must_use]
+    #[must_use = "the output-byte check result must be handled"]
     pub(crate) const fn new(
         output: Option<&'a mut ResourceBudget<R, Q>>,
         value: JsonValueTransaction<'a, R, Q>,
@@ -91,6 +91,7 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
+    #[must_use = "the output-byte check result must be handled"]
     pub fn check_output_bytes(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref() {
             Some(budget) => budget.check_available_usize(amount),

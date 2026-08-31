@@ -36,6 +36,7 @@ use crate::resource::InsufficientBudgetError;
 /// assert_eq!(error.index(), 1);
 /// assert_eq!(first.remaining(), 2);
 /// ```
+#[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 #[error("budget group member {index} rejected consumption: {source}")]
 pub struct BudgetGroupError<R, Q = u64>
@@ -64,7 +65,6 @@ where
     /// # Returns
     ///
     /// Creates a grouped failure for the first rejecting budget.
-    #[must_use]
     pub(crate) const fn new(index: usize, source: InsufficientBudgetError<R, Q>) -> Self {
         Self { index, source }
     }
@@ -86,7 +86,6 @@ where
     ///
     /// Returns the structured failure from the rejecting budget.
     #[inline(always)]
-    #[must_use]
     pub const fn source_error(&self) -> &InsufficientBudgetError<R, Q> {
         &self.source
     }
@@ -97,7 +96,6 @@ where
     ///
     /// Consumes this error and returns the rejecting budget's failure.
     #[inline(always)]
-    #[must_use]
     pub fn into_source_error(self) -> InsufficientBudgetError<R, Q> {
         self.source
     }

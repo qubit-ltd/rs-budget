@@ -34,6 +34,7 @@ use crate::resource::QuantityConversionError;
 /// assert!(matches!(error, BudgetedStringError::Render("render failed")));
 /// ```
 #[derive(Debug, Error)]
+#[must_use]
 pub enum BudgetedStringError<R, E, Q = u64>
 where
     R: Debug,

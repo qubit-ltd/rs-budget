@@ -51,7 +51,7 @@ pub trait ResourceQuantity:
     ///
     /// `Some(sum)` when the sum fits in the quantity type, or `None` on
     /// overflow.
-    #[must_use]
+    #[must_use = "the quantity conversion result must be handled"]
     fn checked_add(self, other: Self) -> Option<Self>;
 
     /// Converts one Rust-native length into this resource quantity.
@@ -68,6 +68,7 @@ pub trait ResourceQuantity:
     ///
     /// Returns [`QuantityConversionError`] when `value` cannot be represented
     /// without truncation.
+    #[must_use = "the quantity conversion result must be handled"]
     fn try_from_usize(value: usize) -> Result<Self, QuantityConversionError>;
 
     /// Converts one stable 64-bit measurement into this resource quantity.
@@ -84,6 +85,7 @@ pub trait ResourceQuantity:
     ///
     /// Returns [`QuantityConversionError`] when `value` cannot be represented
     /// without truncation.
+    #[must_use = "the quantity conversion result must be handled"]
     fn try_from_u64(value: u64) -> Result<Self, QuantityConversionError>;
 }
 

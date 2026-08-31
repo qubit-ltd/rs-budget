@@ -37,6 +37,7 @@ use crate::resource::Observation;
 /// assert_eq!(error.configured_limit(), 2);
 /// assert_eq!(error.exact_observed(), Some(3));
 /// ```
+#[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum BudgetError<R, Q = u64>
 where

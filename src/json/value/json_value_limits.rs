@@ -83,7 +83,7 @@ where
     ///
     /// Creates an empty value limit set with no configured resource limits.
     #[inline]
-    #[must_use]
+    #[must_use = "the point check result must be handled"]
     pub const fn new() -> Self {
         Self {
             structure: StructureLimits::new(),
@@ -317,6 +317,7 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
+    #[must_use = "the point check result must be handled"]
     pub fn check_point(&self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,

@@ -21,6 +21,7 @@ use crate::resource::QuantityMeasurement;
 /// let error = QuantityConversionError::new(QuantityMeasurement::Usize(256), "u8");
 /// assert_eq!(error.target(), "u8");
 /// ```
+#[must_use]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("measurement {measurement} cannot be represented by {target}")]
 pub struct QuantityConversionError {
@@ -42,7 +43,6 @@ impl QuantityConversionError {
     ///
     /// A failure retaining both the original measurement and target type.
     #[inline(always)]
-    #[must_use]
     pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
         Self { measurement, target }
     }

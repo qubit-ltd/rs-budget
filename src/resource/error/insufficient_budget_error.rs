@@ -28,6 +28,7 @@ use thiserror::Error;
 /// assert_eq!(error.remaining(), 2);
 /// assert_eq!(error.requested(), 3);
 /// ```
+#[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 #[error("resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains")]
 pub struct InsufficientBudgetError<R, Q = u64>
