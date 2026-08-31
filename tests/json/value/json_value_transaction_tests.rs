@@ -12,6 +12,19 @@ use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
 
+/// Verifies a transaction exposes whether any value limit is active.
+#[test]
+fn test_value_transaction_reports_whether_limits_are_configured() {
+    let mut unlimited_budget = JsonValueLimits::<JsonResource, usize>::new().budget();
+    assert!(!unlimited_budget.transaction().has_limits());
+
+    let mut limited_budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(1)
+        .build()
+        .budget();
+    assert!(limited_budget.transaction().has_limits());
+}
+
 /// Verifies only an explicit commit publishes staged value usage.
 #[test]
 fn test_value_transaction_commit_publishes_usage() {

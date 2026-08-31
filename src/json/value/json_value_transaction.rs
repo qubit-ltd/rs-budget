@@ -80,6 +80,18 @@ where
         }
     }
 
+    /// Indicates whether this transaction enforces any JSON-value limit.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` when at least one point or cumulative value limit is
+    /// configured on the target budget.
+    #[must_use]
+    #[inline(always)]
+    pub const fn has_limits(&self) -> bool {
+        self.target.limits().has_limits()
+    }
+
     /// Stages one native JSON measurement when all applicable limits allow it.
     ///
     /// Point limits are checked before cumulative node and payload capacity.
