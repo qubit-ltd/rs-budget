@@ -154,13 +154,14 @@ where
 
     /// Returns capacity not currently owned by permits.
     #[must_use]
+    #[inline(always)]
     pub fn available(&self) -> Q {
         *self.inner.lock_available()
     }
 
     /// Returns capacity currently owned by permits.
     #[must_use]
-    #[inline]
+    #[inline(always)]
     pub fn in_use(&self) -> Q {
         self.capacity() - self.available()
     }
