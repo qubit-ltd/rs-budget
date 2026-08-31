@@ -104,27 +104,10 @@ transaction.commit()?;
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
-完整规则有意区分不同类型的记账：
-
-| 场景 | input | normalized input | value | output |
-| --- | --- | --- | --- | --- |
-| strict decode 成功 | 保留 | 不适用 | 提交 | 不适用 |
-| strict decode 失败 | 保留 | 不适用 | 回滚 | 不适用 |
-| lenient decode 失败 | 保留 | 保留 | 回滚 | 不适用 |
-| 缓冲的 `Vec<u8>` output 失败 | 不适用 | 不适用 | 回滚 | 只在成功时计费；没有 `Vec` 就不计 output |
-| buffered writer 部分失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
-| incremental writer 失败 | 不适用 | 不适用 | 回滚 | 每个 accepted prefix 立即保留 |
-| stream 中单个 value 失败 | 跨 value 累计 | 跨 value 累计 | 仅当前 value 回滚 | 之前接受的 output 继续保留 |
-
-raw input 和 normalized input 会立即入账。丢弃 transaction 无法撤销 accepted prefix、
-callback 副作用、`Hasher` 更新或对象 mutation。higher-level 操作可以选择更宽的
-transaction 边界，但暂存的 value 用量只有 `commit` 才会发布。
-
-第一次 value admission 失败会使 transaction 进入 poisoned 状态。此后的每次
-admission 和 `commit` 都返回首次错误，poisoned transaction 的 `commit` 不会发布
-任何暂存状态；丢弃它会回滚全部暂存的 value 用量。raw input、normalized input 或
-writer I/O 失败本身不会毒化 value transaction；已经接受的 I/O 计费或 output prefix
-仍然立即生效。
+raw input 和 normalized input 仍然立即入账；transaction 只暂存 value 用量，因此应在
+完整 value 成功后调用 `commit`。value admission 被拒绝会使该 transaction 进入 poisoned
+状态并禁止发布，但已经接受的 I/O 和 output 仍然保留计费。完整原子性矩阵和恢复边界请看
+用户手册与设计文档。
 
 ## 不负责什么
 
@@ -135,6 +118,7 @@ writer I/O 失败本身不会毒化 value transaction；已经接受的 I/O 计�
 ## 延伸阅读
 
 - [用户手册](doc/user_guide.zh_CN.md)：通过完整 JSON 场景说明记账、事务、错误和排障。
+- [设计文档](doc/design.zh_CN.md)：说明不变量、状态迁移和 feature 边界。
 - [API 文档](https://docs.rs/qubit-budget)
 
 ## 测试

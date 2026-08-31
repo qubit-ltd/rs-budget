@@ -112,29 +112,11 @@ transaction.commit()?;
 # Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
 ```
 
-The complete contract is intentionally asymmetric:
-
-| Scenario | Input | Normalized input | Value | Output |
-| --- | --- | --- | --- | --- |
-| Strict decode succeeds | retained | not applicable | committed | not applicable |
-| Strict decode fails | retained | not applicable | rolled back | not applicable |
-| Lenient decode fails | retained | retained | rolled back | not applicable |
-| Buffered `Vec<u8>` output fails | not applicable | not applicable | rolled back | success-only; no `Vec` means no output charge |
-| Buffered writer partially fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
-| Incremental writer fails | not applicable | not applicable | rolled back | each accepted prefix is retained immediately |
-| One value in a stream fails | retained across values | retained across values | only the current value rolls back | previously accepted output remains retained |
-
-Raw input and normalized input are charged immediately. Dropping a transaction
-cannot undo an accepted prefix, callback effect, `Hasher` update, or object
-mutation. A higher-level operation may select a wider transaction boundary, but
-only `commit` publishes staged value accounting.
-
-The first failed value admission poisons the transaction. Every later
-admission and `commit` return that retained error, and `commit` never publishes
-the staged state of a poisoned transaction. Dropping it rolls back all staged
-value usage. Raw or normalized input failures and writer I/O failures do not by
-themselves poison the value transaction; their already accepted I/O charges or
-output prefixes remain immediate.
+Raw and normalized input remain immediate charges. A transaction publishes only
+staged value usage, so callers call `commit` after the complete value succeeds.
+A rejected value admission poisons that transaction and prevents publication;
+already accepted I/O and output remain accounted. The user guide and design
+document define the complete atomicity matrix and recovery boundary.
 
 ## What it does not do
 
@@ -147,6 +129,8 @@ parsing and Serde integration, use an adapter such as
 
 - [User guide](doc/user_guide.md): a scenario-led explanation of JSON
   accounting, errors, transactions, and troubleshooting.
+- [Design document](doc/design.md): invariants, state transitions, and feature
+  boundaries.
 - [API documentation](https://docs.rs/qubit-budget)
 
 ## Testing

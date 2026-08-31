@@ -85,6 +85,7 @@ use qubit_budget::ResourceBudget;
 let body_limit = 1_048_576_usize;
 let mut body = Vec::new();
 let mut body_budget = ResourceBudget::new("response body", body_limit);
+let response_chunks = [b"hello".as_slice(), b" world".as_slice()];
 
 for chunk in response_chunks {
     body_budget.try_consume(chunk.len())?;
@@ -134,6 +135,7 @@ property of the current node, not a resource consumed by every later node:
 use qubit_budget::ResourceLimit;
 
 let depth = ResourceLimit::new("nesting depth", 16_usize);
+let current_depth = 3_usize;
 depth.check(current_depth)?;
 # Ok::<(), qubit_budget::LimitExceededError<&str, usize>>(())
 ```
@@ -173,30 +175,22 @@ represent finite capacity and neither waits for capacity or enforces fairness.
 3. `TimeBudget` uses `qubit-clock` to enforce one end-to-end monotonic deadline,
    including backoff and observer work.
 
-The public `qubit-retry` API exposes those three limits as one `RetryBudget`:
+The following self-contained example shows the two explicit accounting
+dimensions that underlie that composition:
 
 ```rust
 use std::time::Duration;
 
-use qubit_clock::StdMonotonicClock;
-use qubit_retry::RetryBudget;
-use qubit_retry::RetryPolicy;
+use qubit_budget::DurationBudget;
+use qubit_budget::ResourceBudget;
 
-let clock = StdMonotonicClock::new();
-let policy = RetryPolicy::builder()
-    .max_attempts(3)
-    .max_operation_elapsed(Duration::from_secs(10))
-    .max_total_elapsed(Duration::from_secs(30))
-    .build()?;
-let mut budget = RetryBudget::new(&clock, *policy.limits())?;
-
-let attempt = budget.begin_attempt()?;
-// Run one request attempt here.
-let snapshot = budget.finish_attempt(attempt);
-
-budget.check_retry_after(Duration::from_millis(500))?;
-assert_eq!(snapshot.attempts(), 1);
-# Ok::<(), Box<dyn std::error::Error>>(())
+let mut attempts = ResourceBudget::new("retry attempts", 3_u32);
+let mut active_work = DurationBudget::new("active work", Duration::from_secs(10));
+attempts.try_consume(1)?;
+active_work.try_consume(Duration::from_secs(2))?;
+assert_eq!(attempts.used(), 1);
+assert_eq!(active_work.remaining(), Duration::from_secs(8));
+# Ok::<(), qubit_budget::InsufficientBudgetError<&str, u32>>(())
 ```
 
 `begin_attempt()` first checks all continuation limits, then consumes one
@@ -248,8 +242,20 @@ let mut session = JsonDecodeSession::from_limits(
 For an adapter that reports measurements itself, the value part looks like this:
 
 ```rust
+use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
 
+let mut session = JsonDecodeSession::from_limits(
+    JsonDecodeLimits::<JsonResource, usize>::builder()
+        .max_input_bytes(64 * 1024)
+        .max_normalized_input_bytes(64 * 1024)
+        .max_nodes(10_000)
+        .build(),
+);
+let raw = br#"{\"name\":\"Ada\"}"#;
+let normalized = raw;
 let mut attempt = session.begin_value();
 attempt.try_consume_input_bytes(raw.len())?;
 attempt.try_consume_normalized_input_bytes(normalized.len())?;
@@ -336,4 +342,5 @@ Drop, but it also does not wait for capacity or guarantee fairness.
 
 - [README](../README.md)
 - [中文用户手册](user_guide.zh_CN.md)
+- [Design document](design.md)
 - [API documentation](https://docs.rs/qubit-budget)

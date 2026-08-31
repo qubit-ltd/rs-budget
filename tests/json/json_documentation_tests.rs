@@ -8,6 +8,9 @@
 //! Verifies that the bilingual JSON accounting documentation preserves its
 //! contract.
 
+use std::fs;
+use std::process::Command;
+
 /// English matrix rows in their required order.
 const ENGLISH_MATRIX_ROWS: [&str; 7] = [
     "| Strict decode succeeds |",
@@ -61,28 +64,23 @@ fn test_readmes_document_value_transaction_example() {
     }
 }
 
-/// Verifies every public document explains that the first rejected value
-/// admission poisons commit while I/O failures remain independent.
+/// Verifies the detailed guides explain poison while README files link readers
+/// to the detailed contract.
 #[test]
-fn test_all_documents_explain_poisoned_value_transactions() {
-    let english_documents = [include_str!("../../README.md"), include_str!("../../doc/user_guide.md")];
-    for document in english_documents {
-        assert!(document.contains("first failed value admission poisons the transaction"));
-        assert!(document.contains("commit") && document.contains("retained error"));
-        assert!(document.contains("I/O failures do not"));
-        assert!(document.contains("Dropping") && document.contains("staged value"));
-    }
+fn test_guides_explain_poisoned_value_transactions() {
+    let english_guide = include_str!("../../doc/user_guide.md");
+    assert!(english_guide.contains("first failed value admission poisons the transaction"));
+    assert!(english_guide.contains("commit") && english_guide.contains("retained error"));
+    assert!(english_guide.contains("I/O failures do not"));
+    assert!(english_guide.contains("Dropping") && english_guide.contains("staged value"));
 
-    let chinese_documents = [
-        include_str!("../../README.zh_CN.md"),
-        include_str!("../../doc/user_guide.zh_CN.md"),
-    ];
-    for document in chinese_documents {
-        assert!(document.contains("第一次 value admission 失败会使 transaction 进入 poisoned 状态"));
-        assert!(document.contains("commit") && document.contains("首次错误"));
-        assert!(document.contains("I/O 失败本身不会毒化"));
-        assert!(document.contains("丢弃") && document.contains("暂存"));
-    }
+    let chinese_guide = include_str!("../../doc/user_guide.zh_CN.md");
+    assert!(chinese_guide.contains("第一次 value admission 失败会使 transaction 进入 poisoned 状态"));
+    assert!(chinese_guide.contains("commit") && chinese_guide.contains("首次错误"));
+    assert!(chinese_guide.contains("I/O 失败本身不会毒化"));
+    assert!(chinese_guide.contains("丢弃") && chinese_guide.contains("暂存"));
+    assert!(include_str!("../../README.md").contains("[Design document](doc/design.md)"));
+    assert!(include_str!("../../README.zh_CN.md").contains("[设计文档](doc/design.zh_CN.md)"));
 
     let rustdoc = include_str!("../../src/json/value/json_value_transaction.rs")
         .replace("///", " ")
@@ -94,13 +92,11 @@ fn test_all_documents_explain_poisoned_value_transactions() {
     assert!(rustdoc.contains("publishing any staged state"));
 }
 
-/// Verifies all documents state the complete matrix and its critical
+/// Verifies the detailed user guides state the complete matrix and its critical
 /// boundaries.
 #[test]
 fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
     let documents = [
-        (include_str!("../../README.md"), &ENGLISH_MATRIX_ROWS),
-        (include_str!("../../README.zh_CN.md"), &CHINESE_MATRIX_ROWS),
         (include_str!("../../doc/user_guide.md"), &ENGLISH_MATRIX_ROWS),
         (include_str!("../../doc/user_guide.zh_CN.md"), &CHINESE_MATRIX_ROWS),
     ];
@@ -219,5 +215,107 @@ fn test_json_documentation_omits_removed_mutation_apis() {
         assert!(!document.contains("enter_node"));
         assert!(!document.contains("consume_string_bytes"));
         assert!(!document.contains("value_budget_mut"));
+    }
+}
+
+/// Verifies every optional public module and root re-export exposes its
+/// required feature in docs.rs builds.
+#[test]
+fn test_feature_gated_public_api_declares_docsrs_feature() {
+    let lib = include_str!("../../src/lib.rs");
+    assert!(lib.contains("#[cfg_attr(docsrs, doc(cfg(feature = \"json\")))]\npub mod json;"));
+    assert_eq!(
+        2,
+        lib.matches("#[cfg_attr(docsrs, doc(cfg(feature = \"time\")))]").count()
+    );
+    assert_eq!(
+        2,
+        lib.matches("#[cfg_attr(docsrs, doc(cfg(feature = \"big-integer\")))]")
+            .count()
+    );
+    assert_eq!(
+        2,
+        lib.matches("#[cfg_attr(docsrs, doc(cfg(feature = \"big-decimal\")))]")
+            .count()
+    );
+    assert!(
+        include_str!("../../src/time/mod.rs")
+            .contains("#[cfg_attr(docsrs, doc(cfg(feature = \"time\")))]\npub use time_budget::TimeBudget;")
+    );
+    assert!(include_str!("../../src/value/mod.rs").contains(
+        "#[cfg_attr(docsrs, doc(cfg(feature = \"big-integer\")))]\npub use big_integer_limits::BigIntegerLimits;"
+    ));
+    assert!(include_str!("../../src/value/mod.rs").contains(
+        "#[cfg_attr(docsrs, doc(cfg(feature = \"big-decimal\")))]\npub use big_decimal_limits::BigDecimalLimits;"
+    ));
+}
+
+/// Extracts visible Rust snippets from a Markdown document.
+fn rust_snippets(document: &str) -> Vec<String> {
+    document
+        .split("```rust\n")
+        .skip(1)
+        .filter_map(|section| section.split_once("```").map(|(snippet, _)| snippet))
+        .map(|snippet| {
+            snippet
+                .lines()
+                .filter(|line| !line.starts_with("# "))
+                .collect::<Vec<_>>()
+                .join("\n")
+        })
+        .collect()
+}
+
+/// Verifies the actual Rust snippets in both user guides compile against the
+/// current public package rather than merely resembling valid API calls.
+#[test]
+fn test_user_guide_rust_snippets_compile() {
+    #[cfg(not(miri))]
+    {
+        let workspace = std::env::temp_dir().join(format!("qubit-budget-guide-snippets-{}", std::process::id()));
+        let source_dir = workspace.join("src");
+        fs::create_dir_all(&source_dir).expect("temporary snippet project should be created");
+        let package_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        fs::write(
+            workspace.join("Cargo.toml"),
+            format!(
+                "[package]\nname = \"qubit-budget-guide-snippets\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[dependencies]\nqubit-budget = {{ path = {:?}, features = [\"json\"] }}\n",
+                package_root
+            ),
+        )
+        .expect("temporary snippet manifest should be written");
+
+        let guides = [
+            include_str!("../../doc/user_guide.md"),
+            include_str!("../../doc/user_guide.zh_CN.md"),
+        ];
+        let functions = guides
+            .into_iter()
+            .flat_map(rust_snippets)
+            .enumerate()
+            .map(|(index, snippet)| {
+                format!(
+                    "fn guide_snippet_{index}() -> Result<(), Box<dyn std::error::Error>> {{\n{snippet}\nOk(())\n}}\n"
+                )
+            })
+            .collect::<String>();
+        fs::write(source_dir.join("main.rs"), format!("{functions}\nfn main() {{}}\n"))
+            .expect("temporary snippet source should be written");
+
+        let output = Command::new("cargo")
+            .arg("+1.94.0")
+            .arg("check")
+            .arg("--quiet")
+            .arg("--offline")
+            .current_dir(&workspace)
+            .env("CARGO_TARGET_DIR", workspace.join("target"))
+            .output()
+            .expect("Cargo should compile user-guide snippets");
+        let _ = fs::remove_dir_all(&workspace);
+        assert!(
+            output.status.success(),
+            "user-guide Rust snippets must compile:\n{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 }

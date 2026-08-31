@@ -78,6 +78,7 @@ use qubit_budget::ResourceBudget;
 let body_limit = 1_048_576_usize;
 let mut body = Vec::new();
 let mut body_budget = ResourceBudget::new("response body", body_limit);
+let response_chunks = [b"hello".as_slice(), b" world".as_slice()];
 
 for chunk in response_chunks {
     body_budget.try_consume(chunk.len())?;
@@ -124,6 +125,7 @@ ResourceBudget::try_consume_group(
 use qubit_budget::ResourceLimit;
 
 let depth = ResourceLimit::new("nesting depth", 16_usize);
+let current_depth = 3_usize;
 depth.check(current_depth)?;
 # Ok::<(), qubit_budget::LimitExceededError<&str, usize>>(())
 ```
@@ -160,30 +162,21 @@ drop(permit);
 3. `TimeBudget` 通过 `qubit-clock` 执行一个端到端的单调时钟截止时间，其中包括退避和
    观察器工作。
 
-`qubit-retry` 的公开 API 通过一个 `RetryBudget` 暴露这三项限制：
+下面的独立示例展示了这套组合底层的两项显式记账维度：
 
 ```rust
 use std::time::Duration;
 
-use qubit_clock::StdMonotonicClock;
-use qubit_retry::RetryBudget;
-use qubit_retry::RetryPolicy;
+use qubit_budget::DurationBudget;
+use qubit_budget::ResourceBudget;
 
-let clock = StdMonotonicClock::new();
-let policy = RetryPolicy::builder()
-    .max_attempts(3)
-    .max_operation_elapsed(Duration::from_secs(10))
-    .max_total_elapsed(Duration::from_secs(30))
-    .build()?;
-let mut budget = RetryBudget::new(&clock, *policy.limits())?;
-
-let attempt = budget.begin_attempt()?;
-// Run one request attempt here.
-let snapshot = budget.finish_attempt(attempt);
-
-budget.check_retry_after(Duration::from_millis(500))?;
-assert_eq!(snapshot.attempts(), 1);
-# Ok::<(), Box<dyn std::error::Error>>(())
+let mut attempts = ResourceBudget::new("retry attempts", 3_u32);
+let mut active_work = DurationBudget::new("active work", Duration::from_secs(10));
+attempts.try_consume(1)?;
+active_work.try_consume(Duration::from_secs(2))?;
+assert_eq!(attempts.used(), 1);
+assert_eq!(active_work.remaining(), Duration::from_secs(8));
+# Ok::<(), qubit_budget::InsufficientBudgetError<&str, u32>>(())
 ```
 
 `begin_attempt()` 会先检查所有后续限制，再扣减一次尝试额度。`finish_attempt()` 会记录
@@ -229,8 +222,20 @@ let mut session = JsonDecodeSession::from_limits(
 对于自行上报测量的适配层，value 部分的核心是：
 
 ```rust
+use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
 
+let mut session = JsonDecodeSession::from_limits(
+    JsonDecodeLimits::<JsonResource, usize>::builder()
+        .max_input_bytes(64 * 1024)
+        .max_normalized_input_bytes(64 * 1024)
+        .max_nodes(10_000)
+        .build(),
+);
+let raw = br#"{\"name\":\"Ada\"}"#;
+let normalized = raw;
 let mut attempt = session.begin_value();
 attempt.try_consume_input_bytes(raw.len())?;
 attempt.try_consume_normalized_input_bytes(normalized.len())?;
@@ -306,4 +311,5 @@ I/O 失败本身不会毒化 value transaction；已经接受的 I/O 计费和 o
 
 - [中文 README](../README.zh_CN.md)
 - [English user guide](user_guide.md)
+- [设计文档](design.zh_CN.md)
 - [API 文档](https://docs.rs/qubit-budget)
