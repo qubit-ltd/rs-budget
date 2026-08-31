@@ -15,6 +15,8 @@ mod time_budget_error;
 
 pub use duration_budget::DurationBudget;
 #[cfg(feature = "time")]
+#[cfg_attr(docsrs, doc(cfg(feature = "time")))]
 pub use time_budget::TimeBudget;
 #[cfg(feature = "time")]
+#[cfg_attr(docsrs, doc(cfg(feature = "time")))]
 pub use time_budget_error::TimeBudgetError;

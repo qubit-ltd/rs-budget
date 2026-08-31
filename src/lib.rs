@@ -32,6 +32,7 @@ pub mod time;
 mod value;
 
 #[cfg(feature = "json")]
+#[cfg_attr(docsrs, doc(cfg(feature = "json")))]
 pub mod json;
 pub use resource::BudgetError;
 pub use resource::BudgetGroupError;
@@ -56,16 +57,22 @@ pub use structure::StructureLimitsBuilder;
 pub use structure::StructureResource;
 pub use time::DurationBudget;
 #[cfg(feature = "time")]
+#[cfg_attr(docsrs, doc(cfg(feature = "time")))]
 pub use time::TimeBudget;
 #[cfg(feature = "time")]
+#[cfg_attr(docsrs, doc(cfg(feature = "time")))]
 pub use time::TimeBudgetError;
 #[cfg(feature = "big-decimal")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
 pub use value::BigDecimalLimits;
 #[cfg(feature = "big-decimal")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
 pub use value::BigDecimalLimitsBuilder;
 #[cfg(feature = "big-integer")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
 pub use value::BigIntegerLimits;
 #[cfg(feature = "big-integer")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
 pub use value::BigIntegerLimitsBuilder;
 pub use value::StringLimits;
 pub use value::StringLimitsBuilder;

@@ -19,12 +19,16 @@ mod string_limits;
 mod string_limits_builder;
 
 #[cfg(feature = "big-decimal")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
 pub use big_decimal_limits::BigDecimalLimits;
 #[cfg(feature = "big-decimal")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-decimal")))]
 pub use big_decimal_limits_builder::BigDecimalLimitsBuilder;
 #[cfg(feature = "big-integer")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
 pub use big_integer_limits::BigIntegerLimits;
 #[cfg(feature = "big-integer")]
+#[cfg_attr(docsrs, doc(cfg(feature = "big-integer")))]
 pub use big_integer_limits_builder::BigIntegerLimitsBuilder;
 pub use string_limits::StringLimits;
 pub use string_limits_builder::StringLimitsBuilder;
