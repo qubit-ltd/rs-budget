@@ -8,7 +8,9 @@
 //! Verifies that the bilingual JSON accounting documentation preserves its
 //! contract.
 
+#[cfg(not(miri))]
 use std::fs;
+#[cfg(not(miri))]
 use std::process::Command;
 
 /// English matrix rows in their required order.
@@ -251,6 +253,7 @@ fn test_feature_gated_public_api_declares_docsrs_feature() {
 }
 
 /// Extracts visible Rust snippets from a Markdown document.
+#[cfg(not(miri))]
 fn rust_snippets(document: &str) -> Vec<String> {
     document
         .split("```rust\n")
@@ -268,54 +271,50 @@ fn rust_snippets(document: &str) -> Vec<String> {
 
 /// Verifies the actual Rust snippets in both user guides compile against the
 /// current public package rather than merely resembling valid API calls.
+#[cfg(not(miri))]
 #[test]
 fn test_user_guide_rust_snippets_compile() {
-    #[cfg(not(miri))]
-    {
-        let workspace = std::env::temp_dir().join(format!("qubit-budget-guide-snippets-{}", std::process::id()));
-        let source_dir = workspace.join("src");
-        fs::create_dir_all(&source_dir).expect("temporary snippet project should be created");
-        let package_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-        fs::write(
-            workspace.join("Cargo.toml"),
-            format!(
-                "[package]\nname = \"qubit-budget-guide-snippets\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[dependencies]\nqubit-budget = {{ path = {:?}, features = [\"json\"] }}\n",
-                package_root
-            ),
-        )
-        .expect("temporary snippet manifest should be written");
+    let workspace = std::env::temp_dir().join(format!("qubit-budget-guide-snippets-{}", std::process::id()));
+    let source_dir = workspace.join("src");
+    fs::create_dir_all(&source_dir).expect("temporary snippet project should be created");
+    let package_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    fs::write(
+        workspace.join("Cargo.toml"),
+        format!(
+            "[package]\nname = \"qubit-budget-guide-snippets\"\nversion = \"0.0.0\"\nedition = \"2024\"\n\n[dependencies]\nqubit-budget = {{ path = {:?}, features = [\"json\"] }}\n",
+            package_root
+        ),
+    )
+    .expect("temporary snippet manifest should be written");
 
-        let guides = [
-            include_str!("../../doc/user_guide.md"),
-            include_str!("../../doc/user_guide.zh_CN.md"),
-        ];
-        let functions = guides
-            .into_iter()
-            .flat_map(rust_snippets)
-            .enumerate()
-            .map(|(index, snippet)| {
-                format!(
-                    "fn guide_snippet_{index}() -> Result<(), Box<dyn std::error::Error>> {{\n{snippet}\nOk(())\n}}\n"
-                )
-            })
-            .collect::<String>();
-        fs::write(source_dir.join("main.rs"), format!("{functions}\nfn main() {{}}\n"))
-            .expect("temporary snippet source should be written");
+    let guides = [
+        include_str!("../../doc/user_guide.md"),
+        include_str!("../../doc/user_guide.zh_CN.md"),
+    ];
+    let functions = guides
+        .into_iter()
+        .flat_map(rust_snippets)
+        .enumerate()
+        .map(|(index, snippet)| {
+            format!("fn guide_snippet_{index}() -> Result<(), Box<dyn std::error::Error>> {{\n{snippet}\nOk(())\n}}\n")
+        })
+        .collect::<String>();
+    fs::write(source_dir.join("main.rs"), format!("{functions}\nfn main() {{}}\n"))
+        .expect("temporary snippet source should be written");
 
-        let output = Command::new("cargo")
-            .arg("+1.94.0")
-            .arg("check")
-            .arg("--quiet")
-            .arg("--offline")
-            .current_dir(&workspace)
-            .env("CARGO_TARGET_DIR", workspace.join("target"))
-            .output()
-            .expect("Cargo should compile user-guide snippets");
-        let _ = fs::remove_dir_all(&workspace);
-        assert!(
-            output.status.success(),
-            "user-guide Rust snippets must compile:\n{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
+    let output = Command::new("cargo")
+        .arg("+1.94.0")
+        .arg("check")
+        .arg("--quiet")
+        .arg("--offline")
+        .current_dir(&workspace)
+        .env("CARGO_TARGET_DIR", workspace.join("target"))
+        .output()
+        .expect("Cargo should compile user-guide snippets");
+    let _ = fs::remove_dir_all(&workspace);
+    assert!(
+        output.status.success(),
+        "user-guide Rust snippets must compile:\n{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
