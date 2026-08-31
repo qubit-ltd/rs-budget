@@ -12,6 +12,7 @@ use std::io::Write as _;
 
 use qubit_budget::BudgetedStringError;
 use qubit_budget::InsufficientBudgetError;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::ResourceBudget;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +58,60 @@ fn test_budget_failure_rolls_back_and_reports_first_failing_prefix() {
             output.write_all(b"cd")
         })
         .expect_err("the second chunk should exceed the budget");
+    assert!(matches!(
+        error,
+        BudgetedStringError::Budget(InsufficientBudgetError {
+            resource: TestResource::OutputBytes,
+            limit: 3,
+            remaining: 3,
+            requested: 4,
+        })
+    ));
+    assert_eq!(budget.used(), 0);
+    assert_eq!(budget.remaining(), 3);
+}
+
+#[test]
+fn test_quantity_failure_preserves_native_measurement_and_budget() {
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, u8::MAX);
+    let bytes = [b'x'; u8::MAX as usize + 1];
+    let error = budget
+        .try_write_string(|writer| {
+            let mut output = writer.as_io();
+            output.write_all(&bytes)
+        })
+        .expect_err("an output longer than u8::MAX must fail conversion");
+
+    match error {
+        BudgetedStringError::Quantity { resource, source } => {
+            assert_eq!(resource, TestResource::OutputBytes);
+            assert_eq!(source.measurement(), QuantityMeasurement::Usize(bytes.len()));
+            assert_eq!(source.target(), "u8");
+        }
+        other => panic!("expected a quantity conversion error, got {other:?}"),
+    }
+    assert_eq!(budget.used(), 0);
+    assert_eq!(budget.remaining(), u8::MAX);
+}
+
+#[test]
+fn test_first_writer_failure_remains_sticky_after_later_writes() {
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 3_u64);
+    let error = budget
+        .try_write_string(|writer| {
+            let mut output = writer.as_io();
+            assert!(
+                output.write_all(b"abcd").is_err(),
+                "the first write must exceed the budget"
+            );
+            assert!(
+                output.write_all(b"longer").is_err(),
+                "later writes must remain rejected"
+            );
+            Ok::<(), std::io::Error>(())
+        })
+        .expect_err("the first writer failure must abort the transaction");
+
     assert!(matches!(
         error,
         BudgetedStringError::Budget(InsufficientBudgetError {
