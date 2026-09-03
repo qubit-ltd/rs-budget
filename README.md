@@ -16,7 +16,7 @@ reject oversized work with structured errors and predictable state changes.
 
 ```toml
 [dependencies]
-qubit-budget = "0.4"
+qubit-budget = "0.5"
 ```
 
 The crate has no default features. Enable an integration only when it is
@@ -24,7 +24,7 @@ needed:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.4", features = ["json"] }
+qubit-budget = { version = "0.5", features = ["json"] }
 ```
 
 Available features: `json`, `big-integer`, `big-decimal` (which enables
