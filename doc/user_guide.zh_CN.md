@@ -62,7 +62,7 @@ qubit-budget = { version = "0.4", features = ["json"] }
 本 crate 支持 Rust 1.94 及更高版本。可选 feature 为 `json`、`big-integer`、
 `big-decimal`（会同时启用 `big-integer`）和 `time`。
 
-## 贯穿场景与核心工作流：读取有上限的响应体
+## 实战场景与核心工作流：读取有上限的响应体
 
 `qubit-http` 若发现 `Content-Length` 明显超限，会先拒绝该响应；但服务器可能没有这个
 头，也可能谎报，所以读取分块时仍需要一份预算。下面是
