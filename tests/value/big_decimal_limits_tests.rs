@@ -7,7 +7,7 @@
 // =============================================================================
 // qubit-style: allow explicit-imports
 use bigdecimal::BigDecimal;
-use num_bigint::BigInt;
+use bigdecimal::num_bigint::BigInt;
 use qubit_budget::BigDecimalLimits;
 use qubit_budget::BigIntegerLimits;
 use qubit_budget::BudgetError;
