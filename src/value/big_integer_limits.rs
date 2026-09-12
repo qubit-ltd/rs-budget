@@ -139,13 +139,49 @@ where
     where
         R: Clone,
     {
+        self.check_measurements(value.bits(), || {
+            let text = value.to_str_radix(10);
+            text.strip_prefix('-').unwrap_or(&text).len()
+        })
+    }
+
+    /// Checks precomputed integer measurements against the configured limits.
+    ///
+    /// This permits values supplied by compatible arbitrary-precision integer
+    /// crates to share the same limit-checking logic without conversion. The
+    /// decimal digit callback is evaluated only when the bit-length estimate
+    /// cannot determine the result.
+    ///
+    /// # Parameters
+    ///
+    /// * `magnitude_bits` - Unsigned bit length of the integer magnitude.
+    /// * `decimal_digits` - Supplies the exact significant decimal digit count.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when both measurements satisfy their configured limits.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when a measurement cannot fit `Q` or a
+    /// configured limit rejects it.
+    #[inline]
+    pub(super) fn check_measurements<F>(
+        &self,
+        magnitude_bits: u64,
+        decimal_digits: F,
+    ) -> Result<(), MeasuredBudgetError<R, Q>>
+    where
+        R: Clone,
+        F: FnOnce() -> usize,
+    {
         if let Some(limit) = self.max_magnitude_bits.as_ref() {
-            let bits = Q::try_from_u64(value.bits())
+            let bits = Q::try_from_u64(magnitude_bits)
                 .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
             limit.check(bits).map_err(MeasuredBudgetError::from)?;
         }
         if let Some(limit) = self.max_significant_decimal_digits.as_ref() {
-            check_decimal_digits(limit, value)?;
+            check_decimal_digits(limit, magnitude_bits, decimal_digits)?;
         }
         Ok(())
     }
@@ -186,7 +222,8 @@ where
     }
 }
 
-/// Counts and validates significant decimal digits without allocating text.
+/// Counts and validates significant decimal digits, formatting only near the
+/// configured boundary.
 ///
 /// # Type Parameters
 ///
@@ -196,7 +233,9 @@ where
 /// # Parameters
 ///
 /// * `limit` - Resource-bound inclusive decimal-digit maximum.
-/// * `value` - Integer whose unsigned magnitude is measured.
+/// * `magnitude_bits` - Unsigned bit length of the integer magnitude.
+/// * `decimal_digits` - Lazily supplies the exact significant decimal digit
+///   count when the bit-length estimate is inconclusive.
 ///
 /// # Returns
 ///
@@ -206,19 +245,23 @@ where
 ///
 /// Returns [`MeasuredBudgetError`] when the exact digit count cannot fit `Q`
 /// or exceeds `limit`.
-fn check_decimal_digits<R, Q>(limit: &ResourceLimit<R, Q>, value: &BigInt) -> Result<(), MeasuredBudgetError<R, Q>>
+fn check_decimal_digits<R, Q, F>(
+    limit: &ResourceLimit<R, Q>,
+    magnitude_bits: u64,
+    decimal_digits: F,
+) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     R: Clone,
     Q: ResourceQuantity,
+    F: FnOnce() -> usize,
 {
-    let bits = value.bits();
-    if bits == 0 {
+    if magnitude_bits == 0 {
         return Ok(());
     }
 
     let maximum = limit.maximum();
-    let bits =
-        Q::try_from_u64(bits).map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
+    let bits = Q::try_from_u64(magnitude_bits)
+        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
     let low_bits = maximum
         .checked_add(maximum)
         .and_then(|value| value.checked_add(maximum));
@@ -238,10 +281,8 @@ where
         .into());
     }
 
-    let text = value.to_str_radix(10);
-    let digits = text.strip_prefix('-').unwrap_or(&text).len();
-    let digits =
-        Q::try_from_usize(digits).map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
+    let digits = Q::try_from_usize(decimal_digits())
+        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
     if digits > maximum {
         Err(LimitExceededError {
             resource: limit.resource().clone(),

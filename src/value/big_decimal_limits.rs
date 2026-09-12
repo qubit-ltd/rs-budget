@@ -137,7 +137,10 @@ where
                 .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
             limit.check(magnitude).map_err(MeasuredBudgetError::from)?;
         }
-        self.coefficient.check(coefficient.as_ref())
+        self.coefficient.check_measurements(coefficient.bits(), || {
+            let text = coefficient.to_str_radix(10);
+            text.strip_prefix('-').unwrap_or(&text).len()
+        })
     }
 
     /// Replaces coefficient limits during builder composition.
