@@ -56,7 +56,9 @@ where
     /// recovered because the protected critical sections only update `Q`.
     #[inline]
     pub(in crate::resource::budget) fn lock_available(&self) -> MutexGuard<'_, Q> {
-        self.available.lock().unwrap_or_else(|error| error.into_inner())
+        self.available
+            .lock()
+            .unwrap_or_else(|error| error.into_inner())
     }
 
     /// Returns acquired capacity to this state without allowing Drop to panic.

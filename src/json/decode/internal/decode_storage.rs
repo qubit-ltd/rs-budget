@@ -6,7 +6,6 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Private owned and borrowed decode-session storage.
-// qubit-style: allow source-test-pair
 
 use crate::json::JsonValueBudget;
 use crate::resource::ResourceBudget;

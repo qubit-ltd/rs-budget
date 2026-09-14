@@ -90,7 +90,11 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     /// Returns [`TimeBudgetError::Clock`] when adding `duration` to the
     /// construction sample cannot be represented by the clock instant type.
     #[must_use = "the time budget result must be handled"]
-    pub fn for_duration(resource: R, clock: C, duration: Duration) -> Result<Self, TimeBudgetError<R>> {
+    pub fn for_duration(
+        resource: R,
+        clock: C,
+        duration: Duration,
+    ) -> Result<Self, TimeBudgetError<R>> {
         let started_at = clock.now();
         let deadline = match started_at.checked_add(duration) {
             Ok(deadline) => deadline,
@@ -124,7 +128,11 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     /// Returns [`TimeBudgetError::Clock`] when `deadline` belongs to another
     /// clock domain.
     #[must_use = "the time budget result must be handled"]
-    pub fn until(resource: R, clock: C, deadline: MonotonicInstant) -> Result<Self, TimeBudgetError<R>> {
+    pub fn until(
+        resource: R,
+        clock: C,
+        deadline: MonotonicInstant,
+    ) -> Result<Self, TimeBudgetError<R>> {
         if let Err(source) = deadline.validate_domain(clock.domain()) {
             return Err(TimeBudgetError::Clock { resource, source });
         }
@@ -307,10 +315,12 @@ impl<R: Clone, C: MonotonicClock> TimeBudget<R, C> {
                 now,
             });
         }
-        let end = now.checked_add(duration).map_err(|source| TimeBudgetError::Clock {
-            resource: self.resource.clone(),
-            source,
-        })?;
+        let end = now
+            .checked_add(duration)
+            .map_err(|source| TimeBudgetError::Clock {
+                resource: self.resource.clone(),
+                source,
+            })?;
         if end >= self.deadline {
             Err(TimeBudgetError::WouldExpire {
                 resource: self.resource.clone(),

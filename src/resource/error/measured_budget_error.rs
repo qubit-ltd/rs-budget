@@ -6,7 +6,6 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines failures produced while measuring resource-limited values.
-// qubit-style: allow source-test-pair
 
 use std::fmt::Debug;
 

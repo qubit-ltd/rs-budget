@@ -15,5 +15,8 @@ fn test_structure_resource_is_clone_copy_and_equatable() {
 
     assert_clone_copy_and_equatable::<StructureResource>();
     assert_ne!(StructureResource::Depth, StructureResource::Nodes);
-    assert_ne!(StructureResource::SequenceItems, StructureResource::MapEntries);
+    assert_ne!(
+        StructureResource::SequenceItems,
+        StructureResource::MapEntries
+    );
 }

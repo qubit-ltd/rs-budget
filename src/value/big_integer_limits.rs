@@ -176,8 +176,9 @@ where
         F: FnOnce() -> usize,
     {
         if let Some(limit) = self.max_magnitude_bits.as_ref() {
-            let bits = Q::try_from_u64(magnitude_bits)
-                .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
+            let bits = Q::try_from_u64(magnitude_bits).map_err(|source| {
+                MeasuredBudgetError::quantity(limit.resource().clone(), source)
+            })?;
             limit.check(bits).map_err(MeasuredBudgetError::from)?;
         }
         if let Some(limit) = self.max_significant_decimal_digits.as_ref() {

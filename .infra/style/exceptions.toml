@@ -1,0 +1,6 @@
+format = 1
+
+[[exceptions]]
+rule = "explicit-imports"
+path = "tests/value/big_decimal_limits_tests.rs"
+reason = "This file intentionally uses a legacy import shape required by its module boundary."
