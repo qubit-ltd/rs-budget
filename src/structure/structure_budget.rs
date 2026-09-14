@@ -70,7 +70,10 @@ where
     #[must_use = "the budget check result must be handled"]
     pub(crate) fn new(limits: StructureLimits<R, Q>) -> Self {
         Self {
-            nodes: limits.nodes_limit().cloned().map(ResourceBudget::from_limit),
+            nodes: limits
+                .nodes_limit()
+                .cloned()
+                .map(ResourceBudget::from_limit),
             limits,
         }
     }

@@ -6,7 +6,6 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Private failures captured while rendering a budgeted string.
-// qubit-style: allow source-test-pair
 
 use std::collections::TryReserveError;
 

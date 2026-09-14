@@ -194,7 +194,8 @@ where
     {
         let amount = Q::try_from_usize(amount)
             .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
-        self.check_available(amount).map_err(MeasuredBudgetError::from)
+        self.check_available(amount)
+            .map_err(MeasuredBudgetError::from)
     }
 
     /// Checks a 64-bit consumption request without truncating it.
@@ -218,9 +219,10 @@ where
     where
         R: Clone,
     {
-        let amount =
-            Q::try_from_u64(amount).map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
-        self.check_available(amount).map_err(MeasuredBudgetError::from)
+        let amount = Q::try_from_u64(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
+        self.check_available(amount)
+            .map_err(MeasuredBudgetError::from)
     }
 
     /// Consumes a machine-sized quantity without truncating it.
@@ -268,8 +270,8 @@ where
     where
         R: Clone,
     {
-        let amount =
-            Q::try_from_u64(amount).map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
+        let amount = Q::try_from_u64(amount)
+            .map_err(|source| MeasuredBudgetError::quantity(self.resource().clone(), source))?;
         self.try_consume(amount).map_err(MeasuredBudgetError::from)
     }
 
@@ -293,7 +295,10 @@ where
     ///
     /// Returns [`BudgetGroupError`] when any member has insufficient remaining
     /// capacity.
-    pub fn try_consume_group(budgets: &mut [&mut Self], amount: Q) -> Result<(), BudgetGroupError<R, Q>>
+    pub fn try_consume_group(
+        budgets: &mut [&mut Self],
+        amount: Q,
+    ) -> Result<(), BudgetGroupError<R, Q>>
     where
         R: Clone,
     {

@@ -30,7 +30,9 @@ use thiserror::Error;
 /// ```
 #[must_use]
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
-#[error("resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains")]
+#[error(
+    "resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains"
+)]
 pub struct InsufficientBudgetError<R, Q = u64>
 where
     Q: Copy + Debug,

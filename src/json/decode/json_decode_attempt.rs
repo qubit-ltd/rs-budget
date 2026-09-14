@@ -100,7 +100,10 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    pub fn try_consume_input_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_consume_input_bytes(
+        &mut self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
         consume_bytes(self.input.as_deref_mut(), amount)
     }
 
@@ -122,7 +125,10 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    pub fn try_consume_normalized_input_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_consume_normalized_input_bytes(
+        &mut self,
+        amount: usize,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
         consume_bytes(self.normalized_input.as_deref_mut(), amount)
     }
 
@@ -146,7 +152,10 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_admit(
+        &mut self,
+        measurement: JsonMeasurement,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
         self.value.try_admit(measurement)
     }
 

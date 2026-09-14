@@ -101,7 +101,10 @@ where
     /// Creates a session borrowing caller-owned raw-input and value budgets.
     #[inline]
     #[must_use]
-    pub fn borrowing_input(input: &'a mut ResourceBudget<R, Q>, value: &'a mut JsonValueBudget<R, Q>) -> Self {
+    pub fn borrowing_input(
+        input: &'a mut ResourceBudget<R, Q>,
+        value: &'a mut JsonValueBudget<R, Q>,
+    ) -> Self {
         Self {
             storage: DecodeStorage::Borrowed {
                 input: Some(input),
@@ -212,8 +215,12 @@ where
     #[inline(always)]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
-            DecodeStorage::Owned { normalized_input, .. } => normalized_input.as_ref(),
-            DecodeStorage::Borrowed { normalized_input, .. } => normalized_input.as_deref(),
+            DecodeStorage::Owned {
+                normalized_input, ..
+            } => normalized_input.as_ref(),
+            DecodeStorage::Borrowed {
+                normalized_input, ..
+            } => normalized_input.as_deref(),
         }
     }
 
@@ -250,7 +257,10 @@ where
     #[inline]
     #[must_use]
     pub fn from_limits(limits: JsonDecodeLimits<R, Q>) -> Self {
-        let input = limits.input_bytes_limit().cloned().map(ResourceBudget::from_limit);
+        let input = limits
+            .input_bytes_limit()
+            .cloned()
+            .map(ResourceBudget::from_limit);
         let normalized_input = limits
             .normalized_input_bytes_limit()
             .cloned()

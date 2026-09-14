@@ -6,7 +6,6 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Defines failures converting native measurements into resource quantities.
-// qubit-style: allow source-test-pair
 
 use crate::resource::QuantityMeasurement;
 
@@ -44,7 +43,10 @@ impl QuantityConversionError {
     /// A failure retaining both the original measurement and target type.
     #[inline(always)]
     pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
-        Self { measurement, target }
+        Self {
+            measurement,
+            target,
+        }
     }
 
     /// Returns the native measurement that could not be represented.

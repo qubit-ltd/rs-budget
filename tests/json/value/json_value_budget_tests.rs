@@ -102,7 +102,11 @@ fn test_drop_after_error_rolls_back_complete_value() {
         transaction
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("first event fits");
-        assert!(transaction.try_admit(JsonMeasurement::Null { depth: 1 }).is_err());
+        assert!(
+            transaction
+                .try_admit(JsonMeasurement::Null { depth: 1 })
+                .is_err()
+        );
     }
     assert_eq!(budget.used_nodes(), Some(0));
 }
@@ -127,7 +131,9 @@ fn test_commit_publishes_nodes_and_payload() {
     assert_eq!(transaction.remaining_nodes(), Some(1));
     assert_eq!(transaction.used_payload_bytes(), Some(4));
     assert_eq!(transaction.remaining_payload_bytes(), Some(0));
-    transaction.commit().expect("successful transaction commits");
+    transaction
+        .commit()
+        .expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(1));
     assert_eq!(budget.remaining_nodes(), Some(1));
@@ -202,7 +208,9 @@ fn test_try_admit_failure_poisons_transaction() {
     assert_eq!(repeated_error.to_string(), first_error.to_string());
     assert_eq!(transaction.used_nodes(), Some(1));
 
-    let commit_error = transaction.commit().expect_err("poisoned transaction cannot commit");
+    let commit_error = transaction
+        .commit()
+        .expect_err("poisoned transaction cannot commit");
     assert_eq!(commit_error.resource(), first_error.resource());
     assert_eq!(commit_error.to_string(), first_error.to_string());
     assert_eq!(budget.used_nodes(), Some(0));
@@ -221,7 +229,9 @@ fn test_try_admit_key_consumes_only_payload() {
     transaction
         .try_admit(JsonMeasurement::Key { bytes: 2 })
         .expect("key fits");
-    transaction.commit().expect("successful transaction commits");
+    transaction
+        .commit()
+        .expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(0));
     assert_eq!(budget.used_payload_bytes(), Some(2));
@@ -239,9 +249,14 @@ fn test_try_admit_array_and_object_consume_nodes() {
         .try_admit(JsonMeasurement::Array { depth: 1, items: 0 })
         .expect("array fits");
     transaction
-        .try_admit(JsonMeasurement::Object { depth: 1, entries: 0 })
+        .try_admit(JsonMeasurement::Object {
+            depth: 1,
+            entries: 0,
+        })
         .expect("object fits");
-    transaction.commit().expect("successful transaction commits");
+    transaction
+        .commit()
+        .expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(2));
 }

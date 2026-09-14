@@ -79,9 +79,9 @@ impl<R> TimeBudgetError<R> {
     #[inline(always)]
     pub const fn resource(&self) -> &R {
         match self {
-            Self::Clock { resource, .. } | Self::Expired { resource, .. } | Self::WouldExpire { resource, .. } => {
-                resource
-            }
+            Self::Clock { resource, .. }
+            | Self::Expired { resource, .. }
+            | Self::WouldExpire { resource, .. } => resource,
         }
     }
 
@@ -94,9 +94,9 @@ impl<R> TimeBudgetError<R> {
     #[must_use]
     pub fn into_resource(self) -> R {
         match self {
-            Self::Clock { resource, .. } | Self::Expired { resource, .. } | Self::WouldExpire { resource, .. } => {
-                resource
-            }
+            Self::Clock { resource, .. }
+            | Self::Expired { resource, .. }
+            | Self::WouldExpire { resource, .. } => resource,
         }
     }
 

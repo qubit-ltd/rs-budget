@@ -85,7 +85,10 @@ fn test_quantity_failure_preserves_native_measurement_and_budget() {
     match error {
         BudgetedStringError::Quantity { resource, source } => {
             assert_eq!(resource, TestResource::OutputBytes);
-            assert_eq!(source.measurement(), QuantityMeasurement::Usize(bytes.len()));
+            assert_eq!(
+                source.measurement(),
+                QuantityMeasurement::Usize(bytes.len())
+            );
             assert_eq!(source.target(), "u8");
         }
         other => panic!("expected a quantity conversion error, got {other:?}"),
@@ -135,7 +138,10 @@ fn test_render_failure_rolls_back() {
             Err::<(), _>("renderer failed")
         })
         .expect_err("renderer failure must abort the transaction");
-    assert!(matches!(error, BudgetedStringError::Render("renderer failed")));
+    assert!(matches!(
+        error,
+        BudgetedStringError::Render("renderer failed")
+    ));
     assert_eq!(budget.used(), 0);
 }
 

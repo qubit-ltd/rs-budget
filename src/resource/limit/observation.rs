@@ -6,7 +6,6 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 //! Describes whether a reported resource measurement is exact or conservative.
-// qubit-style: allow source-test-pair
 
 use std::fmt::Debug;
 use std::fmt::Display;

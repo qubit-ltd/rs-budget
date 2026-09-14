@@ -50,8 +50,11 @@ fn test_decode_attempt_drop_keeps_input_and_rolls_back_value() {
 /// publishing staged value accounting.
 #[test]
 fn test_decode_attempt_poisoned_commit_returns_error() {
-    let mut session =
-        JsonDecodeSession::from_limits(JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(1).build());
+    let mut session = JsonDecodeSession::from_limits(
+        JsonDecodeLimits::<JsonResource, usize>::builder()
+            .max_nodes(1)
+            .build(),
+    );
     let mut attempt = session.begin_value();
     attempt
         .try_admit(JsonMeasurement::Null { depth: 1 })
@@ -60,7 +63,9 @@ fn test_decode_attempt_poisoned_commit_returns_error() {
         .try_admit(JsonMeasurement::Null { depth: 1 })
         .expect_err("second value poisons the attempt");
 
-    let commit_error = attempt.commit().expect_err("poisoned decode attempt cannot commit");
+    let commit_error = attempt
+        .commit()
+        .expect_err("poisoned decode attempt cannot commit");
 
     assert_eq!(commit_error.resource(), first_error.resource());
     assert_eq!(session.value_budget().used_nodes(), Some(0));
@@ -69,8 +74,11 @@ fn test_decode_attempt_poisoned_commit_returns_error() {
 /// Verifies that an owned decode session can commit successive value attempts.
 #[test]
 fn test_decode_session_begin_value_commits_and_reuses_value_budget() {
-    let mut session =
-        JsonDecodeSession::from_limits(JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(2).build());
+    let mut session = JsonDecodeSession::from_limits(
+        JsonDecodeLimits::<JsonResource, usize>::builder()
+            .max_nodes(2)
+            .build(),
+    );
 
     let mut first = session.begin_value();
     first
@@ -87,7 +95,11 @@ fn test_decode_session_begin_value_commits_and_reuses_value_budget() {
     second.commit().expect("second attempt commits");
 
     let mut rejected = session.begin_value();
-    assert!(rejected.try_admit(JsonMeasurement::Null { depth: 1 }).is_err());
+    assert!(
+        rejected
+            .try_admit(JsonMeasurement::Null { depth: 1 })
+            .is_err()
+    );
     assert_eq!(session.value_budget().used_nodes(), Some(2));
 }
 

@@ -44,7 +44,9 @@ fn test_clones_share_capacity_and_failure_is_atomic() {
     let pool = ManagedResourcePool::new(TestResource::OpenFiles, 2_u64);
     let clone = pool.clone();
     let _permit = pool.try_acquire(2).expect("capacity should fit");
-    let error = clone.try_acquire(1).expect_err("shared capacity should be exhausted");
+    let error = clone
+        .try_acquire(1)
+        .expect_err("shared capacity should be exhausted");
     assert!(matches!(
         error,
         InsufficientBudgetError {
