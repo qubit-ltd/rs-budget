@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust verification components
+        run: rustup component add rustfmt clippy
       - name: Check project style
         run: ./style-check.sh
       - name: Check formatting
