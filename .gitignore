@@ -83,3 +83,6 @@ external/
 
 # Local cargo-fuzz build output
 fuzz/target/
+
+# Revision-pinned infrastructure tool installations
+.infra/tools/bin/
