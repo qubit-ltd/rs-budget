@@ -1,28 +1,15 @@
-#!/bin/bash
-################################################################################
-#
-#    Copyright (c) 2025 - 2026 Haixing Hu.
-#
-#    SPDX-License-Identifier: Apache-2.0
-#
-#    Licensed under the Apache License, Version 2.0.
-#
-################################################################################
-
+#!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-PROJECT_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd -P)
-POLICY_CONFIG="$PROJECT_ROOT/.infra/dep/policy.toml"
-TOOL_RUNNER="$PROJECT_ROOT/.infra/tools/infra-tool.sh"
-MODE="update"
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+project_root=$(cd "$script_dir/../.." && pwd -P)
+policy_config="$project_root/.infra/dep/policy.toml"
+tool_runner="$project_root/.infra/tools/infra-tool.sh"
+mode="update"
 
 usage() {
     cat <<'EOF_USAGE'
 Usage: ./dependency-update.sh [--check|--update]
-
-Check or synchronize the project's direct dependencies with the pinned
-dependency baseline in .infra/dep/policy.toml.
 
 Options:
   --check   Check only; do not modify Cargo.toml files.
@@ -38,33 +25,23 @@ die() {
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --check)
-            MODE="check"
-            ;;
-        --update)
-            MODE="update"
-            ;;
-        -h | --help)
-            usage
-            exit 0
-            ;;
-        *)
-            die "unknown option '$1'"
-            ;;
+        --check) mode="check" ;;
+        --update) mode="update" ;;
+        -h | --help) usage; exit 0 ;;
+        *) die "unknown option '$1'" ;;
     esac
     shift
 done
 
-[ -f "$PROJECT_ROOT/Cargo.toml" ] || die "Cargo.toml was not found at '$PROJECT_ROOT/Cargo.toml'"
-[ -f "$POLICY_CONFIG" ] || die "dependency policy configuration was not found at '$POLICY_CONFIG'"
+[ -f "$project_root/Cargo.toml" ] || die "Cargo.toml was not found at '$project_root/Cargo.toml'"
+[ -f "$policy_config" ] || die "dependency policy configuration was not found at '$policy_config'"
 
 run_policy() {
-    "$TOOL_RUNNER" rs-infra-dependency --project "$PROJECT_ROOT" "$@"
+    "$tool_runner" rs-infra-dependency --project "$project_root" "$@"
 }
 
-cd "$PROJECT_ROOT"
-
-if [ "$MODE" = "check" ]; then
+cd "$project_root"
+if [ "$mode" = "check" ]; then
     run_policy check
     echo "Dependency baseline check passed."
     exit 0
