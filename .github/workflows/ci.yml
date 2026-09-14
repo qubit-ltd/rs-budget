@@ -29,6 +29,8 @@ jobs:
       - name: Check project style
         run: ./style-check.sh
       - name: Check formatting
+        id: formatting
+        continue-on-error: true
         run: cargo fmt --all -- --check
       - name: Run infrastructure CI orchestration
         run: ./ci-check.sh
@@ -40,6 +42,9 @@ jobs:
         run: ./.infra/tools/infra-tool.sh rs-infra-verify --project "$GITHUB_WORKSPACE" run --suite doc
       - name: Run package verification
         run: ./.infra/tools/infra-tool.sh rs-infra-verify --project "$GITHUB_WORKSPACE" run --suite package
+      - name: Fail when formatting is not clean
+        if: steps.formatting.outcome == 'failure'
+        run: exit 1
 
   coverage:
     runs-on: ubuntu-latest
