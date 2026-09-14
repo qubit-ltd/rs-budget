@@ -1,5 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
-exec "$PROJECT_ROOT/.infra/tools/dependency-update.sh" "$@"
+project_root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+exec "$project_root/.infra/tools/dependency-update.sh" "$@"

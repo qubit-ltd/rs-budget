@@ -2,28 +2,16 @@
   "version": 1,
   "checks": [
     {
-      "name": "json",
+      "name": "default",
       "commands": ["check", "test", "doc"],
-      "defaultFeatures": false,
-      "features": ["json"]
+      "defaultFeatures": true,
+      "features": []
     },
     {
-      "name": "big-integer",
+      "name": "no-default-features",
       "commands": ["check", "test", "doc"],
       "defaultFeatures": false,
-      "features": ["big-integer"]
-    },
-    {
-      "name": "big-decimal",
-      "commands": ["check", "test", "doc"],
-      "defaultFeatures": false,
-      "features": ["big-decimal"]
-    },
-    {
-      "name": "time",
-      "commands": ["check", "test", "doc"],
-      "defaultFeatures": false,
-      "features": ["time"]
+      "features": []
     }
   ]
 }
