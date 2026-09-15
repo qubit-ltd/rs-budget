@@ -166,10 +166,4 @@ jobs:
             address-sanitizer) rustup toolchain install nightly --profile minimal --component rust-src ;;
           esac
       - name: Run configured infrastructure suite
-        run: |
-          if [ "${{ matrix.suite }}" = "miri" ]; then
-            MIRIFLAGS=-Zmiri-disable-isolation \
-              ./.infra/tools/infra-tool.sh rs-infra-verify --project "$GITHUB_WORKSPACE" run --suite miri
-          else
-            ./.infra/tools/infra-tool.sh rs-infra-verify --project "$GITHUB_WORKSPACE" run --suite "${{ matrix.suite }}"
-          fi
+        run: ./.infra/tools/infra-tool.sh rs-infra-verify --project "$GITHUB_WORKSPACE" run --suite "${{ matrix.suite }}"
