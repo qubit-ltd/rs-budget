@@ -20,12 +20,9 @@ enum TestResource {
 #[test]
 fn test_expired_error_exposes_resource_deadline_and_now() {
     let clock = ManualMonotonicClock::new_shared();
-    let budget =
-        TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::ZERO)
-            .expect("zero deadline should be representable");
-    let error = budget
-        .check()
-        .expect_err("zero deadline is already reached");
+    let budget = TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::ZERO)
+        .expect("zero deadline should be representable");
+    let error = budget.check().expect_err("zero deadline is already reached");
     assert!(matches!(error, TimeBudgetError::Expired { .. }));
     assert_eq!(error.resource(), &TestResource::TotalElapsed);
     assert!(error.deadline().is_some());
@@ -39,12 +36,8 @@ fn test_clock_error_exposes_the_resource_and_time_source() {
     clock
         .advance(Duration::MAX)
         .expect("the maximum instant should be representable");
-    let error = TimeBudget::for_duration(
-        TestResource::TotalElapsed,
-        clock.clone(),
-        Duration::from_nanos(1),
-    )
-    .expect_err("the maximum duration should overflow the instant");
+    let error = TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::from_nanos(1))
+        .expect_err("the maximum duration should overflow the instant");
     assert!(matches!(error, TimeBudgetError::Clock { .. }));
     assert_eq!(error.resource(), &TestResource::TotalElapsed);
     assert!(error.clock_error().is_some());
@@ -59,9 +52,8 @@ fn test_clock_error_exposes_the_resource_and_time_source() {
 #[test]
 fn test_would_expire_error_exposes_fields_and_display() {
     let clock = ManualMonotonicClock::new_shared();
-    let budget =
-        TimeBudget::for_duration(TestResource::TotalElapsed, clock, Duration::from_secs(5))
-            .expect("deadline should be representable");
+    let budget = TimeBudget::for_duration(TestResource::TotalElapsed, clock, Duration::from_secs(5))
+        .expect("deadline should be representable");
     let error = budget
         .check_after(Duration::from_secs(5))
         .expect_err("the exact deadline is not an allowed finish time");

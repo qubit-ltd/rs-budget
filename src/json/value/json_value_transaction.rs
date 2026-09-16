@@ -114,10 +114,7 @@ where
     ///
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
-    pub fn try_admit(
-        &mut self,
-        measurement: JsonMeasurement,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
         if let Some(error) = &self.failure {
             return Err(error.clone());
         }
@@ -194,11 +191,7 @@ where
         prospective: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let limit = match kind {
-            JsonContainerKind::Sequence => self
-                .target
-                .limits()
-                .structure_limits()
-                .sequence_items_limit(),
+            JsonContainerKind::Sequence => self.target.limits().structure_limits().sequence_items_limit(),
             JsonContainerKind::Map => self.target.limits().structure_limits().map_entries_limit(),
         };
         if let Some(error) = &self.failure {
@@ -310,10 +303,7 @@ where
     ///
     /// Returns [`MeasuredBudgetError::Budget`] when the staged node or payload
     /// capacity cannot accommodate the event.
-    fn check_cumulative(
-        &self,
-        prepared: PreparedJsonAdmission<Q>,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    fn check_cumulative(&self, prepared: PreparedJsonAdmission<Q>) -> Result<(), MeasuredBudgetError<R, Q>> {
         let (node, payload_bytes) = cumulative_cost(prepared);
         if node {
             self.check_nodes()?;
@@ -445,8 +435,7 @@ where
         | PreparedJsonAdmission::Boolean { .. }
         | PreparedJsonAdmission::Array { .. }
         | PreparedJsonAdmission::Object { .. } => (true, Q::ZERO),
-        PreparedJsonAdmission::String { bytes, .. }
-        | PreparedJsonAdmission::Number { bytes, .. } => (true, bytes),
+        PreparedJsonAdmission::String { bytes, .. } | PreparedJsonAdmission::Number { bytes, .. } => (true, bytes),
         PreparedJsonAdmission::Key { bytes } => (false, bytes),
     }
 }

@@ -78,10 +78,7 @@ fn builders_cover_generic_limit_setters() {
             .build();
         let decode = JsonDecodeLimits::<JsonResource, usize>::builder()
             .input_bytes_limit(ResourceLimit::new(JsonResource::InputBytes, 18))
-            .normalized_input_bytes_limit(ResourceLimit::new(
-                JsonResource::NormalizedInputBytes,
-                19,
-            ))
+            .normalized_input_bytes_limit(ResourceLimit::new(JsonResource::NormalizedInputBytes, 19))
             .value_limits(value)
             .build();
         let encode = JsonEncodeLimits::<JsonResource, usize>::builder()
@@ -154,20 +151,14 @@ fn builders_cover_generic_limit_setters() {
             )
             .build();
         assert_eq!(generic_value.structure_limits().max_nodes(), Some(48));
-        let _generic_budget = JsonValueLimits::<JsonResource, u64>::builder()
-            .max_nodes(46)
-            .budget();
-        let mut generic_budget = JsonValueLimits::<JsonResource, u64>::builder()
-            .max_nodes(47)
-            .budget();
+        let _generic_budget = JsonValueLimits::<JsonResource, u64>::builder().max_nodes(46).budget();
+        let mut generic_budget = JsonValueLimits::<JsonResource, u64>::builder().max_nodes(47).budget();
         let mut transaction = generic_budget.transaction();
         transaction
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("generic value admission should fit");
         assert_eq!(transaction.used_nodes(), Some(1));
-        transaction
-            .commit()
-            .expect("successful transaction commits");
+        transaction.commit().expect("successful transaction commits");
         assert_eq!(generic_budget.used_nodes(), Some(1));
 
         assert_eq!(value.into_builder().build(), value);
@@ -205,12 +196,7 @@ fn builders_cover_generic_limit_setters() {
             .scale_magnitude_limit(ResourceLimit::new(StructureResource::Nodes, 24_u64))
             .build();
         assert_eq!(decimal.scale_magnitude_limit().unwrap().maximum(), 24);
-        assert!(
-            decimal
-                .coefficient_limits()
-                .magnitude_bits_limit()
-                .is_some()
-        );
+        assert!(decimal.coefficient_limits().magnitude_bits_limit().is_some());
         assert_eq!(decimal.into_builder().build(), decimal);
         let _: BigDecimalLimits<StructureResource, u64> = Default::default();
         let _: BigDecimalLimitsBuilder<StructureResource, u64> = Default::default();

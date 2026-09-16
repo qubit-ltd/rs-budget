@@ -41,10 +41,7 @@ where
     /// Returns [`BudgetedStringError`] when rendering, allocation, UTF-8
     /// validation, measurement, or budget accounting fails.
     #[inline(always)]
-    pub fn try_write_string<E, F>(
-        &mut self,
-        render: F,
-    ) -> Result<String, BudgetedStringError<R, E, Q>>
+    pub fn try_write_string<E, F>(&mut self, render: F) -> Result<String, BudgetedStringError<R, E, Q>>
     where
         E: fmt::Debug + fmt::Display,
         F: FnOnce(&mut BudgetedStringWriter<'_, R, Q>) -> Result<(), E>,

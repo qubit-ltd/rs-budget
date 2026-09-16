@@ -43,14 +43,9 @@ fn test_string_limits_support_usize_quantities() {
         .utf8_bytes_limit(ResourceLimit::new(TestResource::Bytes, 3))
         .build();
 
-    limits
-        .check("abc")
-        .expect("three bytes should fit the usize limit");
+    limits.check("abc").expect("three bytes should fit the usize limit");
     let error = limits.check("abcd").expect_err("four bytes exceed three");
-    assert_eq!(
-        error.budget_error().and_then(|error| error.maximum()),
-        Some(3)
-    );
+    assert_eq!(error.budget_error().and_then(|error| error.maximum()), Some(3));
 }
 
 #[test]
@@ -60,10 +55,7 @@ fn test_string_limits_reject_unrepresentable_measurements() {
         .build();
     let text = "x".repeat(usize::from(u8::MAX) + 1);
 
-    assert!(matches!(
-        limits.check(&text),
-        Err(MeasuredBudgetError::Quantity { .. })
-    ));
+    assert!(matches!(limits.check(&text), Err(MeasuredBudgetError::Quantity { .. })));
 }
 
 #[test]

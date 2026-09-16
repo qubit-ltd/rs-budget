@@ -38,9 +38,7 @@ fn test_value_transaction_commit_publishes_usage() {
         .expect("value admission fits");
     assert_eq!(transaction.used_nodes(), Some(1));
 
-    transaction
-        .commit()
-        .expect("successful transaction commits");
+    transaction.commit().expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(1));
 }
@@ -64,9 +62,7 @@ fn test_check_container_count_rejects_next_item_without_mutation() {
         .check_container_count(JsonContainerKind::Sequence, 1)
         .expect_err("a failed count check poisons the transaction");
     assert_eq!(repeated_error.resource(), first_error.resource());
-    let commit_error = transaction
-        .commit()
-        .expect_err("poisoned transaction cannot commit");
+    let commit_error = transaction.commit().expect_err("poisoned transaction cannot commit");
     assert_eq!(commit_error.resource(), first_error.resource());
     assert_eq!(budget.used_nodes(), Some(0));
 }
@@ -80,11 +76,7 @@ fn test_check_container_count_rejects_next_map_entry() {
         .budget();
     let mut transaction = budget.transaction();
 
-    assert!(
-        transaction
-            .check_container_count(JsonContainerKind::Map, 1)
-            .is_ok()
-    );
+    assert!(transaction.check_container_count(JsonContainerKind::Map, 1).is_ok());
     let error = transaction
         .check_container_count(JsonContainerKind::Map, 2)
         .expect_err("the second map entry exceeds the configured limit");

@@ -52,9 +52,7 @@ where
     #[inline]
     #[must_use = "the string limit check result must be handled"]
     pub const fn new() -> Self {
-        Self {
-            max_utf8_bytes: None,
-        }
+        Self { max_utf8_bytes: None }
     }
 
     /// Creates a builder for string limits.

@@ -62,9 +62,7 @@ fn test_standard_builder_configures_encode_dimensions() {
 /// Verifies that nested value limits may be borrowed or explicitly consumed.
 #[test]
 fn test_value_limits_expresses_borrowing_and_ownership() {
-    let limits = JsonEncodeLimits::<JsonResource, usize>::builder()
-        .max_depth(2)
-        .build();
+    let limits = JsonEncodeLimits::<JsonResource, usize>::builder().max_depth(2).build();
     let _: &JsonValueLimits = limits.value_limits();
     assert_eq!(limits.value_limits().max_depth(), Some(2));
     assert_eq!(limits.into_value_limits().max_depth(), Some(2));
@@ -72,10 +70,7 @@ fn test_value_limits_expresses_borrowing_and_ownership() {
 
 #[test]
 fn test_new_encode_limits_report_unconfigured_maximum() {
-    assert_eq!(
-        JsonEncodeLimits::<JsonResource, usize>::new().max_output_bytes(),
-        None
-    );
+    assert_eq!(JsonEncodeLimits::<JsonResource, usize>::new().max_output_bytes(), None);
 }
 
 #[test]
