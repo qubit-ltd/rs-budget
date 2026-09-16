@@ -111,10 +111,7 @@ where
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds current
     /// availability. Failure leaves the shared pool unchanged. The resource is
     /// cloned only after releasing the internal lock.
-    pub fn try_acquire(
-        &self,
-        amount: Q,
-    ) -> Result<ManagedResourcePermit<R, Q>, InsufficientBudgetError<R, Q>>
+    pub fn try_acquire(&self, amount: Q) -> Result<ManagedResourcePermit<R, Q>, InsufficientBudgetError<R, Q>>
     where
         R: Clone,
     {

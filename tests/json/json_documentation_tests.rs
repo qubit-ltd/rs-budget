@@ -42,10 +42,7 @@ fn assert_complete_atomicity_matrix(document: &str, rows: &[&str; 7]) {
         let position = document
             .find(row)
             .expect("documentation must contain every atomicity-matrix row");
-        assert!(
-            position >= previous,
-            "atomicity-matrix rows must be ordered"
-        );
+        assert!(position >= previous, "atomicity-matrix rows must be ordered");
         previous = position;
     }
 }
@@ -53,10 +50,7 @@ fn assert_complete_atomicity_matrix(document: &str, rows: &[&str; 7]) {
 /// Verifies both README files show the public value-transaction example.
 #[test]
 fn test_readmes_document_value_transaction_example() {
-    for readme in [
-        include_str!("../../README.md"),
-        include_str!("../../README.zh_CN.md"),
-    ] {
+    for readme in [include_str!("../../README.md"), include_str!("../../README.zh_CN.md")] {
         let measurement_import = ["use qubit_budget", "::json::JsonMeasurement;"].concat();
         let limits_import = ["use qubit_budget", "::json::JsonValueLimits;"].concat();
         assert!(readme.contains(&measurement_import));
@@ -83,9 +77,7 @@ fn test_guides_explain_poisoned_value_transactions() {
     assert!(english_guide.contains("Dropping") && english_guide.contains("staged value"));
 
     let chinese_guide = include_str!("../../doc/user_guide.zh_CN.md");
-    assert!(
-        chinese_guide.contains("第一次 value admission 失败会使 transaction 进入 poisoned 状态")
-    );
+    assert!(chinese_guide.contains("第一次 value admission 失败会使 transaction 进入 poisoned 状态"));
     assert!(chinese_guide.contains("commit") && chinese_guide.contains("首次错误"));
     assert!(chinese_guide.contains("I/O 失败本身不会毒化"));
     assert!(chinese_guide.contains("丢弃") && chinese_guide.contains("暂存"));
@@ -107,14 +99,8 @@ fn test_guides_explain_poisoned_value_transactions() {
 #[test]
 fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
     let documents = [
-        (
-            include_str!("../../doc/user_guide.md"),
-            &ENGLISH_MATRIX_ROWS,
-        ),
-        (
-            include_str!("../../doc/user_guide.zh_CN.md"),
-            &CHINESE_MATRIX_ROWS,
-        ),
+        (include_str!("../../doc/user_guide.md"), &ENGLISH_MATRIX_ROWS),
+        (include_str!("../../doc/user_guide.zh_CN.md"), &CHINESE_MATRIX_ROWS),
     ];
     for (document, rows) in documents {
         assert_complete_atomicity_matrix(document, rows);
@@ -122,29 +108,20 @@ fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
         assert!(document.contains("Vec"));
         assert!(document.contains("success-only") || document.contains("只在成功时计费"));
         assert!(document.contains("accepted prefix"));
-        assert!(
-            normalized_document.contains("raw input")
-                || normalized_document.contains("raw and normalized input")
-        );
+        assert!(normalized_document.contains("raw input") || normalized_document.contains("raw and normalized input"));
         assert!(normalized_document.contains("normalized input"));
         assert!(document.contains("callback"));
         assert!(document.contains("Hasher"));
         assert!(normalized_document.contains("higher-level"));
         assert!(document.contains("transaction"));
         assert!(document.contains("commit"));
-        assert!(
-            normalized_document.contains("drop")
-                || document.contains("丢弃")
-                || document.contains("回滚")
-        );
+        assert!(normalized_document.contains("drop") || document.contains("丢弃") || document.contains("回滚"));
     }
     assert!(
-        include_str!("../../doc/user_guide.md")
-            .contains("Callers create each attempt explicitly with `begin_value()`")
+        include_str!("../../doc/user_guide.md").contains("Callers create each attempt explicitly with `begin_value()`")
     );
     assert!(
-        include_str!("../../doc/user_guide.zh_CN.md")
-            .contains("调用者通过 `begin_value()` 显式创建每个 attempt。")
+        include_str!("../../doc/user_guide.zh_CN.md").contains("调用者通过 `begin_value()` 显式创建每个 attempt。")
     );
 }
 
@@ -212,9 +189,7 @@ fn test_documented_transaction_and_attempt_contracts_compile() {
     );
     {
         let mut attempt = encode.begin_value();
-        attempt
-            .try_consume_output_bytes(2)
-            .expect("accepted output fits");
+        attempt.try_consume_output_bytes(2).expect("accepted output fits");
         attempt
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("staged value fits");
@@ -253,8 +228,7 @@ fn test_feature_gated_public_api_declares_docsrs_feature() {
     assert!(lib.contains("#[cfg_attr(docsrs, doc(cfg(feature = \"json\")))]\npub mod json;"));
     assert_eq!(
         2,
-        lib.matches("#[cfg_attr(docsrs, doc(cfg(feature = \"time\")))]")
-            .count()
+        lib.matches("#[cfg_attr(docsrs, doc(cfg(feature = \"time\")))]").count()
     );
     assert_eq!(
         2,
@@ -266,9 +240,10 @@ fn test_feature_gated_public_api_declares_docsrs_feature() {
         lib.matches("#[cfg_attr(docsrs, doc(cfg(feature = \"big-decimal\")))]")
             .count()
     );
-    assert!(include_str!("../../src/time/mod.rs").contains(
-        "#[cfg_attr(docsrs, doc(cfg(feature = \"time\")))]\npub use time_budget::TimeBudget;"
-    ));
+    assert!(
+        include_str!("../../src/time/mod.rs")
+            .contains("#[cfg_attr(docsrs, doc(cfg(feature = \"time\")))]\npub use time_budget::TimeBudget;")
+    );
     assert!(include_str!("../../src/value/mod.rs").contains(
         "#[cfg_attr(docsrs, doc(cfg(feature = \"big-integer\")))]\npub use big_integer_limits::BigIntegerLimits;"
     ));
@@ -299,10 +274,7 @@ fn rust_snippets(document: &str) -> Vec<String> {
 #[cfg(not(miri))]
 #[test]
 fn test_user_guide_rust_snippets_compile() {
-    let workspace = std::env::temp_dir().join(format!(
-        "qubit-budget-guide-snippets-{}",
-        std::process::id()
-    ));
+    let workspace = std::env::temp_dir().join(format!("qubit-budget-guide-snippets-{}", std::process::id()));
     let source_dir = workspace.join("src");
     fs::create_dir_all(&source_dir).expect("temporary snippet project should be created");
     let package_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -327,11 +299,8 @@ fn test_user_guide_rust_snippets_compile() {
             format!("fn guide_snippet_{index}() -> Result<(), Box<dyn std::error::Error>> {{\n{snippet}\nOk(())\n}}\n")
         })
         .collect::<String>();
-    fs::write(
-        source_dir.join("main.rs"),
-        format!("{functions}\nfn main() {{}}\n"),
-    )
-    .expect("temporary snippet source should be written");
+    fs::write(source_dir.join("main.rs"), format!("{functions}\nfn main() {{}}\n"))
+        .expect("temporary snippet source should be written");
 
     let output = Command::new("cargo")
         .arg("+1.94.0")

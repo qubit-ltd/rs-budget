@@ -55,9 +55,7 @@ where
     },
 
     /// A cumulative consumption request exceeded the remaining capacity.
-    #[error(
-        "resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains"
-    )]
+    #[error("resource {resource:?} requested {requested:?}, but only {remaining:?} of {limit:?} remains")]
     Insufficient {
         /// Resource associated with the failed consumption request.
         resource: R,
@@ -250,9 +248,7 @@ where
     pub fn used(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,
-            Self::Insufficient {
-                limit, remaining, ..
-            } => Some(*limit - *remaining),
+            Self::Insufficient { limit, remaining, .. } => Some(*limit - *remaining),
         }
     }
 }

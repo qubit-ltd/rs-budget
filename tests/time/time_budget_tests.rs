@@ -35,12 +35,8 @@ fn test_is_expired_returns_bool_without_clone_resource() {
 #[test]
 fn test_for_duration_counts_all_monotonic_elapsed_time() {
     let clock = ManualMonotonicClock::new_shared();
-    let budget = TimeBudget::for_duration(
-        TestResource::TotalElapsed,
-        clock.clone(),
-        Duration::from_secs(10),
-    )
-    .expect("deadline should be representable");
+    let budget = TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::from_secs(10))
+        .expect("deadline should be representable");
     clock
         .advance(Duration::from_secs(4))
         .expect("manual clock should advance");
@@ -69,35 +65,21 @@ fn test_for_duration_reports_clock_overflow() {
 #[test]
 fn test_deadline_is_expired_at_the_exact_boundary() {
     let clock = ManualMonotonicClock::new_shared();
-    let budget = TimeBudget::for_duration(
-        TestResource::TotalElapsed,
-        clock.clone(),
-        Duration::from_secs(5),
-    )
-    .expect("deadline should be representable");
+    let budget = TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::from_secs(5))
+        .expect("deadline should be representable");
     clock
         .advance(Duration::from_secs(5))
         .expect("manual clock should advance");
-    assert_eq!(
-        budget.remaining().expect("remaining should saturate"),
-        Duration::ZERO
-    );
+    assert_eq!(budget.remaining().expect("remaining should saturate"), Duration::ZERO);
     assert!(budget.is_expired());
-    assert!(matches!(
-        budget.check(),
-        Err(TimeBudgetError::Expired { .. })
-    ));
+    assert!(matches!(budget.check(), Err(TimeBudgetError::Expired { .. })));
 }
 
 #[test]
 fn test_check_after_rejects_an_operation_reaching_the_deadline() {
     let clock = ManualMonotonicClock::new_shared();
-    let budget = TimeBudget::for_duration(
-        TestResource::TotalElapsed,
-        clock.clone(),
-        Duration::from_secs(5),
-    )
-    .expect("deadline should be representable");
+    let budget = TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::from_secs(5))
+        .expect("deadline should be representable");
     let error = budget
         .check_after(Duration::from_secs(5))
         .expect_err("reaching the deadline must be rejected");
@@ -111,12 +93,8 @@ fn test_check_after_rejects_an_operation_reaching_the_deadline() {
 #[test]
 fn test_check_after_allows_an_operation_strictly_before_the_deadline() {
     let clock = ManualMonotonicClock::new_shared();
-    let budget = TimeBudget::for_duration(
-        TestResource::TotalElapsed,
-        clock.clone(),
-        Duration::from_secs(5),
-    )
-    .expect("deadline should be representable");
+    let budget = TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::from_secs(5))
+        .expect("deadline should be representable");
     budget
         .check_after(Duration::from_secs(4))
         .expect("four seconds should fit before the deadline");
@@ -157,25 +135,15 @@ fn test_until_accepts_an_already_expired_same_domain_deadline() {
         .expect("same-domain expired deadline should be accepted");
 
     assert!(budget.is_expired());
-    assert_eq!(
-        budget.remaining().expect("remaining should be valid"),
-        Duration::ZERO
-    );
-    assert!(matches!(
-        budget.check(),
-        Err(TimeBudgetError::Expired { .. })
-    ));
+    assert_eq!(budget.remaining().expect("remaining should be valid"), Duration::ZERO);
+    assert!(matches!(budget.check(), Err(TimeBudgetError::Expired { .. })));
 }
 
 #[test]
 fn test_check_after_reports_expired_and_clock_overflow_paths() {
     let expired_clock = ManualMonotonicClock::new_shared();
-    let expired_budget = TimeBudget::for_duration(
-        TestResource::TotalElapsed,
-        expired_clock.clone(),
-        Duration::ZERO,
-    )
-    .expect("zero deadline should be representable");
+    let expired_budget = TimeBudget::for_duration(TestResource::TotalElapsed, expired_clock.clone(), Duration::ZERO)
+        .expect("zero deadline should be representable");
     assert!(matches!(
         expired_budget.check_after(Duration::ZERO),
         Err(TimeBudgetError::Expired { .. })
@@ -202,12 +170,8 @@ fn test_check_after_reports_expired_and_clock_overflow_paths() {
 #[test]
 fn test_elapsed_time_includes_waiting_and_backoff() {
     let clock = ManualMonotonicClock::new_shared();
-    let budget = TimeBudget::for_duration(
-        TestResource::TotalElapsed,
-        clock.clone(),
-        Duration::from_secs(10),
-    )
-    .expect("deadline should be representable");
+    let budget = TimeBudget::for_duration(TestResource::TotalElapsed, clock.clone(), Duration::from_secs(10))
+        .expect("deadline should be representable");
     clock
         .advance(Duration::from_secs(2))
         .expect("operation should advance time");

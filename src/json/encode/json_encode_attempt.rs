@@ -117,10 +117,7 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    pub fn try_consume_output_bytes(
-        &mut self,
-        amount: usize,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_consume_output_bytes(&mut self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref_mut() {
             Some(budget) => budget.try_consume_usize(amount),
             None => Ok(()),
@@ -147,10 +144,7 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    pub fn try_admit(
-        &mut self,
-        measurement: JsonMeasurement,
-    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
         self.value.try_admit(measurement)
     }
 
@@ -183,12 +177,7 @@ where
     /// unconfigured.
     #[must_use]
     #[inline]
-    pub fn split_mut(
-        &mut self,
-    ) -> (
-        Option<&mut ResourceBudget<R, Q>>,
-        &mut JsonValueTransaction<'a, R, Q>,
-    ) {
+    pub fn split_mut(&mut self) -> (Option<&mut ResourceBudget<R, Q>>, &mut JsonValueTransaction<'a, R, Q>) {
         (self.output.as_deref_mut(), &mut self.value)
     }
 

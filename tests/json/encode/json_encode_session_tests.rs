@@ -32,10 +32,7 @@ fn test_encode_attempt_drop_keeps_output_and_rolls_back_value() {
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("value fits");
     }
-    assert_eq!(
-        session.output_budget().expect("configured output").used(),
-        3
-    );
+    assert_eq!(session.output_budget().expect("configured output").used(), 3);
     assert_eq!(session.value_budget().used_nodes(), Some(0));
 }
 
@@ -43,11 +40,8 @@ fn test_encode_attempt_drop_keeps_output_and_rolls_back_value() {
 /// publishing staged value accounting.
 #[test]
 fn test_encode_attempt_poisoned_commit_returns_error() {
-    let mut session = JsonEncodeSession::from_limits(
-        JsonEncodeLimits::<JsonResource, usize>::builder()
-            .max_nodes(1)
-            .build(),
-    );
+    let mut session =
+        JsonEncodeSession::from_limits(JsonEncodeLimits::<JsonResource, usize>::builder().max_nodes(1).build());
     let mut attempt = session.begin_value();
     attempt
         .try_admit(JsonMeasurement::Null { depth: 1 })
@@ -56,9 +50,7 @@ fn test_encode_attempt_poisoned_commit_returns_error() {
         .try_admit(JsonMeasurement::Null { depth: 1 })
         .expect_err("second value poisons the attempt");
 
-    let commit_error = attempt
-        .commit()
-        .expect_err("poisoned encode attempt cannot commit");
+    let commit_error = attempt.commit().expect_err("poisoned encode attempt cannot commit");
 
     assert_eq!(commit_error.resource(), first_error.resource());
     assert_eq!(session.value_budget().used_nodes(), Some(0));
@@ -79,9 +71,7 @@ fn test_encode_attempt_checks_output_and_reuses_session() {
     first.check_output_bytes(4).expect("output fits");
     assert_eq!(first.output_budget().expect("configured output").used(), 0);
     first.try_consume_output_bytes(3).expect("output fits");
-    first
-        .try_admit(JsonMeasurement::Null { depth: 1 })
-        .expect("value fits");
+    first.try_admit(JsonMeasurement::Null { depth: 1 }).expect("value fits");
     assert_eq!(first.used_nodes(), Some(1));
     first.commit().expect("first attempt commits");
 
@@ -91,10 +81,7 @@ fn test_encode_attempt_checks_output_and_reuses_session() {
         .expect("value fits");
     second.commit().expect("second attempt commits");
 
-    assert_eq!(
-        session.output_budget().expect("configured output").used(),
-        3
-    );
+    assert_eq!(session.output_budget().expect("configured output").used(), 3);
     assert_eq!(session.value_budget().used_nodes(), Some(2));
 }
 
@@ -132,15 +119,10 @@ fn test_encode_attempt_split_mut_allows_output_and_value_accounting() {
         .expect("configured output")
         .try_consume_usize(4)
         .expect("output fits");
-    value
-        .try_admit(JsonMeasurement::Null { depth: 1 })
-        .expect("value fits");
+    value.try_admit(JsonMeasurement::Null { depth: 1 }).expect("value fits");
     attempt.commit().expect("attempt commits");
 
-    assert_eq!(
-        session.output_budget().expect("configured output").used(),
-        4
-    );
+    assert_eq!(session.output_budget().expect("configured output").used(), 4);
     assert_eq!(session.value_budget().used_nodes(), Some(1));
 }
 
@@ -219,10 +201,7 @@ fn test_encode_attempt_output_error_is_atomic() {
     {
         let mut attempt = session.begin_value();
         assert!(attempt.try_consume_output_bytes(3).is_err());
-        assert_eq!(
-            attempt.output_budget().expect("configured output").used(),
-            0
-        );
+        assert_eq!(attempt.output_budget().expect("configured output").used(), 0);
         attempt
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("value fits");
@@ -249,9 +228,6 @@ fn test_encode_attempt_panic_keeps_output_and_rolls_back_value() {
         panic!("abort encode after accounting");
     }));
     assert!(result.is_err());
-    assert_eq!(
-        session.output_budget().expect("configured output").used(),
-        3
-    );
+    assert_eq!(session.output_budget().expect("configured output").used(), 3);
     assert_eq!(session.value_budget().used_nodes(), Some(0));
 }

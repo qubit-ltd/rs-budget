@@ -23,9 +23,7 @@ fn test_decode_attempt_drop_preserves_input_only() {
     );
     {
         let mut attempt = session.begin_value();
-        attempt
-            .try_consume_input_bytes(2)
-            .expect("input charge fits");
+        attempt.try_consume_input_bytes(2).expect("input charge fits");
         attempt
             .try_admit(JsonMeasurement::Null { depth: 1 })
             .expect("value admission fits");
@@ -44,9 +42,7 @@ fn test_decode_attempt_can_consume_input_bytes() {
             .build(),
     );
     let mut attempt = session.begin_value();
-    attempt
-        .try_consume_input_bytes(3)
-        .expect("input charge fits");
+    attempt.try_consume_input_bytes(3).expect("input charge fits");
     attempt
         .try_consume_normalized_input_bytes(2)
         .expect("normalized input charge fits");

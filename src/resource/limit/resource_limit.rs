@@ -145,8 +145,8 @@ where
     where
         R: Clone,
     {
-        let actual = Q::try_from_usize(actual)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
+        let actual =
+            Q::try_from_usize(actual).map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
         self.check(actual).map_err(MeasuredBudgetError::from)
     }
 
@@ -171,8 +171,8 @@ where
     where
         R: Clone,
     {
-        let actual = Q::try_from_u64(actual)
-            .map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
+        let actual =
+            Q::try_from_u64(actual).map_err(|source| MeasuredBudgetError::quantity(self.resource.clone(), source))?;
         self.check(actual).map_err(MeasuredBudgetError::from)
     }
 }
@@ -199,10 +199,7 @@ where
 /// Returns [`BudgetError::LimitExceeded`] when a configured limit rejects
 /// `actual`.
 #[inline]
-pub(crate) fn check_limit<R, Q>(
-    limit: Option<&ResourceLimit<R, Q>>,
-    actual: Q,
-) -> Result<(), BudgetError<R, Q>>
+pub(crate) fn check_limit<R, Q>(limit: Option<&ResourceLimit<R, Q>>, actual: Q) -> Result<(), BudgetError<R, Q>>
 where
     R: Clone,
     Q: Copy + Debug + Ord,

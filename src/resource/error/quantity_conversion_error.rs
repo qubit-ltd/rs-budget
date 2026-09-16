@@ -43,10 +43,7 @@ impl QuantityConversionError {
     /// A failure retaining both the original measurement and target type.
     #[inline(always)]
     pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
-        Self {
-            measurement,
-            target,
-        }
+        Self { measurement, target }
     }
 
     /// Returns the native measurement that could not be represented.

@@ -322,8 +322,7 @@ where
         F: FnOnce(JsonValueLimitsBuilder<JsonResource, Q>) -> JsonValueLimits<JsonResource, Q>,
     {
         let value = *self.limits.value_limits();
-        self.limits
-            .set_value_limits(configure(value.into_builder()));
+        self.limits.set_value_limits(configure(value.into_builder()));
         self
     }
 }

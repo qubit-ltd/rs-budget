@@ -64,9 +64,7 @@ fn test_resource_limit_supports_duration_measurements() {
 fn test_resource_limit_converts_usize_and_u64_measurements() {
     let limit = ResourceLimit::new(TestResource::Depth, 3_u8);
 
-    limit
-        .check_usize(3)
-        .expect("the exact usize measurement should fit");
+    limit.check_usize(3).expect("the exact usize measurement should fit");
     assert!(matches!(
         limit.check_u64(4),
         Err(MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
