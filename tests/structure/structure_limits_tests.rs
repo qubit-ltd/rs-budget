@@ -91,40 +91,55 @@ fn test_builder_max_methods_bind_each_limit_to_its_structure_resource() {
         .build()
         .budget();
 
-    assert!(matches!(
-        budget.check_depth(2),
-        Err(BudgetError::LimitExceeded {
-            resource: StructureResource::Depth,
-            observed: Observation::Exact(2),
-            maximum: 1,
-        })
-    ));
-    assert!(matches!(budget.charge_node(), Ok(())));
-    assert!(matches!(
-        budget.charge_node(),
-        Err(BudgetError::Insufficient {
-            resource: StructureResource::Nodes,
-            limit: 1,
-            remaining: 0,
-            requested: 1,
-        })
-    ));
-    assert!(matches!(
-        budget.check_sequence_items(2),
-        Err(BudgetError::LimitExceeded {
-            resource: StructureResource::SequenceItems,
-            observed: Observation::Exact(2),
-            maximum: 1,
-        })
-    ));
-    assert!(matches!(
-        budget.check_map_entries(2),
-        Err(BudgetError::LimitExceeded {
-            resource: StructureResource::MapEntries,
-            observed: Observation::Exact(2),
-            maximum: 1,
-        })
-    ));
+    assert!(
+        matches!(
+            budget.check_depth(2),
+            Err(BudgetError::LimitExceeded {
+                resource: StructureResource::Depth,
+                observed: Observation::Exact(2),
+                maximum: 1,
+            })
+        ),
+        "depth checks should report the configured depth limit"
+    );
+    assert!(
+        matches!(budget.charge_node(), Ok(())),
+        "the first node charge should succeed"
+    );
+    assert!(
+        matches!(
+            budget.charge_node(),
+            Err(BudgetError::Insufficient {
+                resource: StructureResource::Nodes,
+                limit: 1,
+                remaining: 0,
+                requested: 1,
+            })
+        ),
+        "node charging should report when the node budget is exhausted"
+    );
+    assert!(
+        matches!(
+            budget.check_sequence_items(2),
+            Err(BudgetError::LimitExceeded {
+                resource: StructureResource::SequenceItems,
+                observed: Observation::Exact(2),
+                maximum: 1,
+            })
+        ),
+        "sequence checks should report the configured item limit"
+    );
+    assert!(
+        matches!(
+            budget.check_map_entries(2),
+            Err(BudgetError::LimitExceeded {
+                resource: StructureResource::MapEntries,
+                observed: Observation::Exact(2),
+                maximum: 1,
+            })
+        ),
+        "map checks should report the configured entry limit"
+    );
 }
 
 #[test]

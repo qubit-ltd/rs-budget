@@ -6,6 +6,7 @@
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
 use std::panic::AssertUnwindSafe;
+use std::panic::catch_unwind;
 
 use qubit_budget::ResourceBudget;
 use qubit_budget::json::JsonEncodeLimits;
@@ -158,13 +159,16 @@ fn test_encode_session_accessors_report_configured_budgets() {
             .build(),
     );
     assert_eq!(session.max_output_bytes(), Some(8));
-    assert!(session.output_budget().is_some());
-    assert!(session.value_budget().used_nodes().is_none());
+    assert!(session.output_budget().is_some(), "output budget is configured");
+    assert!(
+        session.value_budget().used_nodes().is_none(),
+        "value budget has no node limit"
+    );
 
     let mut value = JsonValueLimits::<JsonResource, usize>::new().budget();
     let session = JsonEncodeSession::borrowing_value(&mut value);
     assert_eq!(session.max_output_bytes(), None);
-    assert!(session.output_budget().is_none());
+    assert!(session.output_budget().is_none(), "output budget is unconfigured");
 }
 
 /// Verifies that a session borrowing output retains accepted output when its
@@ -200,7 +204,10 @@ fn test_encode_attempt_output_error_is_atomic() {
     );
     {
         let mut attempt = session.begin_value();
-        assert!(attempt.try_consume_output_bytes(3).is_err());
+        assert!(
+            attempt.try_consume_output_bytes(3).is_err(),
+            "output charge exceeds the configured limit"
+        );
         assert_eq!(attempt.output_budget().expect("configured output").used(), 0);
         attempt
             .try_admit(JsonMeasurement::Null { depth: 1 })
@@ -219,7 +226,7 @@ fn test_encode_attempt_panic_keeps_output_and_rolls_back_value() {
             .max_nodes(1)
             .build(),
     );
-    let result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+    let result = catch_unwind(AssertUnwindSafe(|| {
         let mut attempt = session.begin_value();
         attempt.try_consume_output_bytes(3).expect("output fits");
         attempt
@@ -227,7 +234,7 @@ fn test_encode_attempt_panic_keeps_output_and_rolls_back_value() {
             .expect("value fits");
         panic!("abort encode after accounting");
     }));
-    assert!(result.is_err());
+    assert!(result.is_err(), "encoding attempt panic is caught");
     assert_eq!(session.output_budget().expect("configured output").used(), 3);
     assert_eq!(session.value_budget().used_nodes(), Some(0));
 }

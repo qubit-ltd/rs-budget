@@ -78,7 +78,7 @@ where
     ///
     /// Returns the resource associated with this failure.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         match self {
             Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
@@ -90,7 +90,7 @@ where
     /// # Returns
     ///
     /// Consumes this error and returns its associated resource.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn into_resource(self) -> R {
         match self {
@@ -107,7 +107,7 @@ where
     ///
     /// Returns the cumulative limit for budget and pool failures.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn limit(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,
@@ -124,7 +124,7 @@ where
     ///
     /// Returns the observation for a point-limit failure.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn observation(&self) -> Option<Observation<Q>> {
         match self {
             Self::LimitExceeded { observed, .. } => Some(*observed),
@@ -139,7 +139,7 @@ where
     /// Returns the exact point measurement when the observation is exact.
     ///
     /// `None` indicates that the observation is only a lower bound.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn exact_observed(&self) -> Option<Q> {
         match self.observation() {
@@ -156,7 +156,7 @@ where
     ///
     /// `None` indicates that this is a cumulative-budget failure rather than a
     /// point-limit failure.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn observed_lower_bound(&self) -> Option<Q> {
         match self.observation() {
@@ -173,7 +173,7 @@ where
     /// # Returns
     ///
     /// Returns the configured maximum for a point-limit failure.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn maximum(&self) -> Option<Q> {
         match self {
@@ -190,7 +190,7 @@ where
     /// # Returns
     ///
     /// Returns the remaining capacity for a cumulative-budget failure.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn remaining(&self) -> Option<Q> {
         match self {
@@ -207,7 +207,7 @@ where
     /// # Returns
     ///
     /// Returns the requested quantity for a cumulative budget failure.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn requested(&self) -> Option<Q> {
         match self {
@@ -266,7 +266,7 @@ where
     /// # Returns
     ///
     /// Converts a precise point-limit failure into an aggregate error.
-    #[inline(always)]
+    #[inline]
     fn from(error: LimitExceededError<R, Q>) -> Self {
         let LimitExceededError {
             resource,
@@ -294,7 +294,7 @@ where
     /// # Returns
     ///
     /// Converts a precise cumulative-budget failure into an aggregate error.
-    #[inline(always)]
+    #[inline]
     fn from(error: InsufficientBudgetError<R, Q>) -> Self {
         let InsufficientBudgetError {
             resource,

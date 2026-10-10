@@ -101,7 +101,7 @@ where
     /// `true` when the output limit or at least one nested value limit is
     /// configured; otherwise `false`.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn has_limits(&self) -> bool {
         self.output.is_some() || self.value.has_limits()
     }
@@ -115,7 +115,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn output_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.output.as_ref()
     }
@@ -126,7 +126,7 @@ where
     ///
     /// Borrows the JSON value limits used for encoding.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
         &self.value
     }
@@ -151,7 +151,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_output_bytes(&self) -> Option<Q> {
         match self.output.as_ref() {
             Some(limit) => Some(limit.maximum()),

@@ -46,9 +46,10 @@ where
     ///
     /// # Returns
     ///
-    /// Splits storage into the budgets borrowed by one encode attempt.
+    /// Returns the optional output-byte budget and the JSON value budget.
     ///
-    /// A `None` I/O budget indicates that the corresponding byte dimension is
+    /// The returned references borrow this storage for the duration of the
+    /// encode attempt. A `None` output budget means output-byte accounting is
     /// unconfigured.
     #[inline]
     pub(crate) fn split(&mut self) -> (Option<&mut ResourceBudget<R, Q>>, &mut JsonValueBudget<R, Q>) {

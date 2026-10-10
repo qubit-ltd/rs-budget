@@ -10,6 +10,7 @@
 use super::JsonValueBudget;
 use super::internal::JsonValueState;
 use super::internal::PreparedJsonAdmission;
+use crate::ResourceLimit;
 use crate::json::JsonContainerKind;
 use crate::json::JsonMeasurement;
 use crate::resource::InsufficientBudgetError;
@@ -71,7 +72,7 @@ where
     /// # Returns
     ///
     /// Creates a transaction using a snapshot of `target`'s committed state.
-    #[inline(always)]
+    #[inline]
     pub(super) const fn new(target: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
             working: target.state,
@@ -87,7 +88,7 @@ where
     /// Returns `true` when at least one point or cumulative value limit is
     /// configured on the target budget.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn has_limits(&self) -> bool {
         self.target.limits().has_limits()
     }
@@ -253,7 +254,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.working.remaining_nodes()
     }
@@ -284,7 +285,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.working.remaining_payload_bytes()
     }
@@ -330,7 +331,7 @@ where
     fn check_container_items(
         &self,
         amount: usize,
-        limit: Option<&crate::ResourceLimit<R, Q>>,
+        limit: Option<&ResourceLimit<R, Q>>,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let Some(limit) = limit else {
             return Ok(());

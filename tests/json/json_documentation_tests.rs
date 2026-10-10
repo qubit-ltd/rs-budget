@@ -13,6 +13,14 @@ use std::fs;
 #[cfg(not(miri))]
 use std::process::Command;
 
+use qubit_budget::json::JsonDecodeLimits;
+use qubit_budget::json::JsonDecodeSession;
+use qubit_budget::json::JsonEncodeLimits;
+use qubit_budget::json::JsonEncodeSession;
+use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueLimits;
+
 /// English matrix rows in their required order.
 const ENGLISH_MATRIX_ROWS: [&str; 7] = [
     "| Strict decode succeeds |",
@@ -128,14 +136,6 @@ fn test_all_documents_state_attempt_boundaries_and_atomicity_matrix() {
 /// Verifies the documented transaction and attempt usage against public APIs.
 #[test]
 fn test_documented_transaction_and_attempt_contracts_compile() {
-    use qubit_budget::json::JsonDecodeLimits;
-    use qubit_budget::json::JsonDecodeSession;
-    use qubit_budget::json::JsonEncodeLimits;
-    use qubit_budget::json::JsonEncodeSession;
-    use qubit_budget::json::JsonMeasurement;
-    use qubit_budget::json::JsonResource;
-    use qubit_budget::json::JsonValueLimits;
-
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
         .max_nodes(2)
         .build()

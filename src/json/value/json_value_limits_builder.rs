@@ -47,7 +47,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates an empty builder through the standard [`Default`] interface.
+    /// A builder with no explicitly configured JSON value limits.
     fn default() -> Self {
         Self::new()
     }
@@ -61,7 +61,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates an empty JSON value-limits builder.
+    /// A builder whose limits are all unset.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -79,7 +79,8 @@ where
     ///
     /// # Returns
     ///
-    /// Restores a builder from an existing limit set.
+    /// A builder initialized with the supplied limits, ready for further
+    /// configuration.
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: JsonValueLimits<R, Q>) -> Self {
@@ -161,7 +162,7 @@ where
     ///
     /// # Returns
     ///
-    /// Builds the configured JSON value limits.
+    /// The accumulated limit configuration, transferred out of the builder.
     #[inline]
     #[must_use]
     pub fn build(self) -> JsonValueLimits<R, Q> {
@@ -172,7 +173,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a mutable JSON value budget from this builder.
+    /// A fresh budget initialized with the configured limits and ready to
+    /// account for JSON value processing.
     #[inline]
     #[must_use]
     pub fn budget(self) -> JsonValueBudget<R, Q> {

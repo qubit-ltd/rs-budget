@@ -74,7 +74,7 @@ where
     /// # Returns
     ///
     /// Returns the zero-based index of the first rejecting budget.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn index(&self) -> usize {
         self.index
@@ -85,7 +85,7 @@ where
     /// # Returns
     ///
     /// Returns the structured failure from the rejecting budget.
-    #[inline(always)]
+    #[inline]
     pub const fn source_error(&self) -> &InsufficientBudgetError<R, Q> {
         &self.source
     }
@@ -95,7 +95,7 @@ where
     /// # Returns
     ///
     /// Consumes this error and returns the rejecting budget's failure.
-    #[inline(always)]
+    #[inline]
     pub fn into_source_error(self) -> InsufficientBudgetError<R, Q> {
         self.source
     }

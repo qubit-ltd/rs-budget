@@ -67,8 +67,9 @@ where
     ///
     /// # Returns
     ///
-    /// Creates an attempt from the budgets split out of a decode session.
-    #[inline(always)]
+    /// Returns an attempt that borrows the supplied budgets and stages the
+    /// supplied value transaction.
+    #[inline]
     #[must_use]
     pub(crate) const fn new(
         input: Option<&'a mut ResourceBudget<R, Q>>,
@@ -154,12 +155,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the raw input budget while the attempt exclusively owns it.
-    ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.input.as_deref()
     }
@@ -168,12 +167,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the normalized input budget while the attempt owns it.
-    ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.normalized_input.as_deref()
     }
@@ -181,8 +178,6 @@ where
     /// Returns staged node usage when the node limit is configured.
     ///
     /// # Returns
-    ///
-    /// Returns staged node usage when the node limit is configured.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
@@ -196,12 +191,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns staged remaining node capacity when the node limit is set.
-    ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.value.remaining_nodes()
     }
@@ -209,8 +202,6 @@ where
     /// Returns staged payload usage when the payload limit is configured.
     ///
     /// # Returns
-    ///
-    /// Returns staged payload usage when the payload limit is configured.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
@@ -224,12 +215,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns staged remaining payload capacity when the payload limit is set.
-    ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.value.remaining_payload_bytes()
     }
@@ -238,7 +227,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the mutable transaction that holds this attempt's value state.
+    /// The caller can use it to inspect or modify staged JSON accounting before
+    /// committing the attempt.
     #[must_use]
     #[inline]
     pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {

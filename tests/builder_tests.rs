@@ -12,7 +12,7 @@ use qubit_budget::StructureLimits;
 use qubit_budget::StructureResource;
 
 #[test]
-fn builders_cover_generic_limit_setters() {
+fn test_builders_cover_generic_limit_setters() {
     let structure = StructureLimits::<StructureResource, usize>::builder()
         .depth_limit(ResourceLimit::new(StructureResource::Depth, 1))
         .nodes_limit(ResourceLimit::new(StructureResource::Nodes, 2))

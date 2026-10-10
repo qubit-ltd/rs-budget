@@ -5,7 +5,6 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-#![cfg_attr(docsrs, feature(doc_cfg))]
 //! Dependency-light finite resource limits, budgets and pools.
 //!
 //! A budget object always represents a configured finite constraint. When a
@@ -24,6 +23,8 @@
 //! accepted output prefixes, are charged immediately. These are separate
 //! guarantees; an I/O failure does not itself poison a JSON value transaction,
 //! and output transactionality does not imply whole-operation rollback.
+
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod resource;
 pub mod string;

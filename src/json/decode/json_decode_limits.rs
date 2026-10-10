@@ -104,7 +104,7 @@ where
     /// `true` when at least one input or nested value dimension has a finite
     /// limit; otherwise `false`.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn has_limits(&self) -> bool {
         self.input.is_some() || self.normalized_input.is_some() || self.value.has_limits()
     }
@@ -117,8 +117,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.input.as_ref()
     }
@@ -131,8 +130,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn normalized_input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
     }
@@ -143,7 +141,7 @@ where
     ///
     /// Borrows the JSON value limits used for decoding.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
         &self.value
     }
@@ -167,8 +165,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_input_bytes(&self) -> Option<Q> {
         limit_maximum(self.input.as_ref())
     }
@@ -181,8 +178,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_normalized_input_bytes(&self) -> Option<Q> {
         limit_maximum(self.normalized_input.as_ref())
     }
@@ -192,6 +188,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound raw input-byte limit to install.
+    #[inline]
     pub(super) fn set_input_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.input = Some(limit);
     }
@@ -201,6 +198,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound normalized input-byte limit to install.
+    #[inline]
     pub(super) fn set_normalized_input_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.normalized_input = Some(limit);
     }
@@ -210,6 +208,7 @@ where
     /// # Parameters
     ///
     /// * `limits` - JSON value limits to apply during decoding.
+    #[inline]
     pub(super) fn set_value_limits(&mut self, limits: JsonValueLimits<R, Q>) {
         self.value = limits;
     }
@@ -229,7 +228,7 @@ where
 /// # Returns
 ///
 /// `Some(maximum)` when the limit is configured, or `None` otherwise.
-#[inline(always)]
+#[inline]
 const fn limit_maximum<R, Q>(limit: Option<&ResourceLimit<R, Q>>) -> Option<Q>
 where
     Q: ResourceQuantity,

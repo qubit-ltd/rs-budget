@@ -145,7 +145,7 @@ where
     /// `true` when at least one structural dimension has a finite limit;
     /// otherwise `false`.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn has_limits(&self) -> bool {
         self.max_depth.is_some()
             || self.max_nodes.is_some()
@@ -163,7 +163,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn depth_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_depth.as_ref()
     }
@@ -177,7 +177,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn nodes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_nodes.as_ref()
     }
@@ -191,7 +191,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn sequence_items_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_sequence_items.as_ref()
     }
@@ -205,7 +205,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn map_entries_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_map_entries.as_ref()
     }
@@ -219,7 +219,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn key_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_key_bytes.as_ref()
     }
@@ -233,7 +233,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_depth(&self) -> Option<Q> {
         match self.max_depth.as_ref() {
             Some(limit) => Some(limit.maximum()),
@@ -250,7 +250,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_nodes(&self) -> Option<Q> {
         match self.max_nodes.as_ref() {
             Some(limit) => Some(limit.maximum()),
@@ -267,7 +267,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_sequence_items(&self) -> Option<Q> {
         match self.max_sequence_items.as_ref() {
             Some(limit) => Some(limit.maximum()),
@@ -284,7 +284,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_map_entries(&self) -> Option<Q> {
         match self.max_map_entries.as_ref() {
             Some(limit) => Some(limit.maximum()),
@@ -301,7 +301,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_key_bytes(&self) -> Option<Q> {
         match self.max_key_bytes.as_ref() {
             Some(limit) => Some(limit.maximum()),
@@ -328,7 +328,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound nesting-depth limit to install.
-    #[inline(always)]
+    #[inline]
     pub(super) fn set_depth_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_depth = Some(limit);
     }
@@ -338,7 +338,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound cumulative node limit to install.
-    #[inline(always)]
+    #[inline]
     pub(super) fn set_nodes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_nodes = Some(limit);
     }
@@ -348,7 +348,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound sequence-item limit to install.
-    #[inline(always)]
+    #[inline]
     pub(super) fn set_sequence_items_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_sequence_items = Some(limit);
     }
@@ -358,7 +358,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound map-entry limit to install.
-    #[inline(always)]
+    #[inline]
     pub(super) fn set_map_entries_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_map_entries = Some(limit);
     }
@@ -368,7 +368,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound structural-key limit to install.
-    #[inline(always)]
+    #[inline]
     pub(super) fn set_key_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_key_bytes = Some(limit);
     }
@@ -380,7 +380,7 @@ impl StructureLimits<StructureResource, usize> {
     /// # Parameters
     ///
     /// * `maximum` - Inclusive maximum to configure.
-    #[inline(always)]
+    #[inline]
     pub(super) const fn set_max_depth(&mut self, maximum: usize) {
         self.max_depth = Some(ResourceLimit::new(StructureResource::Depth, maximum));
     }
@@ -390,7 +390,7 @@ impl StructureLimits<StructureResource, usize> {
     /// # Parameters
     ///
     /// * `maximum` - Inclusive maximum to configure.
-    #[inline(always)]
+    #[inline]
     pub(super) const fn set_max_nodes(&mut self, maximum: usize) {
         self.max_nodes = Some(ResourceLimit::new(StructureResource::Nodes, maximum));
     }
@@ -400,7 +400,7 @@ impl StructureLimits<StructureResource, usize> {
     /// # Parameters
     ///
     /// * `maximum` - Inclusive maximum to configure.
-    #[inline(always)]
+    #[inline]
     pub(super) const fn set_max_sequence_items(&mut self, maximum: usize) {
         self.max_sequence_items = Some(ResourceLimit::new(StructureResource::SequenceItems, maximum));
     }
@@ -410,7 +410,7 @@ impl StructureLimits<StructureResource, usize> {
     /// # Parameters
     ///
     /// * `maximum` - Inclusive maximum to configure.
-    #[inline(always)]
+    #[inline]
     pub(super) const fn set_max_map_entries(&mut self, maximum: usize) {
         self.max_map_entries = Some(ResourceLimit::new(StructureResource::MapEntries, maximum));
     }
@@ -420,7 +420,7 @@ impl StructureLimits<StructureResource, usize> {
     /// # Parameters
     ///
     /// * `maximum` - Inclusive maximum to configure.
-    #[inline(always)]
+    #[inline]
     pub(super) const fn set_max_key_bytes(&mut self, maximum: usize) {
         self.max_key_bytes = Some(ResourceLimit::new(StructureResource::KeyBytes, maximum));
     }

@@ -130,7 +130,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             EncodeStorage::Owned { output, .. } => output.as_ref(),
@@ -147,7 +147,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn max_output_bytes(&self) -> Option<Q> {
         self.output_budget().map(ResourceBudget::limit)
     }
@@ -158,7 +158,7 @@ where
     ///
     /// Returns the value budget for read-only inspection.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
             EncodeStorage::Owned { value, .. } => value,

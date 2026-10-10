@@ -164,57 +164,61 @@ impl<R> DurationBudget<R> {
         consumed
     }
 
-    /// Returns the associated resource.
+    /// Borrows the resource value associated with this budget.
     ///
     /// # Returns
     ///
-    /// Returns the associated resource.
+    /// The reference is tied to the immutable borrow of this budget and does
+    /// not clone the resource.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
 
-    /// Returns the immutable resource limit that configures this budget.
+    /// Borrows the immutable limit configuration used by this budget.
     ///
     /// # Returns
     ///
-    /// Returns the immutable resource limit that configures this budget.
+    /// The reference remains valid for the lifetime of the borrow and avoids
+    /// cloning the resource identity stored in the limit.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Duration> {
         &self.limit
     }
 
-    /// Returns the finite duration limit.
+    /// Returns the maximum duration this budget permits.
     ///
     /// # Returns
     ///
-    /// Returns the finite duration limit.
+    /// This is the configured maximum, independent of any duration already
+    /// consumed.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn limit(&self) -> Duration {
         self.limit.maximum()
     }
 
-    /// Returns remaining duration.
+    /// Returns the duration still available for consumption.
     ///
     /// # Returns
     ///
-    /// Returns remaining duration.
+    /// This value decreases only when a caller explicitly consumes duration.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining(&self) -> Duration {
         self.remaining
     }
 
-    /// Returns explicitly consumed duration.
+    /// Returns the duration consumed from the configured maximum.
     ///
     /// # Returns
     ///
-    /// Returns explicitly consumed duration.
+    /// The value is computed as the configured maximum minus the remaining
+    /// duration; it is zero for a newly constructed budget.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn used(&self) -> Duration {
         self.limit.maximum().saturating_sub(self.remaining)
     }

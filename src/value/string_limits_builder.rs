@@ -46,7 +46,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates an empty builder through the standard [`Default`] interface.
+    /// A builder whose [`StringLimits`] contains no configured UTF-8 byte
+    /// limit.
     fn default() -> Self {
         Self::new()
     }
@@ -60,7 +61,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates an empty string-limits builder.
+    /// A builder with no configured UTF-8 byte limit.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -78,7 +79,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a builder retaining an existing limit configuration.
+    /// A builder containing the supplied limits configuration.
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: StringLimits<R, Q>) -> Self {
@@ -105,7 +106,7 @@ where
     ///
     /// # Returns
     ///
-    /// Builds the configured string limits.
+    /// The [`StringLimits`] configuration accumulated by this builder.
     #[inline]
     #[must_use]
     pub fn build(self) -> StringLimits<R, Q> {

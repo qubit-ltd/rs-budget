@@ -74,7 +74,6 @@ where
     ///
     /// A new managed pool with `limit` units available.
     #[must_use]
-    #[inline]
     pub fn new(resource: R, limit: Q) -> Self {
         Self::from_limit(ResourceLimit::new(resource, limit))
     }
@@ -89,7 +88,6 @@ where
     ///
     /// A new managed pool preserving the supplied limit.
     #[must_use]
-    #[inline]
     pub fn from_limit(limit: ResourceLimit<R, Q>) -> Self {
         Self {
             inner: Arc::new(ManagedResourcePoolInner::new(limit)),
@@ -133,35 +131,33 @@ where
 
     /// Returns the resource associated with this shared pool.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn resource(&self) -> &R {
         self.inner.limit.resource()
     }
 
     /// Returns the immutable resource limit configuring this pool.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn resource_limit(&self) -> &ResourceLimit<R, Q> {
         &self.inner.limit
     }
 
     /// Returns total finite capacity.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn capacity(&self) -> Q {
         self.inner.limit.maximum()
     }
 
     /// Returns capacity not currently owned by permits.
     #[must_use]
-    #[inline(always)]
     pub fn available(&self) -> Q {
         *self.inner.lock_available()
     }
 
     /// Returns capacity currently owned by permits.
     #[must_use]
-    #[inline(always)]
     pub fn in_use(&self) -> Q {
         self.capacity() - self.available()
     }

@@ -7,7 +7,7 @@
 // =============================================================================
 //! Defines the JSON container dimensions checked during traversal.
 
-/// Identifies the point-limited count of a JSON container.
+/// Identifies the JSON container count checked against a configured limit.
 ///
 /// # Examples
 ///

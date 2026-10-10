@@ -66,7 +66,7 @@ where
     /// Panics only if an internal invariant is violated and a live permit no
     /// longer retains its owning pool.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn resource(&self) -> &R {
         self.inner
             .as_ref()
@@ -77,7 +77,7 @@ where
 
     /// Returns the quantity owned by this permit.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn amount(&self) -> Q {
         self.amount
     }

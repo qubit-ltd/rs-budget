@@ -83,7 +83,7 @@ where
     ///
     /// Creates an empty value limit set with no configured resource limits.
     #[inline]
-    #[must_use = "the point check result must be handled"]
+    #[must_use = "the constructed limits should be used"]
     pub const fn new() -> Self {
         Self {
             structure: StructureLimits::new(),
@@ -121,7 +121,7 @@ where
     /// `true` when at least one value or nested structural dimension has a
     /// finite limit; otherwise `false`.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn has_limits(&self) -> bool {
         self.structure.has_limits()
             || self.max_string_bytes.is_some()
@@ -135,7 +135,7 @@ where
     ///
     /// Borrows the structural limits used by this value configuration.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn structure_limits(&self) -> &StructureLimits<R, Q> {
         &self.structure
     }
@@ -158,7 +158,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_depth(&self) -> Option<Q> {
         self.structure.max_depth()
     }
@@ -171,7 +171,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_nodes(&self) -> Option<Q> {
         self.structure.max_nodes()
     }
@@ -184,7 +184,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_sequence_items(&self) -> Option<Q> {
         self.structure.max_sequence_items()
     }
@@ -197,7 +197,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_map_entries(&self) -> Option<Q> {
         self.structure.max_map_entries()
     }
@@ -210,7 +210,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_key_bytes(&self) -> Option<Q> {
         self.structure.max_key_bytes()
     }
@@ -223,7 +223,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn string_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_string_bytes.as_ref()
     }
@@ -236,7 +236,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn number_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_number_bytes.as_ref()
     }
@@ -249,7 +249,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn payload_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_payload_bytes.as_ref()
     }
@@ -262,7 +262,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_string_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_string_bytes.as_ref())
     }
@@ -276,7 +276,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_number_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_number_bytes.as_ref())
     }
@@ -289,7 +289,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn max_payload_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_payload_bytes.as_ref())
     }
@@ -317,7 +317,6 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    #[must_use = "the point check result must be handled"]
     pub fn check_point(&self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
@@ -389,7 +388,7 @@ where
 /// Returns an optional limit maximum without exposing its resource identity.
 ///
 /// `None` indicates that the supplied optional limit is unconfigured.
-#[inline(always)]
+#[inline]
 const fn limit_maximum<R, Q>(limit: Option<&ResourceLimit<R, Q>>) -> Option<Q>
 where
     Q: ResourceQuantity,

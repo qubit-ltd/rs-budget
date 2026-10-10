@@ -41,7 +41,7 @@ impl QuantityConversionError {
     /// # Returns
     ///
     /// A failure retaining both the original measurement and target type.
-    #[inline(always)]
+    #[inline]
     pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
         Self { measurement, target }
     }
@@ -52,7 +52,7 @@ impl QuantityConversionError {
     ///
     /// Returns the native measurement that could not be represented.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn measurement(&self) -> QuantityMeasurement {
         self.measurement
     }
@@ -63,7 +63,7 @@ impl QuantityConversionError {
     ///
     /// Returns the selected resource quantity type name.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn target(&self) -> &'static str {
         self.target
     }

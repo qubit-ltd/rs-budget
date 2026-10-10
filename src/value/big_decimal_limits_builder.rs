@@ -43,11 +43,11 @@ impl<R, Q> Default for BigDecimalLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an empty builder through the standard [`Default`] interface.
+    /// Creates a builder with neither coefficient nor scale limits configured.
     ///
     /// # Returns
     ///
-    /// Creates an empty builder through the standard [`Default`] interface.
+    /// A builder equivalent to [`BigDecimalLimitsBuilder::new`].
     fn default() -> Self {
         Self::new()
     }
@@ -57,11 +57,11 @@ impl<R, Q> BigDecimalLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an empty decimal-limits builder.
+    /// Creates a decimal-limits builder with no coefficient or scale limit.
     ///
     /// # Returns
     ///
-    /// Creates an empty decimal-limits builder.
+    /// A builder ready to receive coefficient and scale settings.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -70,31 +70,31 @@ where
         }
     }
 
-    /// Creates a builder retaining an existing limit configuration.
+    /// Creates a builder initialized from an existing limit configuration.
     ///
     /// # Parameters
     ///
-    /// * `limits` - Existing decimal limits whose configuration is copied into
-    ///   this builder.
+    /// * `limits` - Existing decimal limits to use as the initial
+    ///   configuration.
     ///
     /// # Returns
     ///
-    /// Creates a builder retaining an existing limit configuration.
+    /// A builder containing the supplied coefficient and scale settings.
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: BigDecimalLimits<R, Q>) -> Self {
         Self { limits }
     }
 
-    /// Sets the coefficient limits.
+    /// Replaces the coefficient limits while preserving the scale setting.
     ///
     /// # Parameters
     ///
-    /// * `limits` - Coefficient limits to apply to the decimal value.
+    /// * `limits` - Coefficient limits to use in the resulting configuration.
     ///
     /// # Returns
     ///
-    /// The builder with the described setting applied.
+    /// A builder whose coefficient limit is set to `limits`.
     #[inline]
     #[must_use]
     pub fn coefficient_limits(mut self, limits: BigIntegerLimits<R, Q>) -> Self {
@@ -102,15 +102,17 @@ where
         self
     }
 
-    /// Sets the absolute scale-magnitude limit.
+    /// Replaces the absolute scale-magnitude limit while preserving coefficient
+    /// limits.
     ///
     /// # Parameters
     ///
-    /// * `limit` - Resource-bound absolute scale-magnitude limit to install.
+    /// * `limit` - Absolute scale-magnitude limit to use in the resulting
+    ///   configuration.
     ///
     /// # Returns
     ///
-    /// The builder with the described setting applied.
+    /// A builder whose scale-magnitude limit is set to `limit`.
     #[inline]
     #[must_use]
     pub fn scale_magnitude_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
@@ -118,11 +120,11 @@ where
         self
     }
 
-    /// Builds the configured decimal limits.
+    /// Consumes the builder and returns its accumulated decimal-limit settings.
     ///
     /// # Returns
     ///
-    /// Builds the configured decimal limits.
+    /// The configured limits, with no additional validation or allocation.
     #[inline]
     #[must_use]
     pub fn build(self) -> BigDecimalLimits<R, Q> {

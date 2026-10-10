@@ -60,7 +60,7 @@ where
     ///
     /// Returns the resource associated with this failure.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         match self {
             Self::InvalidRelease { resource, .. } => resource,
@@ -72,7 +72,7 @@ where
     /// # Returns
     ///
     /// Consumes this error and returns its associated resource.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn into_resource(self) -> R {
         match self {
@@ -86,7 +86,7 @@ where
     ///
     /// Returns the finite pool limit.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn limit(&self) -> Q {
         match self {
             Self::InvalidRelease { limit, .. } => *limit,
@@ -99,7 +99,7 @@ where
     ///
     /// Returns the amount in use before the invalid release.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn in_use(&self) -> Q {
         match self {
             Self::InvalidRelease { in_use, .. } => *in_use,
@@ -112,7 +112,7 @@ where
     ///
     /// Returns the requested release amount.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn requested(&self) -> Q {
         match self {
             Self::InvalidRelease { requested, .. } => *requested,

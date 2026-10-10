@@ -145,7 +145,7 @@ impl<R, C> TimeBudget<R, C> {
     ///
     /// Returns the associated resource.
     #[must_use = "the elapsed-time result must be handled"]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
@@ -156,7 +156,7 @@ impl<R, C> TimeBudget<R, C> {
     ///
     /// Returns the instant sampled at construction.
     #[must_use = "inspect the construction instant"]
-    #[inline(always)]
+    #[inline]
     pub const fn started_at(&self) -> MonotonicInstant {
         self.started_at
     }
@@ -167,7 +167,7 @@ impl<R, C> TimeBudget<R, C> {
     ///
     /// Returns the fixed deadline.
     #[must_use = "inspect the deadline instant"]
-    #[inline(always)]
+    #[inline]
     pub const fn deadline(&self) -> MonotonicInstant {
         self.deadline
     }
@@ -198,7 +198,7 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// Reports whether the current instant has reached the deadline.
     #[inline]
-    #[must_use = "the remaining-time result must be handled"]
+    #[must_use = "the expiration status must be observed"]
     pub fn is_expired(&self) -> bool {
         self.clock.now() >= self.deadline
     }

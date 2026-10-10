@@ -95,7 +95,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn magnitude_bits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_magnitude_bits.as_ref()
     }
@@ -109,7 +109,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn significant_decimal_digits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_significant_decimal_digits.as_ref()
     }
@@ -191,7 +191,6 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound magnitude bit-length limit to install.
-    #[inline(always)]
     pub(super) fn set_magnitude_bits_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_magnitude_bits = Some(limit);
     }
@@ -201,7 +200,6 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound significant decimal-digit limit to install.
-    #[inline(always)]
     pub(super) fn set_significant_decimal_digits_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_significant_decimal_digits = Some(limit);
     }

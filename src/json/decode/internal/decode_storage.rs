@@ -62,11 +62,11 @@ where
     ///
     /// # Returns
     ///
-    /// Splits storage into the budgets borrowed by one decode attempt.
-    ///
-    /// A `None` I/O budget indicates that the corresponding byte dimension is
-    /// unconfigured.
+    /// Returns mutable references to the raw-input budget, normalized-input
+    /// budget, and JSON value budget, in that order. A `None` byte budget means
+    /// that dimension is unconfigured; the JSON value budget is always present.
     #[inline]
+    #[must_use = "the borrowed budgets must be used by the decode attempt"]
     pub(crate) fn split(&mut self) -> DecodeStorageSplit<'_, R, Q> {
         match self {
             Self::Owned {

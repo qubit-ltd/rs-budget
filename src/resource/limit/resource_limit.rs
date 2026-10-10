@@ -68,7 +68,7 @@ where
     /// # Returns
     ///
     /// Returns the resource bound to this limit.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn resource(&self) -> &R {
         &self.resource
@@ -79,7 +79,7 @@ where
     /// # Returns
     ///
     /// Returns this limit's inclusive maximum measurement.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn maximum(&self) -> Q {
         self.maximum
@@ -102,7 +102,6 @@ where
     /// Returns [`LimitExceededError`] when `actual` is greater than
     /// this limit's maximum.
     #[inline]
-    #[must_use = "the limit check result must be handled"]
     pub fn check(&self, actual: Q) -> Result<(), LimitExceededError<R, Q>>
     where
         R: Clone,
@@ -140,7 +139,6 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
     /// converted value exceeds this limit.
     #[inline]
-    #[must_use = "the limit check result must be handled"]
     pub fn check_usize(&self, actual: usize) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
@@ -166,7 +164,6 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when the
     /// converted value exceeds this limit.
     #[inline]
-    #[must_use = "the limit check result must be handled"]
     pub fn check_u64(&self, actual: u64) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,

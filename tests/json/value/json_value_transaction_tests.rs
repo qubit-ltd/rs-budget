@@ -76,7 +76,9 @@ fn test_check_container_count_rejects_next_map_entry() {
         .budget();
     let mut transaction = budget.transaction();
 
-    assert!(transaction.check_container_count(JsonContainerKind::Map, 1).is_ok());
+    transaction
+        .check_container_count(JsonContainerKind::Map, 1)
+        .expect("the first map entry fits");
     let error = transaction
         .check_container_count(JsonContainerKind::Map, 2)
         .expect_err("the second map entry exceeds the configured limit");

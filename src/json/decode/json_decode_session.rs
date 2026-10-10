@@ -164,7 +164,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             DecodeStorage::Owned { input, .. } => input.as_ref(),
@@ -181,7 +181,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn max_input_bytes(&self) -> Option<Q> {
         self.input_budget().map(ResourceBudget::limit)
     }
@@ -195,7 +195,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn max_normalized_input_bytes(&self) -> Option<Q> {
         self.normalized_input_budget().map(ResourceBudget::limit)
     }
@@ -209,7 +209,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
             DecodeStorage::Owned { normalized_input, .. } => normalized_input.as_ref(),
@@ -223,7 +223,7 @@ where
     ///
     /// Returns the value budget for read-only inspection.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {
         match &self.storage {
             DecodeStorage::Owned { value, .. } => value,

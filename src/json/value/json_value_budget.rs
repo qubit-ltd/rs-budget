@@ -82,7 +82,6 @@ where
     ///
     /// Panics only if the private accounting state contains a node balance
     /// without the node limit from which it was initialized.
-    #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.state
@@ -99,7 +98,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.state.remaining_nodes()
     }
@@ -119,7 +118,6 @@ where
     ///
     /// Panics only if the private accounting state contains a payload balance
     /// without the payload limit from which it was initialized.
-    #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.state
@@ -136,7 +134,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.state.remaining_payload_bytes()
     }
@@ -163,19 +161,19 @@ where
         Self { limits, state }
     }
 
-    /// Restores the ledger to its original zero-used committed state.
-    pub fn reset(&mut self) {
-        self.state = JsonValueState::new(self.limits.max_nodes(), self.limits.max_payload_bytes());
-    }
-
     /// Returns the immutable limits shared by all transactions.
     ///
     /// # Returns
     ///
     /// Returns the immutable limits shared by all transactions.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn limits(&self) -> &JsonValueLimits<R, Q> {
         &self.limits
+    }
+
+    /// Restores the ledger to its original zero-used committed state.
+    pub fn reset(&mut self) {
+        self.state = JsonValueState::new(self.limits.max_nodes(), self.limits.max_payload_bytes());
     }
 }

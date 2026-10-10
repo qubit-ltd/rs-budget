@@ -57,15 +57,16 @@ where
     ///
     /// # Parameters
     ///
-    /// * `output` - Output supplied to this operation.
+    /// * `output` - Optional output budget charged for accepted bytes.
     /// * `value` - Transaction holding the JSON value accounting staged by this
     ///   attempt.
     ///
     /// # Returns
     ///
-    /// Creates an attempt from the budgets split out of an encode session.
-    #[inline(always)]
-    #[must_use = "the output-byte check result must be handled"]
+    /// Returns the attempt that stages value accounting and charges output
+    /// bytes immediately.
+    #[inline]
+    #[must_use]
     pub(crate) const fn new(
         output: Option<&'a mut ResourceBudget<R, Q>>,
         value: JsonValueTransaction<'a, R, Q>,

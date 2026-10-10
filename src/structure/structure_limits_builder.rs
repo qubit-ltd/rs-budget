@@ -55,7 +55,7 @@ impl<R, Q> From<StructureLimitsBuilder<R, Q>> for StructureLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Finishes the builder and returns its structural limit configuration.
+    /// Returns the structural limit configuration accumulated by the builder.
     ///
     /// # Parameters
     ///
@@ -63,7 +63,7 @@ where
     ///
     /// # Returns
     ///
-    /// Finishes the builder and returns its structural limit configuration.
+    /// Returns the structural limits accumulated by the consumed builder.
     fn from(builder: StructureLimitsBuilder<R, Q>) -> Self {
         builder.build()
     }
@@ -73,11 +73,12 @@ impl<R, Q> StructureLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an empty structural-limits builder.
+    /// Creates a builder with no structural limits configured.
     ///
     /// # Returns
     ///
-    /// Creates an empty structural-limits builder.
+    /// The returned builder contains no configured limits and can be populated
+    /// with resource-bound or built-in limits.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -86,7 +87,7 @@ where
         }
     }
 
-    /// Creates a builder retaining an existing limit configuration.
+    /// Creates a builder initialized from an existing limit configuration.
     ///
     /// # Parameters
     ///
@@ -95,14 +96,15 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a builder retaining an existing limit configuration.
+    /// The returned builder starts with the copied configuration, so later
+    /// builder calls can replace individual limits while retaining the rest.
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: StructureLimits<R, Q>) -> Self {
         Self { limits }
     }
 
-    /// Sets the depth limit.
+    /// Sets or replaces the resource-bound depth limit.
     ///
     /// # Parameters
     ///
@@ -118,7 +120,7 @@ where
         self
     }
 
-    /// Sets the node limit.
+    /// Sets or replaces the resource-bound node limit.
     ///
     /// # Parameters
     ///
@@ -134,7 +136,7 @@ where
         self
     }
 
-    /// Sets the sequence-item limit.
+    /// Sets or replaces the resource-bound sequence-item limit.
     ///
     /// # Parameters
     ///
@@ -150,7 +152,7 @@ where
         self
     }
 
-    /// Sets the map-entry limit.
+    /// Sets or replaces the resource-bound map-entry limit.
     ///
     /// # Parameters
     ///
@@ -166,7 +168,7 @@ where
         self
     }
 
-    /// Sets the structural-key limit.
+    /// Sets or replaces the resource-bound structural-key limit.
     ///
     /// # Parameters
     ///
@@ -182,11 +184,12 @@ where
         self
     }
 
-    /// Builds the configured structural limits.
+    /// Returns the accumulated structural limits, consuming this builder.
     ///
     /// # Returns
     ///
-    /// Builds the configured structural limits.
+    /// The returned limits contain every configured bound, with unset bounds
+    /// remaining unlimited.
     #[inline]
     #[must_use]
     pub fn build(self) -> StructureLimits<R, Q> {

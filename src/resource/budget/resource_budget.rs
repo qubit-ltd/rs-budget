@@ -129,7 +129,6 @@ where
     ///
     /// Returns [`InsufficientBudgetError`] when `amount` exceeds the
     /// remaining capacity.
-    #[must_use = "the availability check result must be handled"]
     pub fn check_available(&self, amount: Q) -> Result<(), InsufficientBudgetError<R, Q>>
     where
         R: Clone,
@@ -187,7 +186,6 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    #[must_use = "the availability check result must be handled"]
     pub fn check_available_usize(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
@@ -213,7 +211,6 @@ where
     /// represented by `Q`, or [`MeasuredBudgetError::Budget`] when it exceeds
     /// the remaining capacity. The budget is unchanged on either failure.
     #[inline]
-    #[must_use = "the availability check result must be handled"]
     pub fn check_available_u64(&self, amount: u64) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
@@ -333,7 +330,7 @@ where
     ///
     /// Returns the associated resource.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
@@ -344,7 +341,7 @@ where
     ///
     /// Returns the immutable resource limit that configures this budget.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
         &self.limit
     }
@@ -355,7 +352,7 @@ where
     ///
     /// Returns the finite limit.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn limit(&self) -> Q {
         self.limit.maximum()
     }
@@ -366,7 +363,7 @@ where
     ///
     /// Returns remaining capacity.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining(&self) -> Q {
         self.remaining
     }
@@ -377,7 +374,7 @@ where
     ///
     /// Returns the quantity consumed so far.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn used(&self) -> Q {
         self.limit.maximum() - self.remaining
     }

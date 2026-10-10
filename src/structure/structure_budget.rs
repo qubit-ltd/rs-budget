@@ -65,7 +65,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a fresh budget session from one structural limit configuration.
+    /// A new session initialized with the supplied limits and its configured
+    /// cumulative node budget.
     #[inline]
     #[must_use = "the budget check result must be handled"]
     pub(crate) fn new(limits: StructureLimits<R, Q>) -> Self {
@@ -265,9 +266,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the immutable limits copied into this session.
+    /// A reference to the limits used to configure this session. The reference
+    /// is valid for as long as this budget is borrowed.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn limits(&self) -> &StructureLimits<R, Q> {
         &self.limits
     }
@@ -278,7 +280,7 @@ where
     ///
     /// `true` when the source limits configured a cumulative node maximum.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn has_nodes_limit(&self) -> bool {
         self.nodes.is_some()
     }
@@ -290,7 +292,7 @@ where
     /// The remaining capacity when a node limit is configured, or `None` for
     /// an unconfigured node dimension.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         match &self.nodes {
             Some(nodes) => Some(nodes.remaining()),
@@ -305,7 +307,7 @@ where
     /// `Some(used)` contains the cumulative node usage when a node limit is
     /// configured. `None` indicates an unconfigured node dimension.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.nodes.as_ref().map(ResourceBudget::used)
     }

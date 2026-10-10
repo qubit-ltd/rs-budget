@@ -42,11 +42,12 @@ impl<R, Q> Default for BigIntegerLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an empty builder through the standard [`Default`] interface.
+    /// Returns a builder with no magnitude or decimal-digit limits configured.
     ///
     /// # Returns
     ///
-    /// Creates an empty builder through the standard [`Default`] interface.
+    /// The returned builder can be configured with either or both supported
+    /// limits before it is built.
     fn default() -> Self {
         Self::new()
     }
@@ -56,11 +57,13 @@ impl<R, Q> BigIntegerLimitsBuilder<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an empty integer-limits builder.
+    /// Returns a builder with neither magnitude nor significant decimal-digit
+    /// limits configured.
     ///
     /// # Returns
     ///
-    /// Creates an empty integer-limits builder.
+    /// The returned builder can be configured with either or both supported
+    /// limits before it is built.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -69,7 +72,7 @@ where
         }
     }
 
-    /// Creates a builder retaining an existing limit configuration.
+    /// Creates a builder initialized from an existing integer-limit value.
     ///
     /// # Parameters
     ///
@@ -78,7 +81,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a builder retaining an existing limit configuration.
+    /// The returned builder contains the supplied configuration and can be
+    /// further adjusted before building.
     #[inline]
     #[must_use]
     pub(crate) const fn from_limits(limits: BigIntegerLimits<R, Q>) -> Self {
@@ -117,11 +121,12 @@ where
         self
     }
 
-    /// Builds the configured integer limits.
+    /// Consumes the builder and returns its accumulated integer-limit value.
     ///
     /// # Returns
     ///
-    /// Builds the configured integer limits.
+    /// This transfers the stored configuration without adding defaults or
+    /// applying validation.
     #[inline]
     #[must_use]
     pub fn build(self) -> BigIntegerLimits<R, Q> {

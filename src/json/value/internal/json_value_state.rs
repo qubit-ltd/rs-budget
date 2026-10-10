@@ -40,7 +40,7 @@ where
     /// # Returns
     ///
     /// Creates the initial zero-used state from configured cumulative maxima.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub(crate) const fn new(remaining_nodes: Option<Q>, remaining_payload_bytes: Option<Q>) -> Self {
         Self {
@@ -58,7 +58,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub(crate) const fn remaining_nodes(&self) -> Option<Q> {
         self.remaining_nodes
     }
@@ -72,7 +72,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub(crate) const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.remaining_payload_bytes
     }

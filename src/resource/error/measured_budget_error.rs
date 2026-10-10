@@ -73,7 +73,7 @@ where
     /// # Returns
     ///
     /// A quantity representation failure retaining its resource identity.
-    #[inline(always)]
+    #[inline]
     pub const fn quantity(resource: R, source: QuantityConversionError) -> Self {
         Self::Quantity { resource, source }
     }
@@ -84,7 +84,7 @@ where
     ///
     /// `Some` for [`Self::Budget`], or `None` for [`Self::Quantity`].
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn budget_error(&self) -> Option<&BudgetError<R, Q>> {
         match self {
             Self::Budget(error) => Some(error),
@@ -98,7 +98,7 @@ where
     ///
     /// `Some` for [`Self::Quantity`], or `None` for [`Self::Budget`].
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn quantity_error(&self) -> Option<&QuantityConversionError> {
         match self {
             Self::Quantity { source, .. } => Some(source),
@@ -116,7 +116,7 @@ where
     ///
     /// Returns the resource associated with this failure.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         match self {
             Self::Quantity { resource, .. } => resource,
@@ -129,7 +129,7 @@ where
     /// # Returns
     ///
     /// Consumes this failure and returns its associated resource.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn into_resource(self) -> R {
         match self {
@@ -152,7 +152,7 @@ where
     /// # Returns
     ///
     /// Wraps a point-limit failure in a measured-budget failure.
-    #[inline(always)]
+    #[inline]
     fn from(error: LimitExceededError<R, Q>) -> Self {
         Self::Budget(error.into())
     }
@@ -171,7 +171,7 @@ where
     /// # Returns
     ///
     /// Wraps a cumulative-budget failure in a measured-budget failure.
-    #[inline(always)]
+    #[inline]
     fn from(error: InsufficientBudgetError<R, Q>) -> Self {
         Self::Budget(error.into())
     }

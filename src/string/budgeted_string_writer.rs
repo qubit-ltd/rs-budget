@@ -83,22 +83,35 @@ where
         }
     }
 
-    /// Separates rendered bytes from the first captured failure.
+    /// Returns a formatting writer view over the current transaction.
     ///
     /// # Returns
     ///
-    /// Separates rendered bytes from the first captured failure.
+    /// The view borrows this writer and forwards formatting output into its
+    /// bounded buffer.
+    #[must_use]
+    #[inline]
+    pub fn as_fmt(&mut self) -> impl fmt::Write + '_ {
+        FmtWriter { writer: self }
+    }
+
+    /// Returns an I/O writer view over the current transaction.
     ///
-    /// A `None` failure component indicates that no writer-side failure was
-    /// captured.
-    fn into_parts(self) -> (Vec<u8>, Option<WriterFailure<R, Q>>) {
-        (self.output, self.failure)
+    /// # Returns
+    ///
+    /// The view borrows this writer and forwards byte writes into its bounded
+    /// buffer, reporting failures through the `io::Write` interface.
+    #[must_use]
+    #[inline]
+    pub fn as_io(&mut self) -> impl io::Write + '_ {
+        IoWriter { writer: self }
     }
 
     /// Appends bytes after checking the next cumulative length and budget.
     ///
-    /// Returns `true` when the bytes were appended, or `false` after storing
-    /// the first failure for the enclosing transaction.
+    /// `true` means all bytes were appended. `false` means a failure was
+    /// retained for the enclosing transaction, which will return it as an
+    /// error.
     ///
     /// # Parameters
     ///
@@ -106,7 +119,7 @@ where
     ///
     /// # Returns
     ///
-    /// Appends bytes after checking the next cumulative length and budget.
+    /// Whether the bytes were appended successfully.
     pub(crate) fn append(&mut self, bytes: &[u8]) -> bool {
         if self.failure.is_some() {
             return false;
@@ -140,26 +153,13 @@ where
         true
     }
 
-    /// Returns a formatting writer view over the current transaction.
+    /// Separates rendered bytes from the first captured failure.
     ///
     /// # Returns
     ///
-    /// Returns a formatting writer view over the current transaction.
-    #[must_use]
-    #[inline]
-    pub fn as_fmt(&mut self) -> impl fmt::Write + '_ {
-        FmtWriter { writer: self }
-    }
-
-    /// Returns an I/O writer view over the current transaction.
-    ///
-    /// # Returns
-    ///
-    /// Returns an I/O writer view over the current transaction.
-    #[must_use]
-    #[inline]
-    pub fn as_io(&mut self) -> impl io::Write + '_ {
-        IoWriter { writer: self }
+    /// The staged bytes and the first writer-side failure, if one was captured.
+    fn into_parts(self) -> (Vec<u8>, Option<WriterFailure<R, Q>>) {
+        (self.output, self.failure)
     }
 }
 
@@ -172,9 +172,7 @@ where
 ///
 /// # Returns
 ///
-/// Adds two output lengths while detecting `usize` overflow.
-///
-/// `None` indicates that the arithmetic sum would overflow `usize`.
+/// The sum, or `None` when it would overflow `usize`.
 const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
     current.checked_add(additional)
 }
@@ -200,7 +198,8 @@ const fn checked_output_len(current: usize, additional: usize) -> Option<usize> 
 ///
 /// # Returns
 ///
-/// `Ok(rendered)` after the complete UTF-8 output is charged and committed.
+/// `Ok(rendered)` contains the complete UTF-8 output after its byte length is
+/// charged to `budget`.
 ///
 /// # Errors
 ///

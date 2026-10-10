@@ -13,5 +13,4 @@ use qubit_budget::json::JsonContainerKind;
 #[test]
 fn test_json_container_kind_variants_are_distinct() {
     assert_ne!(JsonContainerKind::Sequence, JsonContainerKind::Map);
-    assert_eq!(JsonContainerKind::Sequence, JsonContainerKind::Sequence);
 }

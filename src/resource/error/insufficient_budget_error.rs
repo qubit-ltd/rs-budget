@@ -55,7 +55,7 @@ where
     ///
     /// Returns the resource associated with this failure.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
@@ -66,7 +66,7 @@ where
     ///
     /// Consumes this error and returns its associated resource.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn into_resource(self) -> R {
         self.resource
     }
@@ -77,7 +77,7 @@ where
     ///
     /// Returns the configured finite limit.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn limit(&self) -> Q {
         self.limit
     }
@@ -88,7 +88,7 @@ where
     ///
     /// Returns the capacity remaining before the failed request.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining(&self) -> Q {
         self.remaining
     }
@@ -99,7 +99,7 @@ where
     ///
     /// Returns the quantity requested by the failed operation.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn requested(&self) -> Q {
         self.requested
     }

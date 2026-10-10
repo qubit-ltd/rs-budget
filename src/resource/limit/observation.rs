@@ -76,7 +76,7 @@ where
     /// # Returns
     ///
     /// Returns the exact quantity, or `None` for a lower-bound observation.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn exact(self) -> Option<Q> {
         match self {
@@ -90,7 +90,7 @@ where
     /// # Returns
     ///
     /// Returns the safe lower bound represented by this observation.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub const fn lower_bound(self) -> Q {
         match self {
