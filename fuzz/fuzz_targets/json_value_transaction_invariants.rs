@@ -17,18 +17,18 @@ const MAX_INPUT_LEN: usize = 4 * 1024;
 
 fuzz_target!(|data: &[u8]| {
     let input = &data[..data.len().min(MAX_INPUT_LEN)];
-    let nodes = u64::from(input.first().copied().unwrap_or_default());
-    let payload = u64::from(input.get(1).copied().unwrap_or_default());
+    let node_limit = u64::from(input.first().copied().unwrap_or_default());
+    let payload_limit = u64::from(input.get(1).copied().unwrap_or_default());
     let limits = JsonValueLimits::<JsonResource, u64>::builder()
-        .max_nodes(nodes)
-        .max_key_bytes(payload)
-        .payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, payload))
+        .max_nodes(node_limit)
+        .max_key_bytes(payload_limit)
+        .payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, payload_limit))
         .build();
     let mut budget = limits.budget();
     for chunk in input.get(2..).unwrap_or_default().chunks(10) {
         let before_nodes = budget.used_nodes();
         let before_payload = budget.used_payload_bytes();
-        let commit = chunk.first().copied().unwrap_or_default() & 1 == 1;
+        let should_commit = chunk.first().copied().unwrap_or_default() & 1 == 1;
         let mut transaction = budget.transaction();
         let mut admitted = true;
         for measurement_chunk in chunk.get(1..).unwrap_or_default().chunks(3) {
@@ -60,14 +60,14 @@ fuzz_target!(|data: &[u8]| {
                 break;
             }
         }
-        if admitted && commit {
+        if admitted && should_commit {
             transaction.commit().expect("admitted transaction commits");
         }
-        if !admitted || !commit {
+        if !admitted || !should_commit {
             assert_eq!(budget.used_nodes(), before_nodes);
             assert_eq!(budget.used_payload_bytes(), before_payload);
         }
-        assert!(budget.used_nodes() <= Some(nodes));
-        assert!(budget.used_payload_bytes() <= Some(payload));
+        assert!(budget.used_nodes() <= Some(node_limit));
+        assert!(budget.used_payload_bytes() <= Some(payload_limit));
     }
 });
