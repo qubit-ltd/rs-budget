@@ -60,7 +60,7 @@ where
     /// # Returns
     ///
     /// A structured failure containing an [`Observation::Exact`] measurement.
-    #[inline(always)]
+    #[inline]
     pub const fn exact(resource: R, observed: Q, maximum: Q) -> Self {
         Self {
             resource,
@@ -81,7 +81,7 @@ where
     ///
     /// A structured failure containing an [`Observation::AtLeast`]
     /// measurement.
-    #[inline(always)]
+    #[inline]
     pub const fn at_least(resource: R, lower_bound: Q, maximum: Q) -> Self {
         Self {
             resource,
@@ -96,7 +96,7 @@ where
     ///
     /// Returns the resource associated with this failure.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
@@ -107,7 +107,7 @@ where
     ///
     /// Consumes this error and returns its associated resource.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn into_resource(self) -> R {
         self.resource
     }
@@ -118,7 +118,7 @@ where
     ///
     /// Returns the observed point measurement or safe lower bound.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn observation(&self) -> Observation<Q> {
         self.observed
     }
@@ -131,7 +131,7 @@ where
     ///
     /// `None` indicates that the observation is only a lower bound.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn exact_observed(&self) -> Option<Q> {
         match self.observed {
             Observation::Exact(value) => Some(value),
@@ -145,7 +145,7 @@ where
     ///
     /// Returns the safe lower bound of the observed point measurement.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn observed_lower_bound(&self) -> Q {
         self.observed.lower_bound()
     }
@@ -156,7 +156,7 @@ where
     ///
     /// Returns the configured inclusive point maximum.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn maximum(&self) -> Q {
         self.maximum
     }

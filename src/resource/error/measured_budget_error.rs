@@ -114,7 +114,7 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the resource associated with this failure.
+    /// Returns the resource identity carried by either error variant.
     #[must_use]
     #[inline]
     pub const fn resource(&self) -> &R {
@@ -128,7 +128,8 @@ where
     ///
     /// # Returns
     ///
-    /// Consumes this failure and returns its associated resource.
+    /// Returns the resource identity while discarding the measurement or
+    /// budget details carried by this failure.
     #[inline]
     #[must_use]
     pub fn into_resource(self) -> R {
@@ -151,7 +152,7 @@ where
     ///
     /// # Returns
     ///
-    /// Wraps a point-limit failure in a measured-budget failure.
+    /// A measured-budget failure retaining the original point-limit details.
     #[inline]
     fn from(error: LimitExceededError<R, Q>) -> Self {
         Self::Budget(error.into())
@@ -170,7 +171,8 @@ where
     ///
     /// # Returns
     ///
-    /// Wraps a cumulative-budget failure in a measured-budget failure.
+    /// A measured-budget failure retaining the original cumulative-budget
+    /// details.
     #[inline]
     fn from(error: InsufficientBudgetError<R, Q>) -> Self {
         Self::Budget(error.into())

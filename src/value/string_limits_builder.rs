@@ -74,8 +74,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Existing string limits whose configuration is copied into
-    ///   this builder.
+    /// * `limits` - Existing string limits whose configuration is transferred
+    ///   into this builder.
     ///
     /// # Returns
     ///

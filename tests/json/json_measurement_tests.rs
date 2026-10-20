@@ -15,11 +15,11 @@ fn test_string_measurement_retains_native_dimensions() {
         bytes: usize::MAX,
     };
 
-    assert_eq!(
+    assert!(matches!(
         measurement,
         JsonMeasurement::String {
             depth: usize::MAX,
             bytes: usize::MAX,
         },
-    );
+    ));
 }

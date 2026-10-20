@@ -85,6 +85,7 @@ where
     /// Returns this permit's capacity before the end of its lexical scope.
     ///
     /// Consuming `self` prevents callers from releasing the same permit twice.
+    #[inline]
     pub fn release(mut self) {
         self.release_inner();
     }

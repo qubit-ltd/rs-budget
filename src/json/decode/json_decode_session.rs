@@ -92,7 +92,8 @@ where
     ///
     /// # Parameters
     ///
-    /// * `input` - Input supplied to this operation.
+    /// * `input` - Caller-owned raw-input budget to charge during this
+    ///   operation.
     /// * `value` - Caller-owned JSON value budget to update after a successful
     ///   decode attempt.
     ///
@@ -115,8 +116,10 @@ where
     ///
     /// # Parameters
     ///
-    /// * `input` - Input supplied to this operation.
-    /// * `normalized_input` - Optional caller-owned normalized-input budget.
+    /// * `input` - Caller-owned raw-input budget to charge during this
+    ///   operation.
+    /// * `normalized_input` - Caller-owned normalized-input budget to charge
+    ///   for normalized input.
     /// * `value` - Caller-owned JSON value budget to update after a successful
     ///   decode attempt.
     ///
@@ -163,7 +166,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
@@ -180,7 +182,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn max_input_bytes(&self) -> Option<Q> {
         self.input_budget().map(ResourceBudget::limit)
@@ -194,7 +195,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn max_normalized_input_bytes(&self) -> Option<Q> {
         self.normalized_input_budget().map(ResourceBudget::limit)
@@ -208,7 +208,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {

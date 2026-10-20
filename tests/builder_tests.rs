@@ -37,7 +37,13 @@ fn test_builders_cover_generic_limit_setters() {
     let string = StringLimits::<StructureResource, u64>::builder()
         .utf8_bytes_limit(ResourceLimit::new(StructureResource::KeyBytes, 6_u64))
         .build();
-    assert_eq!(string.utf8_bytes_limit().unwrap().maximum(), 6);
+    assert_eq!(
+        string
+            .utf8_bytes_limit()
+            .expect("configured UTF-8 byte limit should be present")
+            .maximum(),
+        6
+    );
     assert_eq!(
         string
             .into_builder()
@@ -175,7 +181,13 @@ fn test_builders_cover_generic_limit_setters() {
             .magnitude_bits_limit(ResourceLimit::new(StructureResource::Nodes, 21_u64))
             .significant_decimal_digits_limit(ResourceLimit::new(StructureResource::Nodes, 22_u64))
             .build();
-        assert_eq!(integer.magnitude_bits_limit().unwrap().maximum(), 21);
+        assert_eq!(
+            integer
+                .magnitude_bits_limit()
+                .expect("configured magnitude bit limit should be present")
+                .maximum(),
+            21
+        );
         assert!(integer.significant_decimal_digits_limit().is_some());
         assert_eq!(integer.into_builder().build(), integer);
         let _: BigIntegerLimits<StructureResource, u64> = Default::default();

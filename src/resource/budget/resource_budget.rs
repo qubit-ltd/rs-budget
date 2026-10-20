@@ -324,55 +324,58 @@ where
         consumed
     }
 
-    /// Returns the associated resource.
+    /// Returns the resource identity used in budget errors.
     ///
     /// # Returns
     ///
-    /// Returns the associated resource.
+    /// The borrowed value is the same resource identity retained by this
+    /// budget's limit.
     #[must_use]
     #[inline]
     pub const fn resource(&self) -> &R {
         self.limit.resource()
     }
 
-    /// Returns the immutable resource limit that configures this budget.
+    /// Returns the immutable limit, including its resource identity and
+    /// maximum capacity.
     ///
     /// # Returns
     ///
-    /// Returns the immutable resource limit that configures this budget.
+    /// The returned reference does not permit changing the configured limit.
     #[must_use]
     #[inline]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
         &self.limit
     }
 
-    /// Returns the finite limit.
+    /// Returns the maximum capacity configured for this budget.
     ///
     /// # Returns
     ///
-    /// Returns the finite limit.
+    /// The maximum does not change as capacity is consumed.
     #[must_use]
     #[inline]
     pub const fn limit(&self) -> Q {
         self.limit.maximum()
     }
 
-    /// Returns remaining capacity.
+    /// Returns capacity that has not yet been consumed.
     ///
     /// # Returns
     ///
-    /// Returns remaining capacity.
+    /// This value is always at most the configured maximum.
     #[must_use]
     #[inline]
     pub const fn remaining(&self) -> Q {
         self.remaining
     }
 
-    /// Returns the quantity consumed so far.
+    /// Returns the configured maximum minus the remaining capacity.
     ///
     /// # Returns
     ///
-    /// Returns the quantity consumed so far.
+    /// The value cannot overflow because it is derived by subtraction from
+    /// the original maximum.
     #[must_use]
     #[inline]
     pub fn used(&self) -> Q {

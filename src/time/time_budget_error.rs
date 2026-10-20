@@ -76,7 +76,7 @@ impl<R> TimeBudgetError<R> {
     ///
     /// Returns the resource by reference.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn resource(&self) -> &R {
         match self {
             Self::Clock { resource, .. } | Self::Expired { resource, .. } | Self::WouldExpire { resource, .. } => {
@@ -90,7 +90,7 @@ impl<R> TimeBudgetError<R> {
     /// # Returns
     ///
     /// Consumes the error and returns its resource.
-    #[inline(always)]
+    #[inline]
     #[must_use]
     pub fn into_resource(self) -> R {
         match self {
@@ -107,7 +107,7 @@ impl<R> TimeBudgetError<R> {
     /// `Some` contains the underlying clock error for [`Self::Clock`]; `None`
     /// is returned for [`Self::Expired`] and [`Self::WouldExpire`].
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn clock_error(&self) -> Option<&TimeError> {
         match self {
             Self::Clock { source, .. } => Some(source),
@@ -122,7 +122,7 @@ impl<R> TimeBudgetError<R> {
     /// `Some` contains the fixed deadline for [`Self::Expired`] and
     /// [`Self::WouldExpire`]; `None` is returned for [`Self::Clock`].
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn deadline(&self) -> Option<MonotonicInstant> {
         match self {
             Self::Expired { deadline, .. } | Self::WouldExpire { deadline, .. } => Some(*deadline),
@@ -137,7 +137,7 @@ impl<R> TimeBudgetError<R> {
     /// `Some` contains the sampled instant for [`Self::Expired`] and
     /// [`Self::WouldExpire`]; `None` is returned for [`Self::Clock`].
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn now(&self) -> Option<MonotonicInstant> {
         match self {
             Self::Expired { now, .. } | Self::WouldExpire { now, .. } => Some(*now),

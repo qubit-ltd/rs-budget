@@ -111,9 +111,17 @@ where
 {
     /// Returns the amount already consumed before the failed request.
     ///
+    /// The amount is computed as `limit - remaining`; therefore, `remaining`
+    /// must not exceed `limit`.
+    ///
     /// # Returns
     ///
     /// Returns the amount already consumed before the failed request.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the public fields were modified so that `remaining` exceeds
+    /// `limit`.
     #[must_use]
     #[inline]
     pub fn used(&self) -> Q {

@@ -157,7 +157,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_depth(&self) -> Option<Q> {
         self.structure.max_depth()
@@ -170,7 +169,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_nodes(&self) -> Option<Q> {
         self.structure.max_nodes()
@@ -183,7 +181,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_sequence_items(&self) -> Option<Q> {
         self.structure.max_sequence_items()
@@ -196,7 +193,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_map_entries(&self) -> Option<Q> {
         self.structure.max_map_entries()
@@ -209,7 +205,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_key_bytes(&self) -> Option<Q> {
         self.structure.max_key_bytes()
@@ -222,7 +217,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn string_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_string_bytes.as_ref()
@@ -235,7 +229,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn number_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_number_bytes.as_ref()
@@ -248,7 +241,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn payload_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_payload_bytes.as_ref()
@@ -261,7 +253,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_string_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_string_bytes.as_ref())
@@ -272,10 +263,10 @@ where
     /// # Returns
     ///
     /// Returns the configured maximum byte length for one number
+    /// representation.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_number_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_number_bytes.as_ref())
@@ -288,7 +279,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_payload_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_payload_bytes.as_ref())

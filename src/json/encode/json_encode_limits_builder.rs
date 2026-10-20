@@ -10,6 +10,7 @@
 use super::JsonEncodeLimits;
 use crate::json::JsonResource;
 use crate::json::JsonValueLimits;
+use crate::json::JsonValueLimitsBuilder;
 use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
 
@@ -285,7 +286,7 @@ where
     /// This encoding builder with the transformed value limits installed.
     fn map_value<F>(mut self, configure: F) -> Self
     where
-        F: FnOnce(crate::json::JsonValueLimitsBuilder<JsonResource, Q>) -> JsonValueLimits<JsonResource, Q>,
+        F: FnOnce(JsonValueLimitsBuilder<JsonResource, Q>) -> JsonValueLimits<JsonResource, Q>,
     {
         let value = *self.limits.value_limits();
         self.limits.set_value_limits(configure(value.into_builder()));

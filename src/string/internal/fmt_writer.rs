@@ -31,7 +31,7 @@ where
     R: Clone,
     Q: ResourceQuantity,
 {
-    /// Appends one formatted string when the budget permits it.
+    /// Appends one formatted string when the bounded writer accepts it.
     ///
     /// # Parameters
     ///
@@ -40,11 +40,12 @@ where
     /// # Returns
     ///
     /// Returns `Ok(())` after appending `value`, or `fmt::Error` when the
-    /// enclosing budget rejects the append.
+    /// bounded writer cannot append it.
     ///
     /// # Errors
     ///
-    /// Returns `fmt::Error` when the enclosing budget rejects the append.
+    /// Returns `fmt::Error` when the bounded writer rejects the append because
+    /// of a budget, measurement, or allocation failure.
     fn write_str(&mut self, value: &str) -> fmt::Result {
         if self.writer.append(value.as_bytes()) {
             Ok(())

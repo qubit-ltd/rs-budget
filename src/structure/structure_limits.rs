@@ -162,7 +162,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn depth_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_depth.as_ref()
@@ -176,7 +175,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn nodes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_nodes.as_ref()
@@ -190,7 +188,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn sequence_items_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_sequence_items.as_ref()
@@ -204,7 +201,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn map_entries_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_map_entries.as_ref()
@@ -218,7 +214,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn key_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_key_bytes.as_ref()
@@ -232,7 +227,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_depth(&self) -> Option<Q> {
         match self.max_depth.as_ref() {
@@ -249,7 +243,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_nodes(&self) -> Option<Q> {
         match self.max_nodes.as_ref() {
@@ -266,7 +259,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_sequence_items(&self) -> Option<Q> {
         match self.max_sequence_items.as_ref() {
@@ -283,7 +275,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_map_entries(&self) -> Option<Q> {
         match self.max_map_entries.as_ref() {
@@ -300,7 +291,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_key_bytes(&self) -> Option<Q> {
         match self.max_key_bytes.as_ref() {

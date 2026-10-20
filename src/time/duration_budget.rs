@@ -65,7 +65,7 @@ impl<R> DurationBudget<R> {
     /// assert_eq!(budget.remaining(), Duration::from_secs(3));
     /// ```
     #[inline]
-    #[must_use = "the availability check result must be handled"]
+    #[must_use = "the duration budget must be retained and used"]
     pub const fn new(resource: R, limit: Duration) -> Self {
         Self {
             limit: ResourceLimit::new(resource, limit),

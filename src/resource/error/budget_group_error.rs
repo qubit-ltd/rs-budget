@@ -85,6 +85,7 @@ where
     /// # Returns
     ///
     /// Returns the structured failure from the rejecting budget.
+    #[must_use = "the underlying budget failure should be inspected"]
     #[inline]
     pub const fn source_error(&self) -> &InsufficientBudgetError<R, Q> {
         &self.source

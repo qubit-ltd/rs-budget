@@ -55,7 +55,7 @@ where
     ///
     /// Creates limits with no configured decimal bounds.
     #[inline]
-    #[must_use = "the decimal limit check result must be handled"]
+    #[must_use = "the decimal limits must be used"]
     pub const fn new() -> Self {
         Self {
             coefficient: BigIntegerLimits::new(),
@@ -91,7 +91,7 @@ where
     ///
     /// Returns the coefficient limits.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn coefficient_limits(&self) -> &BigIntegerLimits<R, Q> {
         &self.coefficient
     }
@@ -105,7 +105,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn scale_magnitude_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_scale_magnitude.as_ref()
     }
@@ -148,7 +148,7 @@ where
     /// # Parameters
     ///
     /// * `limits` - Coefficient limits to apply to the decimal value.
-    #[inline(always)]
+    #[inline]
     pub(super) fn set_coefficient_limits(&mut self, limits: BigIntegerLimits<R, Q>) {
         self.coefficient = limits;
     }
@@ -158,7 +158,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound absolute scale-magnitude limit to install.
-    #[inline(always)]
+    #[inline]
     pub(super) fn set_scale_magnitude_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_scale_magnitude = Some(limit);
     }

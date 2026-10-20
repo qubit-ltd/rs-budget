@@ -94,7 +94,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn magnitude_bits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_magnitude_bits.as_ref()
@@ -108,7 +107,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn significant_decimal_digits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_significant_decimal_digits.as_ref()
@@ -134,7 +132,6 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    #[must_use = "the integer limit check result must be handled"]
     pub fn check(&self, value: &BigInt) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,

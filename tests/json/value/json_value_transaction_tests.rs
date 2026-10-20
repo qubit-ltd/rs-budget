@@ -86,6 +86,7 @@ fn test_check_container_count_rejects_next_map_entry() {
     assert_eq!(error.resource(), &JsonResource::MapEntries);
 }
 
+/// Verifies entering a container accounts for its node before its children.
 #[test]
 fn test_enter_container_admits_node_before_children() {
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()

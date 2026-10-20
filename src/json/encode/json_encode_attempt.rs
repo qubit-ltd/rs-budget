@@ -158,7 +158,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.output.as_deref()
     }
@@ -205,7 +205,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.value.remaining_nodes()
     }
@@ -233,7 +233,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.value.remaining_payload_bytes()
     }

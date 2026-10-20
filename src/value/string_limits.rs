@@ -85,8 +85,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
-    #[inline(always)]
+    #[inline]
     pub const fn utf8_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_utf8_bytes.as_ref()
     }
