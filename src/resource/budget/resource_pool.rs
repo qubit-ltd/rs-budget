@@ -97,6 +97,61 @@ where
         Self { limit, available }
     }
 
+    /// Returns the associated resource.
+    ///
+    /// # Returns
+    ///
+    /// Returns the associated resource.
+    #[must_use]
+    #[inline]
+    pub const fn resource(&self) -> &R {
+        self.limit.resource()
+    }
+
+    /// Returns the immutable resource limit that configures this pool.
+    ///
+    /// # Returns
+    ///
+    /// Returns the immutable resource limit that configures this pool.
+    #[must_use]
+    #[inline]
+    pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
+        &self.limit
+    }
+
+    /// Returns the total finite capacity.
+    ///
+    /// # Returns
+    ///
+    /// Returns the total finite capacity.
+    #[must_use]
+    #[inline]
+    pub const fn capacity(&self) -> Q {
+        self.limit.maximum()
+    }
+
+    /// Returns currently available capacity.
+    ///
+    /// # Returns
+    ///
+    /// Returns currently available capacity.
+    #[must_use]
+    #[inline]
+    pub const fn available(&self) -> Q {
+        self.available
+    }
+
+    /// Returns currently acquired capacity.
+    ///
+    /// # Returns
+    ///
+    /// Returns currently acquired capacity.
+    #[inline]
+    #[must_use]
+    pub fn in_use(&self) -> Q {
+        self.limit.maximum() - self.available
+    }
+
     /// Acquires capacity when enough units are available.
     ///
     /// # Parameters
@@ -160,60 +215,5 @@ where
         }
         self.available = self.available + amount;
         Ok(())
-    }
-
-    /// Returns the associated resource.
-    ///
-    /// # Returns
-    ///
-    /// Returns the associated resource.
-    #[must_use]
-    #[inline]
-    pub const fn resource(&self) -> &R {
-        self.limit.resource()
-    }
-
-    /// Returns the immutable resource limit that configures this pool.
-    ///
-    /// # Returns
-    ///
-    /// Returns the immutable resource limit that configures this pool.
-    #[must_use]
-    #[inline]
-    pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
-        &self.limit
-    }
-
-    /// Returns the total finite capacity.
-    ///
-    /// # Returns
-    ///
-    /// Returns the total finite capacity.
-    #[must_use]
-    #[inline]
-    pub const fn capacity(&self) -> Q {
-        self.limit.maximum()
-    }
-
-    /// Returns currently available capacity.
-    ///
-    /// # Returns
-    ///
-    /// Returns currently available capacity.
-    #[must_use]
-    #[inline]
-    pub const fn available(&self) -> Q {
-        self.available
-    }
-
-    /// Returns currently acquired capacity.
-    ///
-    /// # Returns
-    ///
-    /// Returns currently acquired capacity.
-    #[inline]
-    #[must_use]
-    pub fn in_use(&self) -> Q {
-        self.limit.maximum() - self.available
     }
 }
