@@ -89,81 +89,6 @@ impl<R> DurationBudget<R> {
         Self { limit, remaining }
     }
 
-    /// Checks whether a complete duration consumption would fit.
-    ///
-    /// # Parameters
-    ///
-    /// * `duration` - Explicit duration to check.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` when the duration fits, otherwise a structured error with no
-    /// state mutation.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
-    /// remaining duration.
-    #[must_use = "the availability check result must be handled"]
-    pub fn check_available(&self, duration: Duration) -> Result<(), InsufficientBudgetError<R, Duration>>
-    where
-        R: Clone,
-    {
-        if duration <= self.remaining {
-            Ok(())
-        } else {
-            Err(InsufficientBudgetError {
-                resource: self.limit.resource().clone(),
-                limit: self.limit.maximum(),
-                remaining: self.remaining,
-                requested: duration,
-            })
-        }
-    }
-
-    /// Consumes a duration atomically when it fits.
-    ///
-    /// # Parameters
-    ///
-    /// * `duration` - Explicit active duration to consume.
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` after subtraction, or a structured error while leaving the
-    /// remaining duration unchanged.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
-    /// remaining duration. The budget remains unchanged in that case.
-    #[inline]
-    pub fn try_consume(&mut self, duration: Duration) -> Result<(), InsufficientBudgetError<R, Duration>>
-    where
-        R: Clone,
-    {
-        self.check_available(duration)?;
-        self.remaining -= duration;
-        Ok(())
-    }
-
-    /// Consumes as much of the requested duration as remains available.
-    ///
-    /// # Parameters
-    ///
-    /// * `requested` - Maximum duration to consume.
-    ///
-    /// # Returns
-    ///
-    /// The exact duration consumed, equal to the smaller of `requested` and
-    /// the current remaining duration.
-    #[inline]
-    #[must_use]
-    pub fn consume_available(&mut self, requested: Duration) -> Duration {
-        let consumed = requested.min(self.remaining);
-        self.remaining -= consumed;
-        consumed
-    }
-
     /// Borrows the resource value associated with this budget.
     ///
     /// # Returns
@@ -221,5 +146,79 @@ impl<R> DurationBudget<R> {
     #[inline]
     pub const fn used(&self) -> Duration {
         self.limit.maximum().saturating_sub(self.remaining)
+    }
+
+    /// Checks whether a complete duration consumption would fit.
+    ///
+    /// # Parameters
+    ///
+    /// * `duration` - Explicit duration to check.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the duration fits, otherwise a structured error with no
+    /// state mutation.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
+    /// remaining duration.
+    pub fn check_available(&self, duration: Duration) -> Result<(), InsufficientBudgetError<R, Duration>>
+    where
+        R: Clone,
+    {
+        if duration <= self.remaining {
+            Ok(())
+        } else {
+            Err(InsufficientBudgetError {
+                resource: self.limit.resource().clone(),
+                limit: self.limit.maximum(),
+                remaining: self.remaining,
+                requested: duration,
+            })
+        }
+    }
+
+    /// Consumes a duration atomically when it fits.
+    ///
+    /// # Parameters
+    ///
+    /// * `duration` - Explicit active duration to consume.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` after subtraction, or a structured error while leaving the
+    /// remaining duration unchanged.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InsufficientBudgetError`] when `duration` exceeds the
+    /// remaining duration. The budget remains unchanged in that case.
+    #[inline]
+    pub fn try_consume(&mut self, duration: Duration) -> Result<(), InsufficientBudgetError<R, Duration>>
+    where
+        R: Clone,
+    {
+        self.check_available(duration)?;
+        self.remaining -= duration;
+        Ok(())
+    }
+
+    /// Consumes as much of the requested duration as remains available.
+    ///
+    /// # Parameters
+    ///
+    /// * `requested` - Maximum duration to consume.
+    ///
+    /// # Returns
+    ///
+    /// The exact duration consumed, equal to the smaller of `requested` and
+    /// the current remaining duration.
+    #[inline]
+    #[must_use]
+    pub fn consume_available(&mut self, requested: Duration) -> Duration {
+        let consumed = requested.min(self.remaining);
+        self.remaining -= consumed;
+        consumed
     }
 }
