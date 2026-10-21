@@ -94,7 +94,7 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the resource associated with this failure.
+    /// A borrow of the original resource value, without cloning it.
     #[must_use]
     #[inline]
     pub const fn resource(&self) -> &R {
@@ -105,7 +105,7 @@ where
     ///
     /// # Returns
     ///
-    /// Consumes this error and returns its associated resource.
+    /// The original resource value, moving it out of this error.
     #[must_use]
     #[inline]
     pub fn into_resource(self) -> R {
@@ -116,7 +116,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the observed point measurement or safe lower bound.
+    /// The observation preserves whether the measurement was exact or only
+    /// a proven lower bound.
     #[must_use]
     #[inline]
     pub const fn observation(&self) -> Observation<Q> {
@@ -127,10 +128,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the exact point measurement when the observation is exact.
+    /// `Some(value)` for an exact measurement, or `None` when only a lower
+    /// bound is known.
     ///
     /// `None` indicates that the observation is only a lower bound.
-    #[must_use]
     #[inline]
     pub const fn exact_observed(&self) -> Option<Q> {
         match self.observed {
@@ -143,7 +144,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the safe lower bound of the observed point measurement.
+    /// The measured value when exact, or the proven minimum when the
+    /// observation is a lower bound.
     #[must_use]
     #[inline]
     pub const fn observed_lower_bound(&self) -> Q {
@@ -154,7 +156,7 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured inclusive point maximum.
+    /// The maximum that the measured value was required not to exceed.
     #[must_use]
     #[inline]
     pub const fn maximum(&self) -> Q {

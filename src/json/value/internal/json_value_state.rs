@@ -75,7 +75,12 @@ where
         self.remaining_payload_bytes
     }
 
-    /// Decreases the checked cumulative capacities for one admitted event.
+    /// Decreases cumulative capacities for an event already checked by the
+    /// caller.
+    ///
+    /// The caller must verify that every configured capacity can accommodate
+    /// this event before applying it; this method assumes those checks have
+    /// succeeded and subtracts directly from the fixed-size state.
     ///
     /// # Parameters
     ///

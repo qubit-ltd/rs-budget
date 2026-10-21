@@ -129,7 +129,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
@@ -146,7 +145,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn max_output_bytes(&self) -> Option<Q> {
         self.output_budget().map(ResourceBudget::limit)

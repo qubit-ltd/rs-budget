@@ -63,20 +63,19 @@ where
     ///
     /// # Returns
     ///
-    /// Starts an all-or-nothing accounting transaction for one JSON value.
+    /// A transaction that stages admissions against this budget until
+    /// committed.
     #[must_use = "the transaction must be committed or dropped intentionally"]
     pub fn transaction(&mut self) -> JsonValueTransaction<'_, R, Q> {
         JsonValueTransaction::new(self)
     }
 
-    /// Returns committed node usage when the cumulative node limit is set.
+    /// Returns the number of nodes published by completed transactions.
     ///
     /// # Returns
     ///
-    /// Returns committed node usage when the cumulative node limit is set.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` contains committed node usage when the cumulative node limit is
+    /// configured; `None` means node accounting is not configured.
     ///
     /// # Panics
     ///
@@ -89,29 +88,23 @@ where
             .map(|remaining| self.limits.max_nodes().expect("configured nodes limit") - remaining)
     }
 
-    /// Returns committed remaining node capacity when that limit is set.
+    /// Returns the committed node capacity that remains available.
     ///
     /// # Returns
     ///
-    /// Returns committed remaining node capacity when that limit is set.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` contains remaining node capacity when configured; `None` means
+    /// node accounting is not configured.
     #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.state.remaining_nodes()
     }
 
-    /// Returns committed payload usage when the cumulative payload limit is
-    /// set.
+    /// Returns the payload bytes consumed by completed transactions.
     ///
     /// # Returns
     ///
-    /// Returns committed payload usage when the cumulative payload limit is
-    /// set.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` contains committed payload usage when the cumulative payload
+    /// limit is configured; `None` means payload accounting is not configured.
     ///
     /// # Panics
     ///
@@ -124,14 +117,12 @@ where
             .map(|remaining| self.limits.max_payload_bytes().expect("configured payload limit") - remaining)
     }
 
-    /// Returns committed remaining payload capacity when that limit is set.
+    /// Returns the committed payload capacity that remains available.
     ///
     /// # Returns
     ///
-    /// Returns committed remaining payload capacity when that limit is set.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` contains remaining payload capacity when configured; `None` means
+    /// payload accounting is not configured.
     #[inline]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.state.remaining_payload_bytes()
@@ -142,7 +133,7 @@ impl<R, Q> JsonValueBudget<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an empty committed ledger for `limits`.
+    /// Creates an empty committed ledger using `limits`.
     ///
     /// # Parameters
     ///
@@ -151,7 +142,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates an empty committed ledger for `limits`.
+    /// A budget with zero committed usage and the supplied limits.
     #[inline]
     #[must_use]
     pub fn new(limits: JsonValueLimits<R, Q>) -> Self {
@@ -159,18 +150,18 @@ where
         Self { limits, state }
     }
 
-    /// Returns the immutable limits shared by all transactions.
+    /// Borrows the immutable limits shared by all transactions.
     ///
     /// # Returns
     ///
-    /// Returns the immutable limits shared by all transactions.
+    /// The limits used to initialize this budget and each transaction.
     #[must_use]
     #[inline]
     pub const fn limits(&self) -> &JsonValueLimits<R, Q> {
         &self.limits
     }
 
-    /// Restores the ledger to its original zero-used committed state.
+    /// Restores the ledger to zero committed usage while preserving its limits.
     pub fn reset(&mut self) {
         self.state = JsonValueState::new(self.limits.max_nodes(), self.limits.max_payload_bytes());
     }

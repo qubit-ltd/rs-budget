@@ -50,7 +50,7 @@ where
     ///
     /// Creates limits with no configured string bound.
     #[inline]
-    #[must_use = "the string limit check result must be handled"]
+    #[must_use = "the string limits should be used"]
     pub const fn new() -> Self {
         Self { max_utf8_bytes: None }
     }
@@ -108,7 +108,6 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    #[must_use = "the string limit check result must be handled"]
     pub fn check(&self, value: &str) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,

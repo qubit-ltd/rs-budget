@@ -70,11 +70,12 @@ pub enum TimeBudgetError<R> {
 }
 
 impl<R> TimeBudgetError<R> {
-    /// Returns the resource by reference.
+    /// Returns a shared reference to the resource value retained by this error.
     ///
     /// # Returns
     ///
-    /// Returns the resource by reference.
+    /// The reference is tied to the borrow of `self`, so the resource is not
+    /// cloned or removed from the error.
     #[must_use]
     #[inline]
     pub const fn resource(&self) -> &R {
@@ -85,11 +86,12 @@ impl<R> TimeBudgetError<R> {
         }
     }
 
-    /// Consumes the error and returns its resource.
+    /// Removes and returns the resource value, consuming the error.
     ///
     /// # Returns
     ///
-    /// Consumes the error and returns its resource.
+    /// The remaining error details are dropped when ownership of the error is
+    /// consumed.
     #[inline]
     #[must_use]
     pub fn into_resource(self) -> R {

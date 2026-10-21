@@ -16,7 +16,7 @@ use thiserror::Error;
 /// # Type Parameters
 ///
 /// * `R` - Caller-defined resource identity retained by limits and errors.
-/// * `Q` - Exact unsigned quantity used for measurements and accounting.
+/// * `Q` - Quantity type used for pool capacity and accounting.
 ///
 /// # Examples
 ///

@@ -207,7 +207,13 @@ fn test_builders_cover_generic_limit_setters() {
             )
             .scale_magnitude_limit(ResourceLimit::new(StructureResource::Nodes, 24_u64))
             .build();
-        assert_eq!(decimal.scale_magnitude_limit().unwrap().maximum(), 24);
+        assert_eq!(
+            decimal
+                .scale_magnitude_limit()
+                .expect("configured scale magnitude limit should be present")
+                .maximum(),
+            24
+        );
         assert!(decimal.coefficient_limits().magnitude_bits_limit().is_some());
         assert_eq!(decimal.into_builder().build(), decimal);
         let _: BigDecimalLimits<StructureResource, u64> = Default::default();

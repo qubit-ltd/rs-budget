@@ -40,11 +40,13 @@ where
     /// # Returns
     ///
     /// Returns the number of appended bytes, or an I/O error when the
-    /// enclosing budget rejects the append.
+    /// enclosing writer cannot append the bytes because of its budget or a
+    /// writer-side failure.
     ///
     /// # Errors
     ///
-    /// Returns an I/O error when the enclosing budget rejects the append.
+    /// Returns an I/O error when the enclosing writer rejects or cannot append
+    /// the bytes.
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         if self.writer.append(bytes) {
             Ok(bytes.len())

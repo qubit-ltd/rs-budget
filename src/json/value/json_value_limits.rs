@@ -63,11 +63,12 @@ impl<R, Q> Default for JsonValueLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates a limit set with every value dimension unconfigured.
+    /// Creates a limit set with every structural and value-specific dimension
+    /// unconfigured.
     ///
     /// # Returns
     ///
-    /// Creates a limit set with every value dimension unconfigured.
+    /// A limit set with no configured resource limits.
     fn default() -> Self {
         Self::new()
     }
@@ -77,11 +78,12 @@ impl<R, Q> JsonValueLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates an empty value limit set with no configured resource limits.
+    /// Creates an empty limit set with structural and value-specific limits
+    /// unset.
     ///
     /// # Returns
     ///
-    /// Creates an empty value limit set with no configured resource limits.
+    /// A limit set with no configured resource limits.
     #[inline]
     #[must_use = "the constructed limits should be used"]
     pub const fn new() -> Self {
@@ -92,22 +94,22 @@ where
             max_payload_bytes: None,
         }
     }
-    /// Creates a builder for JSON value limits.
+    /// Creates a builder with all JSON value limits unset.
     ///
     /// # Returns
     ///
-    /// Creates a builder for JSON value limits.
+    /// A builder ready to configure JSON value limits.
     #[inline]
     #[must_use]
     pub const fn builder() -> JsonValueLimitsBuilder<R, Q> {
         JsonValueLimitsBuilder::new()
     }
 
-    /// Converts these limits into a builder for further configuration.
+    /// Converts these limits into a builder while preserving their settings.
     ///
     /// # Returns
     ///
-    /// Converts these limits into a builder for further configuration.
+    /// A builder initialized with these limits.
     #[inline]
     #[must_use]
     pub const fn into_builder(self) -> JsonValueLimitsBuilder<R, Q> {
@@ -129,21 +131,22 @@ where
             || self.max_payload_bytes.is_some()
     }
 
-    /// Borrows the structural limits used by this value configuration.
+    /// Borrows the structural limits that govern nesting, node counts,
+    /// container sizes, and object-key sizes.
     ///
     /// # Returns
     ///
-    /// Borrows the structural limits used by this value configuration.
+    /// The structural limits, borrowed for inspection.
     #[must_use]
     #[inline]
     pub const fn structure_limits(&self) -> &StructureLimits<R, Q> {
         &self.structure
     }
-    /// Consumes these value limits and returns their structural limits.
+    /// Consumes these value limits and extracts the structural configuration.
     ///
     /// # Returns
     ///
-    /// Consumes these value limits and returns their structural limits.
+    /// The structural limits, with value-specific byte limits discarded.
     #[must_use]
     #[inline]
     pub fn into_structure_limits(self) -> StructureLimits<R, Q> {
@@ -155,8 +158,7 @@ where
     ///
     /// Returns the configured root-inclusive nesting-depth maximum.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that no maximum nesting depth is configured.
     #[inline]
     pub const fn max_depth(&self) -> Option<Q> {
         self.structure.max_depth()
@@ -167,8 +169,7 @@ where
     ///
     /// Returns the configured cumulative JSON-node maximum.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that no maximum cumulative node count is configured.
     #[inline]
     pub const fn max_nodes(&self) -> Option<Q> {
         self.structure.max_nodes()
@@ -179,8 +180,7 @@ where
     ///
     /// Returns the configured maximum item count for one JSON array.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that no maximum array length is configured.
     #[inline]
     pub const fn max_sequence_items(&self) -> Option<Q> {
         self.structure.max_sequence_items()
@@ -191,8 +191,7 @@ where
     ///
     /// Returns the configured maximum entry count for one JSON object.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that no maximum object entry count is configured.
     #[inline]
     pub const fn max_map_entries(&self) -> Option<Q> {
         self.structure.max_map_entries()
@@ -203,82 +202,79 @@ where
     ///
     /// Returns the configured maximum byte length for one JSON object key.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that no maximum object-key length is configured.
     #[inline]
     pub const fn max_key_bytes(&self) -> Option<Q> {
         self.structure.max_key_bytes()
     }
-    /// Returns the complete string-byte limit, when configured.
+    /// Borrows the complete per-string byte limit, including its resource
+    /// identity, when one is configured.
     ///
     /// # Returns
     ///
-    /// Returns the complete string-byte limit, when configured.
+    /// The configured limit, or `None` when string-byte limiting is disabled.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that string-byte limiting is disabled.
     #[inline]
     pub const fn string_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_string_bytes.as_ref()
     }
-    /// Returns the complete number-byte limit, when configured.
+    /// Borrows the complete per-number byte limit, including its resource
+    /// identity, when one is configured.
     ///
     /// # Returns
     ///
-    /// Returns the complete number-byte limit, when configured.
+    /// The configured limit, or `None` when number-byte limiting is disabled.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that number-byte limiting is disabled.
     #[inline]
     pub const fn number_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_number_bytes.as_ref()
     }
-    /// Returns the complete cumulative payload-byte limit, when configured.
+    /// Borrows the complete cumulative payload-byte limit, including its
+    /// resource identity, when one is configured.
     ///
     /// # Returns
     ///
-    /// Returns the complete cumulative payload-byte limit, when configured.
+    /// The configured limit, or `None` when payload-byte limiting is disabled.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that payload-byte limiting is disabled.
     #[inline]
     pub const fn payload_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_payload_bytes.as_ref()
     }
-    /// Returns the configured maximum byte length for one string value.
+    /// Returns the per-string byte maximum, without its resource identity.
     ///
     /// # Returns
     ///
-    /// Returns the configured maximum byte length for one string value.
+    /// The configured maximum, or `None` when string-byte limiting is disabled.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that string-byte limiting is disabled.
     #[inline]
     pub const fn max_string_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_string_bytes.as_ref())
     }
-    /// Returns the configured maximum byte length for one number
-    /// representation.
+    /// Returns the per-number representation byte maximum, without its
+    /// resource identity.
     ///
     /// # Returns
     ///
-    /// Returns the configured maximum byte length for one number
-    /// representation.
+    /// The configured maximum, or `None` when number-byte limiting is disabled.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that number-byte limiting is disabled.
     #[inline]
     pub const fn max_number_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_number_bytes.as_ref())
     }
-    /// Returns the configured cumulative payload-byte maximum.
+    /// Returns the cumulative payload-byte maximum, without its resource
+    /// identity.
     ///
     /// # Returns
     ///
-    /// Returns the configured cumulative payload-byte maximum.
+    /// The configured maximum, or `None` when payload-byte limiting is
+    /// disabled.
     ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `None` indicates that payload-byte limiting is disabled.
     #[inline]
     pub const fn max_payload_bytes(&self) -> Option<Q> {
         limit_maximum(self.max_payload_bytes.as_ref())
@@ -314,11 +310,11 @@ where
         PreparedJsonAdmission::prepare(self, measurement)?.check_point(self)
     }
 
-    /// Creates a fresh mutable budget from these JSON value limits.
+    /// Consumes these limits to create a fresh mutable accounting budget.
     ///
     /// # Returns
     ///
-    /// Creates a fresh mutable budget from these JSON value limits.
+    /// A budget initialized with these limits and zero usage.
     #[inline]
     #[must_use]
     pub fn budget(self) -> JsonValueBudget<R, Q> {

@@ -72,6 +72,7 @@ where
     /// # Returns
     ///
     /// Creates a transaction using a snapshot of `target`'s committed state.
+    #[must_use = "the transaction must be committed or dropped intentionally"]
     #[inline]
     pub(super) const fn new(target: &'a mut JsonValueBudget<R, Q>) -> Self {
         Self {
@@ -427,6 +428,7 @@ where
 /// # Returns
 ///
 /// Returns the cumulative node and payload cost of a prepared JSON event.
+#[must_use]
 fn cumulative_cost<Q>(prepared: PreparedJsonAdmission<Q>) -> (bool, Q)
 where
     Q: ResourceQuantity,

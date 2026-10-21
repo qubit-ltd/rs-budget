@@ -106,7 +106,6 @@ where
     /// # Returns
     ///
     /// Returns the cumulative limit for budget and pool failures.
-    #[must_use]
     #[inline]
     pub const fn limit(&self) -> Option<Q> {
         match self {
@@ -123,7 +122,6 @@ where
     /// # Returns
     ///
     /// Returns the observation for a point-limit failure.
-    #[must_use]
     #[inline]
     pub const fn observation(&self) -> Option<Observation<Q>> {
         match self {
@@ -140,7 +138,6 @@ where
     ///
     /// `None` indicates that the observation is only a lower bound.
     #[inline]
-    #[must_use]
     pub const fn exact_observed(&self) -> Option<Q> {
         match self.observation() {
             Some(Observation::Exact(value)) => Some(value),
@@ -157,7 +154,6 @@ where
     /// `None` indicates that this is a cumulative-budget failure rather than a
     /// point-limit failure.
     #[inline]
-    #[must_use]
     pub const fn observed_lower_bound(&self) -> Option<Q> {
         match self.observation() {
             Some(observed) => Some(observed.lower_bound()),
@@ -174,7 +170,6 @@ where
     ///
     /// Returns the configured maximum for a point-limit failure.
     #[inline]
-    #[must_use]
     pub const fn maximum(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { maximum, .. } => Some(*maximum),
@@ -191,7 +186,6 @@ where
     ///
     /// Returns the remaining capacity for a cumulative-budget failure.
     #[inline]
-    #[must_use]
     pub const fn remaining(&self) -> Option<Q> {
         match self {
             Self::Insufficient { remaining, .. } => Some(*remaining),
@@ -208,7 +202,6 @@ where
     ///
     /// Returns the requested quantity for a cumulative budget failure.
     #[inline]
-    #[must_use]
     pub const fn requested(&self) -> Option<Q> {
         match self {
             Self::LimitExceeded { .. } => None,
@@ -243,7 +236,6 @@ where
     ///
     /// `None` indicates that this is a point-limit failure with no cumulative
     /// usage.
-    #[must_use]
     #[inline]
     pub fn used(&self) -> Option<Q> {
         match self {

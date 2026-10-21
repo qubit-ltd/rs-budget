@@ -9,7 +9,11 @@
 //! contract.
 
 #[cfg(not(miri))]
+use std::env;
+#[cfg(not(miri))]
 use std::fs;
+#[cfg(not(miri))]
+use std::path::Path;
 #[cfg(not(miri))]
 use std::process::Command;
 
@@ -274,10 +278,10 @@ fn rust_snippets(document: &str) -> Vec<String> {
 #[cfg(not(miri))]
 #[test]
 fn test_user_guide_rust_snippets_compile() {
-    let workspace = std::env::temp_dir().join(format!("qubit-budget-guide-snippets-{}", std::process::id()));
+    let workspace = env::temp_dir().join(format!("qubit-budget-guide-snippets-{}", std::process::id()));
     let source_dir = workspace.join("src");
     fs::create_dir_all(&source_dir).expect("temporary snippet project should be created");
-    let package_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let package_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     fs::write(
         workspace.join("Cargo.toml"),
         format!(

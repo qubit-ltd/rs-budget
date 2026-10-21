@@ -54,9 +54,10 @@ where
     ///
     /// # Returns
     ///
-    /// Creates limits with no configured integer bounds.
+    /// The returned value has neither magnitude nor decimal-digit bounds
+    /// configured.
     #[inline]
-    #[must_use = "the integer limit check result must be handled"]
+    #[must_use = "the integer limits should be used"]
     pub const fn new() -> Self {
         Self {
             max_magnitude_bits: None,
@@ -68,7 +69,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a builder for integer limits.
+    /// The returned builder starts without configured integer bounds.
     #[inline]
     #[must_use]
     pub const fn builder() -> BigIntegerLimitsBuilder<R, Q> {
@@ -79,7 +80,7 @@ where
     ///
     /// # Returns
     ///
-    /// Converts these limits into a builder for further configuration.
+    /// The returned builder starts with this value's existing configuration.
     #[inline]
     #[must_use]
     pub const fn into_builder(self) -> BigIntegerLimitsBuilder<R, Q> {
@@ -95,6 +96,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[inline]
+    #[must_use]
     pub const fn magnitude_bits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_magnitude_bits.as_ref()
     }
@@ -108,6 +110,7 @@ where
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
     #[inline]
+    #[must_use]
     pub const fn significant_decimal_digits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_significant_decimal_digits.as_ref()
     }

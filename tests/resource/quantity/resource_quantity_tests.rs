@@ -14,7 +14,7 @@ use qubit_budget::ResourceQuantity;
 fn test_unsigned_quantities_provide_checked_addition() {
     assert_eq!(<u8 as ResourceQuantity>::checked_add(2, 3), Some(5));
     assert_eq!(<usize as ResourceQuantity>::checked_add(2, 3), Some(5));
-    assert_eq!(<u8 as ResourceQuantity>::checked_add(u8::MAX, 1), None,);
+    assert_eq!(<u8 as ResourceQuantity>::checked_add(u8::MAX, 1), None);
 }
 
 #[test]

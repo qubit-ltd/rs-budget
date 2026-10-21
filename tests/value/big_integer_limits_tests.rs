@@ -112,8 +112,8 @@ fn test_big_integer_check_accepts_values_at_both_limits() {
         .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, 3_u64))
         .build();
     limits
-        .check(&BigInt::from(100))
-        .expect("the value should fit both point limits");
+        .check(&BigInt::from(255))
+        .expect("the value should fit both configured limits");
     assert_eq!(limits.into_builder().build(), limits);
 }
 
