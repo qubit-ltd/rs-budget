@@ -9,6 +9,8 @@
 use std::convert::Infallible;
 use std::fmt::Write as _;
 use std::io::Write as _;
+use std::panic::AssertUnwindSafe;
+use std::panic::catch_unwind;
 
 use qubit_budget::BudgetedStringError;
 use qubit_budget::InsufficientBudgetError;
@@ -187,4 +189,42 @@ fn test_writer_supports_usize_budget_quantities() {
         .expect("usize quantity must accept fitting output");
     assert_eq!(output, "rust");
     assert_eq!(budget.used(), 4);
+}
+
+#[test]
+fn test_renderer_panic_preserves_budget() {
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 8_u64);
+    budget.try_consume(1).unwrap();
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        let _ = budget.try_write_string(|writer| -> Result<(), std::io::Error> {
+            writer.as_io().write_all(b"ok")?;
+            panic!("renderer panic");
+        });
+    }));
+    assert!(result.is_err());
+    assert_eq!((budget.used(), budget.remaining()), (1, 7));
+}
+
+#[test]
+fn test_utf8_scalar_may_span_io_writes() {
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 2_u64);
+    let text = budget
+        .try_write_string(|writer| {
+            let mut output = writer.as_io();
+            output.write_all(&[0xc3])?;
+            output.write_all(&[0xa9])
+        })
+        .unwrap();
+    assert_eq!(text, "é");
+    assert_eq!(budget.used(), 2);
+}
+
+#[test]
+fn test_incomplete_final_utf8_preserves_budget() {
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 2_u64);
+    let error = budget
+        .try_write_string(|writer| writer.as_io().write_all(&[0xc3]))
+        .expect_err("incomplete UTF-8 must fail at final validation");
+    assert!(matches!(error, BudgetedStringError::InvalidUtf8(_)));
+    assert_eq!((budget.used(), budget.remaining()), (0, 2));
 }

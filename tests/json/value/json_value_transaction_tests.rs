@@ -107,3 +107,50 @@ fn test_enter_container_admits_node_before_children() {
     assert_eq!(error.resource(), &JsonResource::Depth);
     assert_eq!(transaction.used_nodes(), Some(1));
 }
+
+/// Verifies poisoning preserves the first failure and publishes no staged
+/// usage.
+#[test]
+fn test_poison_rejects_later_admission_and_commit_without_publishing() {
+    let mut budget = JsonValueLimits::<JsonResource, u8>::builder()
+        .max_nodes(3)
+        .max_string_bytes(2)
+        .max_payload_bytes(3)
+        .build()
+        .budget();
+    let mut transaction = budget.transaction();
+    transaction
+        .try_admit(JsonMeasurement::String { depth: 1, bytes: 2 })
+        .expect("first string fits");
+    assert_eq!(
+        (transaction.used_nodes(), transaction.used_payload_bytes()),
+        (Some(1), Some(2))
+    );
+
+    let first = transaction
+        .try_admit(JsonMeasurement::String { depth: 1, bytes: 256 })
+        .expect_err("u8 cannot represent the configured string measurement");
+    let second = transaction
+        .try_admit(JsonMeasurement::Null { depth: 1 })
+        .expect_err("poisoned transaction retains its first failure");
+    assert_eq!(first.resource(), second.resource());
+    assert_eq!(
+        first.quantity_error().expect("quantity failure").measurement(),
+        second.quantity_error().expect("same quantity failure").measurement(),
+    );
+    let final_error = transaction.commit().expect_err("poisoned transaction cannot commit");
+    assert_eq!(
+        first.quantity_error().expect("quantity failure").measurement(),
+        final_error
+            .quantity_error()
+            .expect("same quantity failure")
+            .measurement(),
+    );
+    assert_eq!((budget.used_nodes(), budget.used_payload_bytes()), (Some(0), Some(0)));
+
+    let mut next = budget.transaction();
+    next.try_admit(JsonMeasurement::Null { depth: 1 })
+        .expect("a new transaction can use the unchanged budget");
+    next.commit().expect("new transaction commits");
+    assert_eq!(budget.used_nodes(), Some(1));
+}
