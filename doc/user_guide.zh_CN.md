@@ -24,7 +24,7 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 | `qubit-http` | 从流式 HTTP 响应收集的字节 | `ResourceBudget` | 每个已接受的分块都会永久消耗响应体额度。 |
 | `qubit-config` | 配置源的字节、属性、节点和包含的子源 | `ResourceBudget`、`ResourceLimit`、预算组 | 子源必须同时满足自身和所有父源的限制。 |
 | `qubit-local-files` | 复制或遍历时打开的目录读取器 | `ManagedResourcePool` | 读取器打开期间持有 permit，Drop 自动归还容量。 |
-| `qubit-retry` | 已准入尝试次数、累计操作耗时和总耗时 | `ResourceBudget` | 当前重试记账通过显式 `qubit-clock` 采样和内部 `Duration` 状态完成。 |
+| `qubit-retry` | 已准入尝试次数、累计操作耗时和总耗时 | `ResourceBudget`（尝试次数）、内部 `Duration` 状态（耗时） | 当前重试记账通过显式 `qubit-clock` 采样和内部 `Duration` 状态完成。 |
 | `qubit-json` | 原始输入、规范化输入和一个 JSON value | JSON session 与 transaction | 已接受的 I/O 必须保留计费；失败的 value 不能占用结构容量。 |
 
 ### 记账模式

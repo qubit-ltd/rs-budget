@@ -27,7 +27,7 @@ how to turn a typed failure into an application error.
 | `qubit-http` | Bytes collected from a streaming HTTP response | `ResourceBudget` | Each accepted chunk permanently consumes response-body capacity. |
 | `qubit-config` | Source bytes, properties, nodes, and included sources | `ResourceBudget`, `ResourceLimit`, grouped charge | A child source must satisfy both its own and every ancestor’s limit. |
 | `qubit-local-files` | Open directory readers during a copy or walk | `ManagedResourcePool` | A reader owns a permit while open; Drop returns capacity. |
-| `qubit-retry` | Admitted attempts, cumulative operation time, and total elapsed time | `ResourceBudget` | Current retry accounting uses explicit `qubit-clock` samples and internal `Duration` state. |
+| `qubit-retry` | Admitted attempts, cumulative operation time, and total elapsed time | `ResourceBudget` (attempts), internal `Duration` state (time) | Current retry accounting uses explicit `qubit-clock` samples and internal `Duration` state. |
 | `qubit-json` | Raw input, normalized input, and one decoded JSON value | JSON sessions and transactions | I/O already accepted must remain charged; a failed value must not consume structural capacity. |
 
 ### Accounting models
