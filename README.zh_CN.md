@@ -16,14 +16,14 @@
 
 ```toml
 [dependencies]
-qubit-budget = "0.8"
+qubit-budget = "0.9"
 ```
 
 本 crate 默认不启用 feature。只有需要集成能力时才按需开启：
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.8", features = ["json"] }
+qubit-budget = { version = "0.9", features = ["json"] }
 ```
 
 可选 feature 为 `json`、`big-integer`、`big-decimal`（会同时启用
@@ -35,6 +35,7 @@ qubit-budget = { version = "0.8", features = ["json"] }
 请求超出余额，预算不会变化：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceBudget;
 
 let mut response = ResourceBudget::new("response-bytes", 8_u64);
@@ -49,6 +50,8 @@ assert_eq!(error.limit(), 8);
 assert_eq!(error.remaining(), 3);
 assert_eq!(error.requested(), 4);
 assert_eq!(response.used(), 5);
+Ok(())
+}
 ```
 
 实际使用时，为资源取一个稳定且有含义的名称，在你负责的边界配置上限；出现类型化
@@ -71,12 +74,14 @@ assert_eq!(response.used(), 5);
 ## 核心能力
 
 - 单项预算的原子计费，以及预算组的全有或全无计费。
-- 对原生 `usize` 和 `u64` 测量进行精确、无截断的转换检查。
+- 对原生 `usize` 和 `u64` 测量进行无截断的转换检查；窄数量类型无法保存精确值时，
+  `AtLeastU64` 会如实标出已证明的下界。
 - 为超出上限、预算不足、数量转换和资源池错误提供结构化错误。
 - 可复用的结构限制：深度、节点数、容器大小和对象键字节数。
 - 事务式字符串生成：只有完整生成有效 UTF-8 字符串后才扣减字节预算。
 - 可选的 JSON、字符串、大整数、大十进制数、时长和基于时钟的截止时间限制。
 
+拥有型 JSON session 可以保留借自局部数据的资源标识，因此该数据必须比 session 活得更久。
 启用 `json` 后，一次处理会区分“立即入账的 I/O”与“可回滚的 value 用量”：已接受的
 输入和 writer 输出仍会保留；暂存的 JSON value 用量只有调用 `commit` 才会生效。完整
 过程见用户手册中的 JSON 解码场景。
@@ -86,6 +91,7 @@ assert_eq!(response.used(), 5);
 transaction 会暂存一个完整 value 的测量结果，只有外围操作成功才正式发布：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
@@ -101,7 +107,9 @@ transaction.try_admit(JsonMeasurement::String {
     bytes: 5,
 })?;
 transaction.commit()?;
-# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
+assert_eq!(budget.used_nodes(), Some(1));
+Ok(())
+}
 ```
 
 raw input 和 normalized input 仍然立即入账；transaction 只暂存 value 用量，因此应在

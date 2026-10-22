@@ -3,7 +3,7 @@
 [中文设计文档](design.zh_CN.md) · [User guide](user_guide.md) · [README](../README.md)
 
 This document records the stable accounting semantics and maintenance decisions
-behind `qubit-budget` 0.4.x. Public API details remain authoritative in the
+behind `qubit-budget` 0.9.x. Public API details remain authoritative in the
 [API documentation](https://docs.rs/qubit-budget).
 
 ## Goals and boundaries
@@ -56,8 +56,9 @@ consuming `release` or `Drop` returns that amount once.
 
 JSON sessions support two storage modes:
 
-- `from_limits` creates a `'static` session that owns budgets derived from
-  immutable limits.
+- `from_limits` owns budgets derived from immutable limits. The session still
+  carries the lifetime of its resource identity `R`, which may borrow local
+  application data; keep that data alive as long as the session.
 - `borrowing_*` constructors hold exclusive references to caller-owned
   budgets, allowing several adapters to share an explicitly chosen accounting
   lifetime without copying capacity.
@@ -96,6 +97,11 @@ Errors preserve resource identity and exact measurements. Point checks use
 `InsufficientBudgetError`; native conversion plus either category is wrapped
 by `MeasuredBudgetError`. Pool release, grouped charges, string rendering and
 clock deadlines retain their own structured context.
+
+When a measurement is wider than the public quantity type can represent,
+`QuantityMeasurement::AtLeastU64` reports a proven lower bound instead of
+claiming that the original measurement was exact. Callers should inspect the
+variant and its `target()` type rather than treating the lower bound as exact.
 
 When several checks could fail, their order is part of the contract:
 

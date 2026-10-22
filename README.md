@@ -16,7 +16,7 @@ reject oversized work with structured errors and predictable state changes.
 
 ```toml
 [dependencies]
-qubit-budget = "0.8"
+qubit-budget = "0.9"
 ```
 
 The crate has no default features. Enable an integration only when it is
@@ -24,7 +24,7 @@ needed:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.8", features = ["json"] }
+qubit-budget = { version = "0.9", features = ["json"] }
 ```
 
 Available features: `json`, `big-integer`, `big-decimal` (which enables
@@ -36,6 +36,7 @@ Suppose one response may contain no more than eight bytes. Charge each accepted
 chunk to one budget. A failed charge does not change that budget:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceBudget;
 
 let mut response = ResourceBudget::new("response-bytes", 8_u64);
@@ -50,6 +51,8 @@ assert_eq!(error.limit(), 8);
 assert_eq!(error.remaining(), 3);
 assert_eq!(error.requested(), 4);
 assert_eq!(response.used(), 5);
+Ok(())
+}
 ```
 
 This is the basic pattern: choose a meaningful resource name, configure a
@@ -74,7 +77,8 @@ enforce fairness.
 ## What it provides
 
 - Atomic charges for one budget and all-or-nothing charges for a group.
-- Checked conversion of native `usize` and `u64` measurements.
+- Checked conversion of native `usize` and `u64` measurements; `AtLeastU64`
+  reports a proven lower bound when a narrow quantity cannot hold the exact value.
 - Structured errors for exceeded limits, insufficient budget, conversion, and
   invalid pool release.
 - Reusable structure limits for depth, nodes, container sizes, and key bytes.
@@ -83,7 +87,7 @@ enforce fairness.
 - Optional limits for JSON, strings, big integers, big decimals, durations,
   and clock-backed deadlines.
 
-With `json`, an attempt distinguishes immediate I/O accounting from
+Owned JSON sessions may keep a resource identity that borrows local application data; that data must outlive the session. With `json`, an attempt distinguishes immediate I/O accounting from
 transactional value accounting. Accepted input and writer output remain
 charged; staged JSON value usage is published only by `commit`. The user guide
 explains this boundary with a complete decode scenario.
@@ -94,6 +98,7 @@ Use a transaction to stage measurements for one complete value. It publishes
 them only after the surrounding operation succeeds:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
@@ -109,7 +114,9 @@ transaction.try_admit(JsonMeasurement::String {
     bytes: 5,
 })?;
 transaction.commit()?;
-# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
+assert_eq!(budget.used_nodes(), Some(1));
+Ok(())
+}
 ```
 
 Raw and normalized input remain immediate charges. A transaction publishes only

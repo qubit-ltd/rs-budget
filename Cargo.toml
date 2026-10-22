@@ -1,6 +1,6 @@
 [package]
 name = "qubit-budget"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 rust-version = "1.94"
 autotests = false
@@ -15,6 +15,7 @@ keywords = ["budget", "limits", "resources", "qubit"]
 categories = ["rust-patterns"]
 include = [
     "/Cargo.toml",
+    "/rust-toolchain.toml",
     "/LICENSE",
     "/README.md",
     "/README.zh_CN.md",
@@ -47,6 +48,7 @@ thiserror = "^2.0"
 
 [dev-dependencies]
 proptest = "^1.11"
+tempfile = "^3"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
@@ -54,6 +56,11 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)'] }
 [[test]]
 name = "tests"
 path = "tests/mod.rs"
+
+[[example]]
+name = "json_accounting"
+path = "examples/json_accounting.rs"
+required-features = ["json"]
 
 [package.metadata.docs.rs]
 all-features = true

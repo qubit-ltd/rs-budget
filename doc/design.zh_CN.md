@@ -2,7 +2,7 @@
 
 [English design document](design.md) · [用户手册](user_guide.zh_CN.md) · [README](../README.zh_CN.md)
 
-本文记录 `qubit-budget` 0.4.x 稳定的记账语义与维护决策。公共 API 的具体签名和用法以
+本文记录 `qubit-budget` 0.9.x 稳定的记账语义与维护决策。公共 API 的具体签名和用法以
 [API 文档](https://docs.rs/qubit-budget)为准。
 
 ## 目标与边界
@@ -47,7 +47,8 @@ flowchart TD
 
 JSON session 有两种存储模式：
 
-- `from_limits` 根据不可变 limits 创建并持有 budget，得到 `'static` session；
+- `from_limits` 根据不可变 limits 创建并持有 budget。session 仍带有资源标识 `R` 的
+  生命周期，因此资源标识可以借用应用中的局部数据；session 使用期间必须保证数据有效；
 - `borrowing_*` 构造函数独占借用调用方的 budget，使多个适配层可以在不复制容量的
   前提下显式选择共同的记账生命周期。
 
@@ -81,6 +82,10 @@ output prefix。需要更宽业务事务的适配层必须自行提供对应边�
 `InsufficientBudgetError`，原生数量转换以及上述两类错误统一由
 `MeasuredBudgetError` 承载。资源池归还、预算组、字符串生成和时钟截止时间各自保留
 对应的结构化上下文。
+
+当测量值超出公开数量类型可表示的范围时，`QuantityMeasurement::AtLeastU64` 会报告已经
+证明的下界，不会把下界伪装成原始精确值。调用方应检查该 variant 及其 `target()` 类型，
+并按下界而非精确测量解释数值。
 
 多个检查可能同时失败时，检查顺序属于稳定契约：
 

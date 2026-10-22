@@ -3,7 +3,7 @@
 [中文用户手册](user_guide.zh_CN.md) · [README](../README.md) ·
 [API documentation](https://docs.rs/qubit-budget)
 
-This guide applies to `qubit-budget` 0.4.x and Rust 1.94 or newer. Its examples
+This guide applies to `qubit-budget` 0.9.x and Rust 1.94 or newer. Its examples
 distill real uses in Qubit crates while leaving out unrelated application code.
 
 ## Purpose and audience
@@ -53,7 +53,7 @@ Add the crate with no feature enabled for the core limits, budgets, and pools:
 
 ```toml
 [dependencies]
-qubit-budget = "0.4"
+qubit-budget = "0.9"
 ```
 
 Enable only the integrations used by the application. For example, JSON value
@@ -61,7 +61,7 @@ sessions require the `json` feature:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.4", features = ["json"] }
+qubit-budget = { version = "0.9", features = ["json"] }
 ```
 
 The crate supports Rust 1.94 or newer. Its optional features are `json`,
@@ -80,18 +80,19 @@ concatenation; rejection leaves the current chunk out of both `body` and the
 budget.
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceBudget;
 
-let body_limit = 1_048_576_usize;
+let mut body_budget = ResourceBudget::new("response body", 8_usize);
 let mut body = Vec::new();
-let mut body_budget = ResourceBudget::new("response body", body_limit);
-let response_chunks = [b"hello".as_slice(), b" world".as_slice()];
-
-for chunk in response_chunks {
-    body_budget.try_consume(chunk.len())?;
-    body.extend_from_slice(&chunk);
+for chunk in [b"hello".as_slice(), b" world".as_slice()] {
+    if body_budget.try_consume(chunk.len()).is_err() { break; }
+    body.extend_from_slice(chunk);
 }
-# Ok::<(), qubit_budget::InsufficientBudgetError<&str, usize>>(())
+assert_eq!(body, b"hello");
+assert_eq!(body_budget.used(), 5);
+Ok(())
+}
 ```
 
 The order matters: `try_consume` runs before the chunk is appended. If a
@@ -112,6 +113,7 @@ the corresponding budgets of all ancestors. When a child emits a property,
 every active scope must accept it or none may be charged:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceBudget;
 
 let mut root_properties = ResourceBudget::new("root properties", 100_usize);
@@ -121,7 +123,8 @@ ResourceBudget::try_consume_group(
     &mut [&mut root_properties, &mut child_properties],
     1,
 )?;
-# Ok::<(), qubit_budget::BudgetGroupError<&str, usize>>(())
+Ok(())
+}
 ```
 
 If the child has no capacity, the root is not charged accidentally. The error
@@ -132,12 +135,14 @@ The same downstream session uses `ResourceLimit` for nesting depth. Depth is a
 property of the current node, not a resource consumed by every later node:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceLimit;
 
 let depth = ResourceLimit::new("nesting depth", 16_usize);
 let current_depth = 3_usize;
 depth.check(current_depth)?;
-# Ok::<(), qubit_budget::LimitExceededError<&str, usize>>(())
+Ok(())
+}
 ```
 
 ### Scenario 3: reuse directory-handle capacity
@@ -147,6 +152,7 @@ Copying a directory tree can require several directory readers at once.
 owns a permit, so normal completion, errors, and panic unwinding return capacity:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ManagedResourcePool;
 
 let directories = ManagedResourcePool::new("open directory", 32_usize);
@@ -155,7 +161,8 @@ let permit = directories.try_acquire(1)?;
 // Read this directory and possibly descend into it.
 
 drop(permit);
-# Ok::<(), Box<dyn std::error::Error>>(())
+Ok(())
+}
 ```
 
 Unlike a `ResourceBudget`, capacity returns when a permit is dropped. The
@@ -179,6 +186,7 @@ The following self-contained example shows the two explicit accounting
 dimensions that underlie that composition:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use std::time::Duration;
 
 use qubit_budget::DurationBudget;
@@ -190,7 +198,8 @@ attempts.try_consume(1)?;
 active_work.try_consume(Duration::from_secs(2))?;
 assert_eq!(attempts.used(), 1);
 assert_eq!(active_work.remaining(), Duration::from_secs(8));
-# Ok::<(), qubit_budget::InsufficientBudgetError<&str, u32>>(())
+Ok(())
+}
 ```
 
 `begin_attempt()` first checks all continuation limits, then consumes one
@@ -209,7 +218,7 @@ Enable the `time` feature to use `TimeBudget`:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.4", features = ["time"] }
+qubit-budget = { version = "0.9", features = ["time"] }
 ```
 
 ### Scenario 5: make one decoded JSON value transactional
@@ -219,17 +228,31 @@ qubit-budget = { version = "0.4", features = ["time"] }
 happened, but must not spend a value’s node and payload allowance if parsing or
 deserialization later fails.
 
+For encoding, [`JsonEncoder::write_buffered`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_buffered)
+buffers a complete document before writing. [`JsonEncoder::write_incremental`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_incremental)
+streams output; if the writer accepts a prefix and a later write fails, that
+prefix remains in the destination and its output bytes remain charged even when
+the attempt is dropped. Choose the buffered entry point when the destination
+must receive output only after the complete document is ready.
+
+For JCS, validate the original input against I-JSON before converting it to a
+`serde_json::Value`. A value-based encoder cannot detect duplicate object names
+that parsing already discarded, or invalid Unicode escapes that parsing rejected.
+JCS output budgeting limits the canonical bytes; it does not replace those
+input checks.
+
 The decoder starts an attempt, charges raw input before normalization, charges
 normalized input during normalization, admits JSON measurements while scanning,
 and calls `commit()` only after deserialization succeeds. The simplified
 session setup is:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonResource;
 
-let mut session = JsonDecodeSession::from_limits(
+let session = JsonDecodeSession::from_limits(
     JsonDecodeLimits::<JsonResource, usize>::builder()
         .max_input_bytes(64 * 1024)
         .max_normalized_input_bytes(64 * 1024)
@@ -237,11 +260,15 @@ let mut session = JsonDecodeSession::from_limits(
         .max_nodes(10_000)
         .build(),
 );
+assert_eq!(session.value_budget().used_nodes(), Some(0));
+Ok(())
+}
 ```
 
 For an adapter that reports measurements itself, the value part looks like this:
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
@@ -249,24 +276,96 @@ use qubit_budget::json::JsonResource;
 
 let mut session = JsonDecodeSession::from_limits(
     JsonDecodeLimits::<JsonResource, usize>::builder()
-        .max_input_bytes(64 * 1024)
-        .max_normalized_input_bytes(64 * 1024)
-        .max_nodes(10_000)
-        .build(),
+        .max_input_bytes(100).max_normalized_input_bytes(100)
+        .max_nodes(4).build(),
 );
-let raw = br#"{\"name\":\"Ada\"}"#;
-let normalized = raw;
+let raw = br#"{"name":"Ada"}"#;
+assert_eq!(raw.len(), 14);
 let mut attempt = session.begin_value();
 attempt.try_consume_input_bytes(raw.len())?;
-attempt.try_consume_normalized_input_bytes(normalized.len())?;
-attempt.try_admit(JsonMeasurement::String {
-    depth: 1,
-    bytes: 5,
-})?;
-
-// Parse, normalize, and deserialize the complete value here.
+attempt.try_consume_normalized_input_bytes(raw.len())?;
+attempt.try_admit(JsonMeasurement::Object { depth: 1, entries: 1 })?;
+attempt.try_admit(JsonMeasurement::Key { bytes: 4 })?;
+attempt.try_admit(JsonMeasurement::String { depth: 2, bytes: 3 })?;
 attempt.commit()?;
-# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
+assert_eq!(session.input_budget().unwrap().used(), 14);
+assert_eq!(session.value_budget().used_nodes(), Some(2));
+println!("accepted input=14 nodes=2");
+Ok(())
+}
+```
+
+
+Dropping an attempt keeps accepted input bytes and discards staged value usage:
+
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonMeasurement, JsonResource};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut session = JsonDecodeSession::from_limits(
+        JsonDecodeLimits::<JsonResource, usize>::builder().max_input_bytes(8).max_nodes(2).build(),
+    );
+    {
+        let mut attempt = session.begin_value();
+        attempt.try_consume_input_bytes(2)?;
+        attempt.try_admit(JsonMeasurement::Null { depth: 1 })?;
+    }
+    assert_eq!(session.input_budget().unwrap().used(), 2);
+    assert_eq!(session.value_budget().used_nodes(), Some(0));
+    Ok(())
+}
+```
+
+The first rejected admission is retained. Later admissions and `commit` return that error, and no staged node is published:
+
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonMeasurement, JsonResource};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut session = JsonDecodeSession::from_limits(
+        JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(0).build(),
+    );
+    let mut attempt = session.begin_value();
+    assert!(attempt.try_admit(JsonMeasurement::Null { depth: 1 }).is_err());
+    assert!(attempt.try_admit(JsonMeasurement::Null { depth: 1 }).is_err());
+    assert!(attempt.commit().is_err());
+    assert_eq!(session.value_budget().used_nodes(), Some(0));
+    Ok(())
+}
+```
+
+An owned session can use a resource identity borrowed from a local `String`; keep that string alive while the session is used:
+
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
+use qubit_budget::ResourceLimit;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let label = String::from("local input");
+    let limits = JsonDecodeLimits::<&str, usize>::builder()
+        .input_bytes_limit(ResourceLimit::new(label.as_str(), 2)).build();
+    let mut session = JsonDecodeSession::from_limits(limits);
+    let mut attempt = session.begin_value();
+    attempt.try_consume_input_bytes(2).expect("borrowed label remains valid");
+    attempt.commit().expect("attempt commits");
+    assert_eq!(session.input_budget().unwrap().used(), 2);
+    Ok(())
+}
+```
+
+For object traversal, admit the object once, check its prospective entry count, then admit its key and value without admitting another object:
+
+```rust
+use qubit_budget::json::{JsonContainerKind, JsonMeasurement, JsonResource, JsonValueLimits};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2).max_map_entries(1).build().budget();
+    let mut transaction = budget.transaction();
+    transaction.try_enter_container(JsonContainerKind::Map, 1)?;
+    transaction.check_container_count(JsonContainerKind::Map, 1)?;
+    transaction.try_admit(JsonMeasurement::Key { bytes: 4 })?;
+    transaction.try_admit(JsonMeasurement::String { depth: 2, bytes: 3 })?;
+    transaction.commit()?;
+    assert_eq!(budget.used_nodes(), Some(2));
+    Ok(())
+}
 ```
 
 ### Complete atomicity matrix
@@ -286,6 +385,10 @@ cannot undo an accepted prefix, callback effect, `Hasher` update, or object
 mutation. A higher-level operation may intentionally choose one transaction for
 a wider business boundary, while only `commit` publishes staged value usage.
 Callers create each attempt explicitly with `begin_value()`.
+
+The owned `from_limits` session can retain a resource identity that borrows
+local application data; keep that data alive until the session is no longer
+used. The compiler enforces this lifetime.
 
 The first failed value admission poisons the transaction. Every later
 admission and `commit` return that retained error, while a poisoned `commit`
@@ -311,7 +414,9 @@ reports an observed value and inclusive maximum; `InsufficientBudgetError`
 reports `limit`, `remaining`, and `requested`; `ResourceReleaseError` reports
 an invalid pool release. Native `usize` and `u64` measurement APIs return
 `MeasuredBudgetError` when conversion to `Q` is not exact—do not cast and
-truncate first.
+truncate first. `QuantityMeasurement::AtLeastU64` reports a proven lower bound
+when the original value cannot fit the narrow quantity; it does not claim an
+exact measurement.
 
 ## Troubleshooting
 
@@ -323,7 +428,8 @@ truncate first.
   not retry by charging its members one at a time.
 - If a native `usize` or `u64` measurement fails conversion, keep the original
   value for diagnostics and select a quantity type `Q` that represents the
-  application’s range exactly.
+  application’s range exactly. When an error carries `AtLeastU64`, treat it as
+  a lower bound and inspect `target()` to see which quantity type rejected it.
 
 ## Limitations and best practices
 

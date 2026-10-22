@@ -3,7 +3,7 @@
 [English user guide](user_guide.md) · [中文 README](../README.zh_CN.md) ·
 [API 文档](https://docs.rs/qubit-budget)
 
-本手册适用于 `qubit-budget` 0.4.x 和 Rust 1.94 或更高版本。文中的例子提炼自
+本手册适用于 `qubit-budget` 0.9.x 和 Rust 1.94 或更高版本。文中的例子提炼自
 Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 
 ## 手册目标与读者
@@ -49,14 +49,14 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 
 ```toml
 [dependencies]
-qubit-budget = "0.4"
+qubit-budget = "0.9"
 ```
 
 只为实际使用的集成能力启用 feature。例如，JSON value 会话需要 `json` feature：
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.4", features = ["json"] }
+qubit-budget = { version = "0.9", features = ["json"] }
 ```
 
 本 crate 支持 Rust 1.94 及更高版本。可选 feature 为 `json`、`big-integer`、
@@ -73,18 +73,19 @@ qubit-budget = { version = "0.4", features = ["json"] }
 改变预算。
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceBudget;
 
-let body_limit = 1_048_576_usize;
+let mut body_budget = ResourceBudget::new("response body", 8_usize);
 let mut body = Vec::new();
-let mut body_budget = ResourceBudget::new("response body", body_limit);
-let response_chunks = [b"hello".as_slice(), b" world".as_slice()];
-
-for chunk in response_chunks {
-    body_budget.try_consume(chunk.len())?;
-    body.extend_from_slice(&chunk);
+for chunk in [b"hello".as_slice(), b" world".as_slice()] {
+    if body_budget.try_consume(chunk.len()).is_err() { break; }
+    body.extend_from_slice(chunk);
 }
-# Ok::<(), qubit_budget::InsufficientBudgetError<&str, usize>>(())
+assert_eq!(body, b"hello");
+assert_eq!(body_budget.used(), 5);
+Ok(())
+}
 ```
 
 顺序非常重要：先执行 `try_consume`，再把分块追加到响应体。如果一个分块会越过上限，
@@ -103,6 +104,7 @@ for chunk in response_chunks {
 必须接受，否则一个都不能扣减：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceBudget;
 
 let mut root_properties = ResourceBudget::new("root properties", 100_usize);
@@ -112,7 +114,8 @@ ResourceBudget::try_consume_group(
     &mut [&mut root_properties, &mut child_properties],
     1,
 )?;
-# Ok::<(), qubit_budget::BudgetGroupError<&str, usize>>(())
+Ok(())
+}
 ```
 
 如果子源没有余额，根源预算不会被误扣。错误可通过 `index()` 找到第一个拒绝者，再通过
@@ -122,12 +125,14 @@ ResourceBudget::try_consume_group(
 后续节点都要消耗的资源：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ResourceLimit;
 
 let depth = ResourceLimit::new("nesting depth", 16_usize);
 let current_depth = 3_usize;
 depth.check(current_depth)?;
-# Ok::<(), qubit_budget::LimitExceededError<&str, usize>>(())
+Ok(())
+}
 ```
 
 ### 场景三：复用目录句柄容量
@@ -136,6 +141,7 @@ depth.check(current_depth)?;
 管理它们：每个读取器持有一个 permit，因此正常结束、错误返回和 panic unwinding 都会归还容量：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::ManagedResourcePool;
 
 let directories = ManagedResourcePool::new("open directory", 32_usize);
@@ -144,7 +150,8 @@ let permit = directories.try_acquire(1)?;
 // Read this directory and possibly descend into it.
 
 drop(permit);
-# Ok::<(), Box<dyn std::error::Error>>(())
+Ok(())
+}
 ```
 
 与 `ResourceBudget` 不同，permit 被 Drop 后容量会回来。目录遍历器还可以选择 `Reopen`
@@ -165,6 +172,7 @@ drop(permit);
 下面的独立示例展示了这套组合底层的两项显式记账维度：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use std::time::Duration;
 
 use qubit_budget::DurationBudget;
@@ -176,7 +184,8 @@ attempts.try_consume(1)?;
 active_work.try_consume(Duration::from_secs(2))?;
 assert_eq!(attempts.used(), 1);
 assert_eq!(active_work.remaining(), Duration::from_secs(8));
-# Ok::<(), qubit_budget::InsufficientBudgetError<&str, u32>>(())
+Ok(())
+}
 ```
 
 `begin_attempt()` 会先检查所有后续限制，再扣减一次尝试额度。`finish_attempt()` 会记录
@@ -192,7 +201,7 @@ assert_eq!(active_work.remaining(), Duration::from_secs(8));
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.4", features = ["time"] }
+qubit-budget = { version = "0.9", features = ["time"] }
 ```
 
 ### 场景五：让一个已解码 JSON value 具备事务性
@@ -201,15 +210,26 @@ qubit-budget = { version = "0.4", features = ["time"] }
 已执行的 I/O 工作必须保留计费，但如果解析或反序列化随后失败，该 value 的节点数和
 payload 用量不能被消耗。
 
+编码时，[`JsonEncoder::write_buffered`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_buffered)
+会先缓冲完整文档，再写入目标；[`JsonEncoder::write_incremental`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_incremental)
+则会边序列化边输出。如果目标已经接受一段前缀，之后的写入失败不会撤回这段输出；即使
+丢弃 attempt，对应的 output bytes 也仍会计费。若应用要求完整文档准备好后才写入目标，
+应使用缓冲入口。
+
+使用 JCS 时，应在将原始输入转换为 `serde_json::Value` 前，先按 I-JSON
+校验输入。基于 value 的编码器无法发现解析阶段已经丢弃的重复对象名，也无法处理已被解析器拒绝的无效 Unicode 转义。
+JCS 输出预算只限制规范化后的字节数，不能替代这些输入校验。
+
 decoder 会创建 attempt，在规范化前计原始输入，在规范化期间计规范化输入，扫描时接纳
 JSON 测量，只有反序列化成功后才调用 `commit()`。简化后的 session 配置如下：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonResource;
 
-let mut session = JsonDecodeSession::from_limits(
+let session = JsonDecodeSession::from_limits(
     JsonDecodeLimits::<JsonResource, usize>::builder()
         .max_input_bytes(64 * 1024)
         .max_normalized_input_bytes(64 * 1024)
@@ -217,11 +237,15 @@ let mut session = JsonDecodeSession::from_limits(
         .max_nodes(10_000)
         .build(),
 );
+assert_eq!(session.value_budget().used_nodes(), Some(0));
+Ok(())
+}
 ```
 
 对于自行上报测量的适配层，value 部分的核心是：
 
 ```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
@@ -229,24 +253,96 @@ use qubit_budget::json::JsonResource;
 
 let mut session = JsonDecodeSession::from_limits(
     JsonDecodeLimits::<JsonResource, usize>::builder()
-        .max_input_bytes(64 * 1024)
-        .max_normalized_input_bytes(64 * 1024)
-        .max_nodes(10_000)
-        .build(),
+        .max_input_bytes(100).max_normalized_input_bytes(100)
+        .max_nodes(4).build(),
 );
-let raw = br#"{\"name\":\"Ada\"}"#;
-let normalized = raw;
+let raw = br#"{"name":"Ada"}"#;
+assert_eq!(raw.len(), 14);
 let mut attempt = session.begin_value();
 attempt.try_consume_input_bytes(raw.len())?;
-attempt.try_consume_normalized_input_bytes(normalized.len())?;
-attempt.try_admit(JsonMeasurement::String {
-    depth: 1,
-    bytes: 5,
-})?;
-
-// Parse, normalize, and deserialize the complete value here.
+attempt.try_consume_normalized_input_bytes(raw.len())?;
+attempt.try_admit(JsonMeasurement::Object { depth: 1, entries: 1 })?;
+attempt.try_admit(JsonMeasurement::Key { bytes: 4 })?;
+attempt.try_admit(JsonMeasurement::String { depth: 2, bytes: 3 })?;
 attempt.commit()?;
-# Ok::<(), qubit_budget::MeasuredBudgetError<qubit_budget::json::JsonResource, usize>>(())
+assert_eq!(session.input_budget().unwrap().used(), 14);
+assert_eq!(session.value_budget().used_nodes(), Some(2));
+println!("accepted input=14 nodes=2");
+Ok(())
+}
+```
+
+
+丢弃 attempt 会保留已经接受的 input bytes，同时放弃暂存的 value 用量：
+
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonMeasurement, JsonResource};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut session = JsonDecodeSession::from_limits(
+        JsonDecodeLimits::<JsonResource, usize>::builder().max_input_bytes(8).max_nodes(2).build(),
+    );
+    {
+        let mut attempt = session.begin_value();
+        attempt.try_consume_input_bytes(2)?;
+        attempt.try_admit(JsonMeasurement::Null { depth: 1 })?;
+    }
+    assert_eq!(session.input_budget().unwrap().used(), 2);
+    assert_eq!(session.value_budget().used_nodes(), Some(0));
+    Ok(())
+}
+```
+
+第一次 admission 失败后，transaction 会保留该错误；后续 admission 和 `commit` 都会返回错误，暂存节点不会发布：
+
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession, JsonMeasurement, JsonResource};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut session = JsonDecodeSession::from_limits(
+        JsonDecodeLimits::<JsonResource, usize>::builder().max_nodes(0).build(),
+    );
+    let mut attempt = session.begin_value();
+    assert!(attempt.try_admit(JsonMeasurement::Null { depth: 1 }).is_err());
+    assert!(attempt.try_admit(JsonMeasurement::Null { depth: 1 }).is_err());
+    assert!(attempt.commit().is_err());
+    assert_eq!(session.value_budget().used_nodes(), Some(0));
+    Ok(())
+}
+```
+
+拥有型 session 可以使用局部 `String` 中的资源标识；只要 session 还在使用，就要让该字符串保持有效：
+
+```rust
+use qubit_budget::json::{JsonDecodeLimits, JsonDecodeSession};
+use qubit_budget::ResourceLimit;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let label = String::from("local input");
+    let limits = JsonDecodeLimits::<&str, usize>::builder()
+        .input_bytes_limit(ResourceLimit::new(label.as_str(), 2)).build();
+    let mut session = JsonDecodeSession::from_limits(limits);
+    let mut attempt = session.begin_value();
+    attempt.try_consume_input_bytes(2).expect("borrowed label remains valid");
+    attempt.commit().expect("attempt commits");
+    assert_eq!(session.input_budget().unwrap().used(), 2);
+    Ok(())
+}
+```
+
+遍历对象时先准入一次对象，再检查即将加入的条目数，最后准入键和值；不要重复准入对象：
+
+```rust
+use qubit_budget::json::{JsonContainerKind, JsonMeasurement, JsonResource, JsonValueLimits};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(2).max_map_entries(1).build().budget();
+    let mut transaction = budget.transaction();
+    transaction.try_enter_container(JsonContainerKind::Map, 1)?;
+    transaction.check_container_count(JsonContainerKind::Map, 1)?;
+    transaction.try_admit(JsonMeasurement::Key { bytes: 4 })?;
+    transaction.try_admit(JsonMeasurement::String { depth: 2, bytes: 3 })?;
+    transaction.commit()?;
+    assert_eq!(budget.used_nodes(), Some(2));
+    Ok(())
+}
 ```
 
 ### 完整原子性矩阵
@@ -287,6 +383,8 @@ I/O 失败本身不会毒化 value transaction；已经接受的 I/O 计费和 o
 包含式上限；`InsufficientBudgetError` 提供 `limit`、`remaining`、`requested`；
 `ResourceReleaseError` 表示不合法的资源池归还。原生 `usize` 和 `u64` 测量 API 在
 无法精确转换到 `Q` 时返回 `MeasuredBudgetError`，不要先强制转换并截断。
+`QuantityMeasurement::AtLeastU64` 表示已证明的下界，不代表原始精确值；同时应检查
+`target()` 了解拒绝该值的窄数量类型。
 
 ## 排障
 
@@ -295,7 +393,11 @@ I/O 失败本身不会毒化 value transaction；已经接受的 I/O 计费和 o
 - 预算组扣减失败时，使用 `BudgetGroupError::index()` 和 `source_error()` 查看第一个
   拒绝请求的预算；不要改为逐个预算重试扣减。
 - 如果原生 `usize` 或 `u64` 测量无法转换，保留原始数值用于诊断，并选择能精确表示
-  应用取值范围的数量类型 `Q`。
+  应用取值范围的数量类型 `Q`。如果错误包含 `AtLeastU64`，应按下界解释，并查看
+`target()` 确认拒绝它的数量类型。
+
+JSON session 的 `from_limits` 会拥有由 limits 创建的预算，但资源标识 `R` 可以借用局部
+数据。资源标识必须至少活到 session 最后一次使用；类型检查会阻止 session 超出该作用域。
 
 ## 限制与最佳实践
 

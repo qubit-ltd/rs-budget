@@ -14,4 +14,5 @@ mod value;
 mod structure;
 
 mod builder_tests;
+mod documentation_tests;
 mod time;
