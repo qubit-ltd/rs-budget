@@ -28,3 +28,5 @@ pub use limit::ResourceLimit;
 pub(crate) use limit::check_limit;
 pub use quantity::QuantityMeasurement;
 pub use quantity::ResourceQuantity;
+#[cfg(feature = "big-integer")]
+pub(crate) use quantity::quantity_as_u128;

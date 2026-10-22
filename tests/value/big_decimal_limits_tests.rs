@@ -11,6 +11,7 @@ use qubit_budget::BigDecimalLimits;
 use qubit_budget::BigIntegerLimits;
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::ResourceLimit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,4 +111,33 @@ fn test_big_decimal_u64_coefficient_limit_is_checked() {
         error.budget_error().map(BudgetError::resource),
         Some(&TestResource::Digits)
     );
+}
+
+#[test]
+fn test_decimal_coefficient_supports_narrow_digit_quantity() {
+    let value = BigDecimal::new(BigInt::from(1_u8) << 256_usize, 0);
+    let integer = BigIntegerLimits::builder()
+        .significant_decimal_digits_limit(ResourceLimit::new("digits", 100_u8))
+        .build();
+    BigDecimalLimits::builder()
+        .coefficient_limits(integer)
+        .build()
+        .check(&value)
+        .expect("78-digit coefficient fits a 100-digit limit");
+}
+
+#[test]
+fn test_decimal_coefficient_reports_unrepresentable_digit_lower_bound() {
+    let value = BigDecimal::new(BigInt::from(1_u8) << 16_384_usize, 0);
+    let integer = BigIntegerLimits::builder()
+        .significant_decimal_digits_limit(ResourceLimit::new("digits", 255_u8))
+        .build();
+    let error = BigDecimalLimits::builder()
+        .coefficient_limits(integer)
+        .build()
+        .check(&value)
+        .expect_err("coefficient lower bound exceeds u8");
+    let source = error.quantity_error().expect("lower bound cannot fit u8");
+    assert_eq!(source.measurement(), QuantityMeasurement::AtLeastU64(4097));
+    assert_eq!(source.target(), "u8");
 }

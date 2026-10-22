@@ -13,3 +13,5 @@ mod resource_quantity;
 
 pub use quantity_measurement::QuantityMeasurement;
 pub use resource_quantity::ResourceQuantity;
+#[cfg(feature = "big-integer")]
+pub(crate) use resource_quantity::quantity_as_u128;

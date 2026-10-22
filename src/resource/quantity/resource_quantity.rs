@@ -90,7 +90,13 @@ pub trait ResourceQuantity:
 macro_rules! impl_resource_quantity {
     ($($quantity:ty),+ $(,)?) => {
         $(
-            impl ResourceQuantitySealed for $quantity {}
+            impl ResourceQuantitySealed for $quantity {
+                /// Widens this unsigned quantity without losing information.
+                #[inline]
+                fn as_u128(self) -> u128 {
+                    self as u128
+                }
+            }
 
             impl ResourceQuantity for $quantity {
                 /// Zero in the concrete unsigned quantity type.
@@ -165,3 +171,34 @@ macro_rules! impl_resource_quantity {
 }
 
 impl_resource_quantity!(u8, u16, u32, u64, u128, usize);
+
+/// Widens one supported resource quantity without losing information.
+#[inline]
+#[cfg(feature = "big-integer")]
+pub(crate) fn quantity_as_u128<Q: ResourceQuantity>(value: Q) -> u128 {
+    value.as_u128()
+}
+
+#[cfg(all(test, feature = "big-integer"))]
+mod tests {
+    use super::ResourceQuantity;
+    use super::quantity_as_u128;
+
+    macro_rules! assert_widens_exactly {
+        ($quantity:ty) => {
+            assert_eq!(quantity_as_u128(<$quantity>::ZERO), 0);
+            assert_eq!(quantity_as_u128(<$quantity>::ONE), 1);
+            assert_eq!(quantity_as_u128(<$quantity>::MAX), <$quantity>::MAX as u128);
+        };
+    }
+
+    #[test]
+    fn test_supported_quantities_widen_exactly() {
+        assert_widens_exactly!(u8);
+        assert_widens_exactly!(u16);
+        assert_widens_exactly!(u32);
+        assert_widens_exactly!(u64);
+        assert_widens_exactly!(u128);
+        assert_widens_exactly!(usize);
+    }
+}

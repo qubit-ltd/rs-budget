@@ -14,6 +14,7 @@ use qubit_budget::BigIntegerLimits;
 use qubit_budget::BudgetError;
 use qubit_budget::MeasuredBudgetError;
 use qubit_budget::Observation;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::ResourceLimit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,7 +43,7 @@ fn test_obvious_digit_overflow_reports_lower_bound() {
         limits.check(&huge),
         Err(MeasuredBudgetError::Budget(BudgetError::LimitExceeded {
             resource: TestResource::Digits,
-            observed: Observation::AtLeast(17),
+            observed: Observation::AtLeast(250_001),
             maximum: 16,
         }))
     ));
@@ -115,6 +116,115 @@ fn test_big_integer_check_accepts_values_at_both_limits() {
         .check(&BigInt::from(255))
         .expect("the value should fit both configured limits");
     assert_eq!(limits.into_builder().build(), limits);
+}
+
+#[test]
+fn test_decimal_digits_ignore_unconfigured_bit_conversion() {
+    let value = BigInt::from(1_u8) << 256_usize;
+    for maximum in [78_u8, 79, 100] {
+        let limits = BigIntegerLimits::builder()
+            .significant_decimal_digits_limit(ResourceLimit::new("digits", maximum))
+            .build();
+        limits
+            .check(&value)
+            .expect("78 decimal digits fit the configured limit");
+    }
+    let limits = BigIntegerLimits::builder()
+        .significant_decimal_digits_limit(ResourceLimit::new("digits", 77_u8))
+        .build();
+    assert!(
+        limits
+            .check(&value)
+            .expect_err("78 exceeds 77")
+            .budget_error()
+            .is_some()
+    );
+}
+
+#[test]
+fn test_unrepresentable_decimal_lower_bound_is_not_reported_as_exact() {
+    let value = BigInt::from(1_u8) << 16_384_usize;
+    let limits = BigIntegerLimits::builder()
+        .significant_decimal_digits_limit(ResourceLimit::new("digits", 255_u8))
+        .build();
+    let error = limits
+        .check(&value)
+        .expect_err("the proven digit lower bound exceeds u8");
+    let source = error.quantity_error().expect("lower bound cannot fit u8");
+    assert_eq!(source.measurement(), QuantityMeasurement::AtLeastU64(4097));
+    assert_eq!(source.target(), "u8");
+}
+
+#[test]
+fn test_u128_maximum_digit_limit_does_not_overflow_estimate() {
+    let value = BigInt::from(1_u8) << 256_usize;
+    let limits = BigIntegerLimits::<TestResource, u128>::builder()
+        .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, u128::MAX))
+        .build();
+    limits.check(&value).expect("small integer fits the maximum u128 limit");
+}
+
+#[test]
+fn test_narrow_magnitude_limit_keeps_bit_error_precedence() {
+    let value = BigInt::from(1_u8) << 256_usize;
+    let limits = BigIntegerLimits::builder()
+        .magnitude_bits_limit(ResourceLimit::new("bits", 255_u8))
+        .significant_decimal_digits_limit(ResourceLimit::new("digits", 100_u8))
+        .build();
+    let error = limits.check(&value).expect_err("257 magnitude bits do not fit u8");
+    let source = error.quantity_error().expect("bit measurement cannot fit u8");
+    assert_eq!(source.measurement(), QuantityMeasurement::U64(257));
+    assert_eq!(source.target(), "u8");
+}
+
+#[test]
+fn test_decimal_digit_contract_across_supported_quantities() {
+    fn assert_digit_contract<Q: qubit_budget::ResourceQuantity>(shift: usize, maximum: u8) {
+        let positive = BigInt::from(1_u8) << shift;
+        for value in [positive.clone(), -positive] {
+            let digits = value.to_str_radix(10).trim_start_matches('-').len();
+            let limits = BigIntegerLimits::<_, Q>::builder()
+                .significant_decimal_digits_limit(ResourceLimit::new(
+                    TestResource::Digits,
+                    Q::try_from_u64(u64::from(maximum)).expect("maximum fits quantity"),
+                ))
+                .build();
+            assert_eq!(limits.check(&value).is_ok(), digits <= usize::from(maximum));
+        }
+    }
+
+    macro_rules! assert_quantity_contract {
+        ($quantity:ty) => {
+            for shift in [0, 1, 256, 1_024, 2_048] {
+                for maximum in [0, 1, 77, 78, 255] {
+                    assert_digit_contract::<$quantity>(shift, maximum);
+                }
+            }
+        };
+    }
+    assert_quantity_contract!(u8);
+    assert_quantity_contract!(u16);
+    assert_quantity_contract!(u32);
+    assert_quantity_contract!(u64);
+    assert_quantity_contract!(u128);
+    assert_quantity_contract!(usize);
+}
+
+#[test]
+fn test_decimal_digit_boundaries_around_powers_of_ten() {
+    for exponent in 1_u32..=100 {
+        let power = BigInt::from(10_u8).pow(exponent);
+        for (value, digits) in [
+            (&power - 1, exponent as usize),
+            (power.clone(), exponent as usize + 1),
+            (&power + 1, exponent as usize + 1),
+        ] {
+            let limits = BigIntegerLimits::builder()
+                .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, digits as u64))
+                .build();
+            limits.check(&value).expect("value fits its exact decimal digit count");
+        }
+    }
 }
 
 proptest! {

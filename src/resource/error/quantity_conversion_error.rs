@@ -5,11 +5,13 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
-//! Defines failures converting native measurements into resource quantities.
+//! Defines failures converting native measurements or lower bounds into
+//! resource quantities.
 
 use crate::resource::QuantityMeasurement;
 
-/// Error returned when a native measurement cannot fit the selected quantity.
+/// Error returned when an exact native measurement or proven lower bound cannot
+/// fit the selected quantity.
 ///
 /// # Examples
 ///
@@ -24,7 +26,8 @@ use crate::resource::QuantityMeasurement;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("measurement {measurement} cannot be represented by {target}")]
 pub struct QuantityConversionError {
-    /// Original native measurement retained without truncation.
+    /// Exact native measurement or proven lower bound retained without
+    /// truncation.
     measurement: QuantityMeasurement,
     /// Name of the selected resource quantity type.
     target: &'static str,
@@ -35,12 +38,13 @@ impl QuantityConversionError {
     ///
     /// # Parameters
     ///
-    /// * `measurement` - Original native measurement that did not fit.
+    /// * `measurement` - Exact native measurement or proven lower bound that
+    ///   did not fit.
     /// * `target` - Name of the selected resource quantity type.
     ///
     /// # Returns
     ///
-    /// A failure retaining both the original measurement and target type.
+    /// A failure retaining the measurement or lower bound and target type.
     #[inline]
     pub const fn new(measurement: QuantityMeasurement, target: &'static str) -> Self {
         Self { measurement, target }

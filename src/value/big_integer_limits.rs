@@ -13,8 +13,11 @@ use super::BigIntegerLimitsBuilder;
 use crate::resource::LimitExceededError;
 use crate::resource::MeasuredBudgetError;
 use crate::resource::Observation;
+use crate::resource::QuantityConversionError;
+use crate::resource::QuantityMeasurement;
 use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
+use crate::resource::quantity_as_u128;
 
 /// Optional point limits for one arbitrary-precision integer.
 ///
@@ -258,25 +261,20 @@ where
     }
 
     let maximum = limit.maximum();
-    let bits = Q::try_from_u64(magnitude_bits)
-        .map_err(|source| MeasuredBudgetError::quantity(limit.resource().clone(), source))?;
-    let low_bits = maximum
-        .checked_add(maximum)
-        .and_then(|value| value.checked_add(maximum));
-    if low_bits.is_some_and(|low_bits| bits <= low_bits) {
+    let wide_maximum = quantity_as_u128(maximum);
+    let upper = magnitude_bits.div_ceil(3);
+    if u128::from(upper) <= wide_maximum {
         return Ok(());
     }
-    let high_bits = low_bits.and_then(|value| value.checked_add(maximum));
-    if high_bits.is_some_and(|high_bits| bits > high_bits) {
-        let Some(observed) = maximum.checked_add(Q::ONE) else {
-            return Ok(());
+    let lower = (magnitude_bits - 1) / 4 + 1;
+    if u128::from(lower) > wide_maximum {
+        return match Q::try_from_u64(lower) {
+            Ok(observed) => Err(LimitExceededError::at_least(limit.resource().clone(), observed, maximum).into()),
+            Err(source) => Err(MeasuredBudgetError::quantity(
+                limit.resource().clone(),
+                QuantityConversionError::new(QuantityMeasurement::AtLeastU64(lower), source.target()),
+            )),
         };
-        return Err(LimitExceededError {
-            resource: limit.resource().clone(),
-            observed: Observation::AtLeast(observed),
-            maximum,
-        }
-        .into());
     }
 
     let digits = Q::try_from_usize(decimal_digits())
@@ -290,5 +288,22 @@ where
         .into())
     } else {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_decimal_digits;
+    use crate::resource::ResourceLimit;
+
+    #[test]
+    fn test_digit_estimates_skip_formatting_when_decisive() {
+        let fits = ResourceLimit::new("digits", 100_u8);
+        check_decimal_digits(&fits, 257, || panic!("must not format")).expect("upper estimate is within the maximum");
+
+        let exceeds = ResourceLimit::new("digits", 255_u8);
+        let error = check_decimal_digits(&exceeds, 16_385, || panic!("must not format"))
+            .expect_err("lower estimate exceeds the maximum");
+        assert!(error.quantity_error().is_some());
     }
 }

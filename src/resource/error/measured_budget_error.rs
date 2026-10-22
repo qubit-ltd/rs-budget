@@ -68,7 +68,8 @@ where
     /// # Parameters
     ///
     /// * `resource` - Resource being measured.
-    /// * `source` - Exact native quantity conversion failure.
+    /// * `source` - Native quantity conversion failure with an exact
+    ///   measurement or proven lower bound.
     ///
     /// # Returns
     ///
