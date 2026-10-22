@@ -27,7 +27,7 @@ how to turn a typed failure into an application error.
 | `qubit-http` | Bytes collected from a streaming HTTP response | `ResourceBudget` | Each accepted chunk permanently consumes response-body capacity. |
 | `qubit-config` | Source bytes, properties, nodes, and included sources | `ResourceBudget`, `ResourceLimit`, grouped charge | A child source must satisfy both its own and every ancestor’s limit. |
 | `qubit-local-files` | Open directory readers during a copy or walk | `ManagedResourcePool` | A reader owns a permit while open; Drop returns capacity. |
-| `qubit-retry` | Retry count, cumulative operation time, and total elapsed time | `ResourceBudget`, `DurationBudget`, `TimeBudget` | These are three different lifetimes, so they are accounted separately. |
+| `qubit-retry` | Admitted attempts, cumulative operation time, and total elapsed time | `ResourceBudget` | Current retry accounting uses explicit `qubit-clock` samples and internal `Duration` state. |
 | `qubit-json` | Raw input, normalized input, and one decoded JSON value | JSON sessions and transactions | I/O already accepted must remain charged; a failed value must not consume structural capacity. |
 
 ### Accounting models
@@ -175,15 +175,14 @@ represent finite capacity and neither waits for capacity or enforces fairness.
 
 ### Scenario 4: keep three independent limits
 
-`qubit-retry` composes three primitives in `RetryBudget`:
+Current `qubit-retry` uses `ResourceBudget` for admitted attempts. It tracks
+completed-operation and total elapsed time using explicit `qubit-clock`
+samples and internal `Duration` state. The following `DurationBudget` example
+illustrates composition available in `qubit-budget`; it is not the current
+internal implementation of `RetryBudget`.
 
-1. `ResourceBudget<RetryResource, u32>` admits a finite number of attempts.
-2. `DurationBudget` tracks cumulative time spent inside completed operations.
-3. `TimeBudget` uses `qubit-clock` to enforce one end-to-end monotonic deadline,
-   including backoff and observer work.
-
-The following self-contained example shows the two explicit accounting
-dimensions that underlie that composition:
+The self-contained example shows how an application can compose attempt count
+and operation duration:
 
 ```rust
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -202,17 +201,16 @@ Ok(())
 }
 ```
 
-`begin_attempt()` first checks all continuation limits, then consumes one
-attempt. `finish_attempt()` records the elapsed operation time even when the
-operation exceeded its allowance. `check_retry_after()` tests the proposed
-backoff against the total deadline before sleeping.
+`begin_attempt()` consumes an admitted attempt after the applicable checks.
+`finish_attempt(now)` records the completed operation's elapsed duration.
+`retry_limit(delay)` compares accumulated operation elapsed time and
+`snapshot().total_elapsed().saturating_add(delay)` with their limits.
 
-This separation is deliberate. A request can finish an attempt that took too
-long; that completed attempt is an observed fact. The overrun consumes the
-operation-duration allowance, so `begin_attempt()` rejects a later retry.
-Separately, `check_retry_after(delay)` rejects a delay that would reach the
-total deadline. This is why a duration allowance is not interchangeable with a
-clock deadline.
+An attempt that ran too long is still recorded as completed; the accumulated
+elapsed-time comparison can then reject a retry or its proposed delay. A
+`TimeBudget` separately provides strict look-ahead deadline checks when an
+application needs that behavior; it is not the implementation described for
+current `RetryBudget`.
 
 Enable the `time` feature to use `TimeBudget`:
 
@@ -223,10 +221,11 @@ qubit-budget = { version = "0.9", features = ["time"] }
 
 ### Scenario 5: make one decoded JSON value transactional
 
-`qubit-json` normalizes and decodes untrusted JSON through
-`NormalizingJsonDecoder::decode_with_session`. It must retain I/O work that already
-happened, but must not spend a value’s node and payload allowance if parsing or
-deserialization later fails.
+`NormalizingJsonDecoder::new(policy, session)` owns the supplied accounting
+session. `decode_str` prepares and decodes input. Preparation charges raw and
+normalized input immediately; decoding a precharged document stages value
+usage without charging those input bytes again. This retains I/O work already
+done while allowing a failed value's staged node and payload usage to roll back.
 
 For encoding, [`JsonEncoder::write_buffered`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_buffered)
 buffers a complete document before writing. [`JsonEncoder::write_incremental`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_incremental)
@@ -364,6 +363,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     transaction.try_admit(JsonMeasurement::String { depth: 2, bytes: 3 })?;
     transaction.commit()?;
     assert_eq!(budget.used_nodes(), Some(2));
+    Ok(())
+}
+```
+
+For an adapter that already accounts for normalized input, borrow that input budget and a separate value budget:
+
+```rust
+use qubit_budget::ResourceBudget;
+use qubit_budget::json::JsonDecodeSession;
+use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueLimits;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut normalized = ResourceBudget::new(JsonResource::NormalizedInputBytes, 8_usize);
+    let mut value = JsonValueLimits::builder().max_nodes(2).build().budget();
+    {
+        let mut session =
+            JsonDecodeSession::borrowing_normalized_input(&mut normalized, &mut value);
+        assert!(session.input_budget().is_none());
+        let mut attempt = session.begin_value();
+        attempt.try_consume_normalized_input_bytes(4)?;
+        attempt.try_admit(JsonMeasurement::Null { depth: 1 })?;
+        attempt.commit()?;
+    }
+    assert_eq!(normalized.used(), 4);
+    assert_eq!(value.used_nodes(), Some(1));
     Ok(())
 }
 ```

@@ -18,14 +18,14 @@
 
 ```mermaid
 flowchart TD
-    A[ResourceQuantity 与 ResourceLimit] --> B[ResourceBudget 与资源池]
-    B --> C[结构、字符串、值与时间辅助类型]
-    C --> D[JSON limits、sessions 与 value transactions]
-    D --> E[下游解析器、I/O 适配层与服务]
+    B[ResourceBudget 与资源池] --> A[ResourceQuantity 与 ResourceLimit]
+    C[结构、字符串、值与时间辅助类型] --> B
+    D[JSON limits、sessions 与 value transactions] --> C
+    E[下游解析器、I/O 适配层与服务] --> D
 ```
 
-依赖方向沿图从上到下。核心资源记账不依赖 JSON 或下游适配层；每个可选集成只引入
-自身领域所需的依赖：
+箭头从使用者指向被依赖层，此图表示概念分层。核心资源记账不依赖 JSON 或下游适配层；
+每个可选集成只引入自身领域所需的依赖：
 
 | 层次 | 主要类型 | 稳定职责 |
 | --- | --- | --- |
@@ -117,8 +117,9 @@ available 限制在总容量以内。该恢复策略不等于调度策略：资�
 feature，并通过 `doc(cfg)` 显示要求。
 
 当前下游用法验证了这一边界：HTTP 和配置代码组合核心 budget；local-files 持有
-managed permit；retry 组合次数、时长和截止时间预算；datatype 启用数值辅助类型；
-JSON 适配层负责解析，并选择持有或借用 JSON accounting session。
+managed permit；retry 使用 `ResourceBudget` 记录已准入的尝试次数，并通过显式
+`qubit-clock` 采样和内部 `Duration` 状态记录累计操作耗时与总耗时；datatype 启用数值
+辅助类型；JSON 适配层负责解析，并选择持有或借用 JSON accounting session。
 
 ## API 演进
 
@@ -137,7 +138,9 @@ JSON 适配层负责解析，并选择持有或借用 JSON accounting session。
 - 外部测试通过公共 API 覆盖成功、错误、边界、所有权、事务和确定性优先级。
 - 属性测试检查操作序列中的守恒关系，例如 `used + remaining == limit`。
 - doctest 与可编译的双语用户指南片段保证示例持续匹配公共 API 和 feature。
-- Miri 检查所有权、Drop 和 unsafe 假设；当前 crate 没有项目自有 unsafe 代码。
+- Miri 只运行两个有界生命周期用例：`test_miri_resource_pool_sequences` 和
+  `test_miri_managed_resource_permit_lifecycle`。并发竞争由普通线程测试覆盖；当前 crate
+  没有项目自有 unsafe 代码。
 - 有界 fuzz target 通过公开的 budget、事务式 JSON 和预算字符串 API 检查状态不变量，
   并限制输入与分配规模。
 - CI 检查默认、全部 feature 和支持的 feature 组合；覆盖率用于发现未观察的错误路径，

@@ -24,7 +24,7 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 | `qubit-http` | 从流式 HTTP 响应收集的字节 | `ResourceBudget` | 每个已接受的分块都会永久消耗响应体额度。 |
 | `qubit-config` | 配置源的字节、属性、节点和包含的子源 | `ResourceBudget`、`ResourceLimit`、预算组 | 子源必须同时满足自身和所有父源的限制。 |
 | `qubit-local-files` | 复制或遍历时打开的目录读取器 | `ManagedResourcePool` | 读取器打开期间持有 permit，Drop 自动归还容量。 |
-| `qubit-retry` | 重试次数、累计操作耗时和总耗时 | `ResourceBudget`、`DurationBudget`、`TimeBudget` | 三者的生命周期不同，必须分别记账。 |
+| `qubit-retry` | 已准入尝试次数、累计操作耗时和总耗时 | `ResourceBudget` | 当前重试记账通过显式 `qubit-clock` 采样和内部 `Duration` 状态完成。 |
 | `qubit-json` | 原始输入、规范化输入和一个 JSON value | JSON session 与 transaction | 已接受的 I/O 必须保留计费；失败的 value 不能占用结构容量。 |
 
 ### 记账模式
@@ -162,14 +162,12 @@ Ok(())
 
 ### 场景四：同时维护三种不同的限制
 
-`qubit-retry` 的 `RetryBudget` 组合了三种原语：
+当前 `qubit-retry` 使用 `ResourceBudget` 记录已准入的尝试次数，并通过显式
+`qubit-clock` 采样和内部 `Duration` 状态记录累计操作耗时与总耗时。下面的
+`DurationBudget` 示例展示 `qubit-budget` 提供的组合方式，不代表当前 `RetryBudget` 的
+内部实现。
 
-1. `ResourceBudget<RetryResource, u32>` 用于接纳有限次数的尝试。
-2. `DurationBudget` 记录全部已完成操作累计消耗的时间。
-3. `TimeBudget` 通过 `qubit-clock` 执行一个端到端的单调时钟截止时间，其中包括退避和
-   观察器工作。
-
-下面的独立示例展示了这套组合底层的两项显式记账维度：
+这个独立示例展示应用如何组合尝试次数和操作耗时：
 
 ```rust
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -188,14 +186,13 @@ Ok(())
 }
 ```
 
-`begin_attempt()` 会先检查所有后续限制，再扣减一次尝试额度。`finish_attempt()` 会记录
-实际操作耗时，即使这次操作已经超过时长额度也一样。`check_retry_after()` 会在休眠前
-用总截止时间检查计划中的退避时长。
+`begin_attempt()` 会在适用的检查通过后扣减一次已准入尝试。`finish_attempt(now)` 会记录
+已完成操作的耗时。`retry_limit(delay)` 会把累计操作耗时以及
+`snapshot().total_elapsed().saturating_add(delay)` 分别与对应限额比较。
 
-这种拆分是有意的。一项操作即使耗时过长，也可能已经完成；该事实需要被记录下来，
-超出的时间会耗尽后续操作的时长额度，因此之后的 `begin_attempt()` 会拒绝重试。另一边，
-`check_retry_after(delay)` 会拒绝任何会达到总截止时间的延迟。由此可见，时长额度与
-时钟截止时间不能互相替代。
+一项操作即使耗时过长，只要已经完成，其耗时仍会被记录；累计时长比较随后可以拒绝
+重试或计划中的延迟。应用若需要严格的前瞻截止时间检查，可以单独使用 `TimeBudget`；
+这不是当前 `RetryBudget` 所描述的内部实现。
 
 使用 `TimeBudget` 需开启 `time` feature：
 
@@ -206,9 +203,10 @@ qubit-budget = { version = "0.9", features = ["time"] }
 
 ### 场景五：让一个已解码 JSON value 具备事务性
 
-`qubit-json` 通过 `NormalizingJsonDecoder::decode_with_session` 规范化并解码不可信 JSON。
-已执行的 I/O 工作必须保留计费，但如果解析或反序列化随后失败，该 value 的节点数和
-payload 用量不能被消耗。
+`NormalizingJsonDecoder::new(policy, session)` 会持有传入的记账会话。`decode_str` 会先
+准备输入，再进行解码。准备阶段立即计入 raw input 和 normalized input；解码已计费文档时
+只暂存 value 用量，不重复计入输入字节。因此，已完成的 I/O 工作会保留计费，而失败
+value 的暂存节点数和 payload 用量可以回滚。
 
 编码时，[`JsonEncoder::write_buffered`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_buffered)
 会先缓冲完整文档，再写入目标；[`JsonEncoder::write_incremental`](https://docs.rs/qubit-json/latest/qubit_json/encode/struct.JsonEncoder.html#method.write_incremental)
@@ -341,6 +339,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     transaction.try_admit(JsonMeasurement::String { depth: 2, bytes: 3 })?;
     transaction.commit()?;
     assert_eq!(budget.used_nodes(), Some(2));
+    Ok(())
+}
+```
+
+适配层已经单独统计 normalized input 时，可以借用该输入预算和独立的 value 预算：
+
+```rust
+use qubit_budget::ResourceBudget;
+use qubit_budget::json::JsonDecodeSession;
+use qubit_budget::json::JsonMeasurement;
+use qubit_budget::json::JsonResource;
+use qubit_budget::json::JsonValueLimits;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut normalized = ResourceBudget::new(JsonResource::NormalizedInputBytes, 8_usize);
+    let mut value = JsonValueLimits::builder().max_nodes(2).build().budget();
+    {
+        let mut session =
+            JsonDecodeSession::borrowing_normalized_input(&mut normalized, &mut value);
+        assert!(session.input_budget().is_none());
+        let mut attempt = session.begin_value();
+        attempt.try_consume_normalized_input_bytes(4)?;
+        attempt.try_admit(JsonMeasurement::Null { depth: 1 })?;
+        attempt.commit()?;
+    }
+    assert_eq!(normalized.used(), 4);
+    assert_eq!(value.used_nodes(), Some(1));
     Ok(())
 }
 ```

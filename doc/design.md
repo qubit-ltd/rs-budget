@@ -22,15 +22,15 @@ dimension is represented by `None`; a configured budget is always finite.
 
 ```mermaid
 flowchart TD
-    A[ResourceQuantity and ResourceLimit] --> B[ResourceBudget and resource pools]
-    B --> C[Structure, string, value and time helpers]
-    C --> D[JSON limits, sessions and value transactions]
-    D --> E[Downstream parsers, I/O adapters and services]
+    B[ResourceBudget and resource pools] --> A[ResourceQuantity and ResourceLimit]
+    C[Structure, string, value and time helpers] --> B
+    D[JSON limits, sessions and value transactions] --> C
+    E[Downstream parsers, I/O adapters and services] --> D
 ```
 
-Dependencies point downward in the diagram. Core resource accounting does not
-depend on JSON or downstream adapters. Optional integrations add only their
-domain dependency:
+Arrows point from a consumer to the layer it depends on; the diagram represents
+conceptual layering. Core resource accounting does not depend on JSON or
+downstream adapters. Optional integrations add only their domain dependency:
 
 | Layer | Main types | Stable responsibility |
 | --- | --- | --- |
@@ -140,9 +140,11 @@ narrowest public module or re-export, and docs.rs builds all features with
 visible `doc(cfg)` annotations.
 
 Current downstream use confirms the boundary: HTTP and configuration code
-compose core budgets, local-files owns managed permits, retry combines count,
-duration and deadline budgets, datatype enables numeric helpers, and JSON
-adapters own parsing while borrowing or owning JSON accounting sessions.
+compose core budgets, local-files owns managed permits, retry uses
+`ResourceBudget` for admitted attempts and records elapsed time from explicit
+`qubit-clock` samples plus internal `Duration` state, datatype enables numeric
+helpers, and JSON adapters own parsing while borrowing or owning JSON
+accounting sessions.
 
 ## API evolution
 
@@ -167,8 +169,11 @@ Verification mirrors the invariants rather than implementation line count:
   `used + remaining == limit` across operation sequences.
 - Doctests and compiled bilingual-guide snippets keep examples aligned with the
   public API and declared features.
-- Miri checks ownership, Drop and unsafe-code assumptions; the crate currently
-  contains no project-owned unsafe code.
+- Miri runs only two bounded lifetime cases:
+  `test_miri_resource_pool_sequences` and
+  `test_miri_managed_resource_permit_lifecycle`. Ordinary thread tests cover
+  concurrent contention. The crate currently contains no project-owned unsafe
+  code.
 - Bounded fuzz targets exercise public budget, transactional JSON and
   budgeted-string APIs with allocation bounds and state invariants.
 - CI checks default, all-feature and supported feature combinations, while
