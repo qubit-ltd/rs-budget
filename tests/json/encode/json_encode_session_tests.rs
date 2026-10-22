@@ -9,11 +9,34 @@ use std::panic::AssertUnwindSafe;
 use std::panic::catch_unwind;
 
 use qubit_budget::ResourceBudget;
+use qubit_budget::ResourceLimit;
 use qubit_budget::json::JsonEncodeLimits;
 use qubit_budget::json::JsonEncodeSession;
 use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueLimits;
+
+#[test]
+fn test_owned_encode_session_accepts_borrowed_resource_identity() {
+    let label = String::from("local-output");
+    let limits = JsonEncodeLimits::<&str, usize>::builder()
+        .output_bytes_limit(ResourceLimit::new(label.as_str(), 2))
+        .build();
+    let mut session = JsonEncodeSession::from_limits(limits);
+    {
+        let mut attempt = session.begin_value();
+        attempt.try_consume_output_bytes(2).expect("exact output budget fits");
+        attempt.commit().expect("empty value accounting commits");
+    }
+    {
+        let mut attempt = session.begin_value();
+        assert_eq!(
+            attempt.try_consume_output_bytes(1).unwrap_err().resource(),
+            &label.as_str()
+        );
+    }
+    assert_eq!(session.output_budget().expect("output budget").used(), 2);
+}
 
 /// Verifies that dropping an owned attempt retains accepted output but rolls
 /// back staged JSON value accounting.

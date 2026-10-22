@@ -51,6 +51,22 @@ use crate::resource::ResourceQuantity;
 /// assert_eq!(session.output_budget().expect("output budget").used(), 4);
 /// # Ok(()) }
 /// ```
+///
+/// An owned session owns its budgets, while resource identities may borrow
+/// caller data. The session remains bounded by the identity's lifetime.
+///
+/// ```compile_fail
+/// use qubit_budget::json::{JsonEncodeLimits, JsonEncodeSession};
+/// use qubit_budget::ResourceLimit;
+///
+/// fn invalid_session<'a>() -> JsonEncodeSession<'a, &'a str> {
+///     let label = String::from("local-output");
+///     let limits = JsonEncodeLimits::<&str, usize>::builder()
+///         .output_bytes_limit(ResourceLimit::new(label.as_str(), 2))
+///         .build();
+///     JsonEncodeSession::from_limits(limits)
+/// }
+/// ```
 #[derive(Debug)]
 pub struct JsonEncodeSession<'a, R = JsonResource, Q = usize>
 where
@@ -102,6 +118,30 @@ where
                 output: Some(output),
                 value,
             },
+        }
+    }
+
+    /// Creates a session that owns budgets initialized from immutable limits.
+    ///
+    /// Resource identities in the limits may borrow caller data. The owned
+    /// budgets do not extend the lifetime of those identities.
+    ///
+    /// # Parameters
+    ///
+    /// * `limits` - Immutable limits used to initialize owned accounting
+    ///   budgets.
+    ///
+    /// # Returns
+    ///
+    /// A session owning its budgets and retaining the limits' resource
+    /// identities.
+    #[inline]
+    #[must_use]
+    pub fn from_limits(limits: JsonEncodeLimits<R, Q>) -> Self {
+        let output = limits.output_bytes_limit().cloned().map(ResourceBudget::from_limit);
+        let value = JsonValueBudget::new(limits.into_value_limits());
+        Self {
+            storage: EncodeStorage::Owned { output, value },
         }
     }
 
@@ -161,32 +201,6 @@ where
         match &self.storage {
             EncodeStorage::Owned { value, .. } => value,
             EncodeStorage::Borrowed { value, .. } => value,
-        }
-    }
-}
-
-impl<R, Q> JsonEncodeSession<'static, R, Q>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    /// Creates a session that owns budgets initialized from immutable limits.
-    ///
-    /// # Parameters
-    ///
-    /// * `limits` - Immutable encoding limits used to initialize owned
-    ///   accounting budgets.
-    ///
-    /// # Returns
-    ///
-    /// Creates a session that owns budgets initialized from immutable limits.
-    #[inline]
-    #[must_use]
-    pub fn from_limits(limits: JsonEncodeLimits<R, Q>) -> Self {
-        let output = limits.output_bytes_limit().cloned().map(ResourceBudget::from_limit);
-        let value = JsonValueBudget::new(limits.into_value_limits());
-        Self {
-            storage: EncodeStorage::Owned { output, value },
         }
     }
 }
