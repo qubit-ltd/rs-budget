@@ -1,0 +1,3 @@
+# Ignore cargo-fuzz's generated hexadecimal corpus entries; keep named
+# regression seeds under fuzz/corpus tracked explicitly.
+/corpus/*/[0-9a-f]*
