@@ -128,6 +128,61 @@ where
         }
     }
 
+    /// Creates a session borrowing normalized-input and value budgets only.
+    ///
+    /// Raw input accounting is unconfigured. The borrowed resource identities
+    /// must remain valid while this session is used.
+    ///
+    /// # Parameters
+    ///
+    /// * `normalized_input` - Budget charged immediately for normalized bytes.
+    /// * `value` - Budget updated only after successful value commit.
+    ///
+    /// # Returns
+    ///
+    /// A session with no raw-input budget and exclusive access to the supplied
+    /// normalized-input and value budgets.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use qubit_budget::ResourceBudget;
+    /// use qubit_budget::json::JsonDecodeSession;
+    /// use qubit_budget::json::JsonMeasurement;
+    /// use qubit_budget::json::JsonResource;
+    /// use qubit_budget::json::JsonValueLimits;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut normalized = ResourceBudget::new(JsonResource::NormalizedInputBytes, 8_usize);
+    /// let mut value = JsonValueLimits::builder().max_nodes(2).build().budget();
+    /// {
+    ///     let mut session =
+    ///         JsonDecodeSession::borrowing_normalized_input(&mut normalized, &mut value);
+    ///     assert!(session.input_budget().is_none());
+    ///     let mut attempt = session.begin_value();
+    ///     attempt.try_consume_normalized_input_bytes(4)?;
+    ///     attempt.try_admit(JsonMeasurement::Null { depth: 1 })?;
+    ///     attempt.commit()?;
+    /// }
+    /// assert_eq!(normalized.used(), 4);
+    /// assert_eq!(value.used_nodes(), Some(1));
+    /// # Ok(()) }
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn borrowing_normalized_input(
+        normalized_input: &'a mut ResourceBudget<R, Q>,
+        value: &'a mut JsonValueBudget<R, Q>,
+    ) -> Self {
+        Self {
+            storage: DecodeStorage::Borrowed {
+                input: None,
+                normalized_input: Some(normalized_input),
+                value,
+            },
+        }
+    }
+
     /// Creates a session borrowing all caller-owned decode budgets.
     ///
     /// # Parameters

@@ -9,6 +9,7 @@ use std::panic::AssertUnwindSafe;
 
 use qubit_budget::ResourceBudget;
 use qubit_budget::ResourceLimit;
+use qubit_budget::StructureLimits;
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;
 use qubit_budget::json::JsonMeasurement;
@@ -246,4 +247,77 @@ fn test_decode_attempt_panic_keeps_input_and_rolls_back_value() {
     assert!(result.is_err());
     assert_eq!(session.input_budget().expect("configured input").used(), 3);
     assert_eq!(session.value_budget().used_nodes(), Some(0));
+}
+
+#[test]
+fn test_normalized_only_drop_keeps_io_and_rolls_back_value() {
+    let label = String::from("normalized");
+    let mut normalized = ResourceBudget::new(label.as_str(), 4_u8);
+    let mut value = JsonValueLimits::<&str, u8>::builder()
+        .structure_limits(
+            StructureLimits::<&str, u8>::builder()
+                .nodes_limit(ResourceLimit::new("nodes", 2))
+                .build(),
+        )
+        .build()
+        .budget();
+    {
+        let mut session =
+            JsonDecodeSession::borrowing_normalized_input(&mut normalized, &mut value);
+        assert!(session.input_budget().is_none());
+        assert_eq!(session.max_normalized_input_bytes(), Some(4));
+        let mut attempt = session.begin_value();
+        attempt.try_consume_input_bytes(usize::MAX).expect("raw is absent");
+        attempt.try_consume_normalized_input_bytes(2).expect("two fit");
+        attempt.try_admit(JsonMeasurement::Null { depth: 1 }).expect("node fits");
+    }
+    assert_eq!(normalized.used(), 2);
+    assert_eq!(value.used_nodes(), Some(0));
+}
+
+#[test]
+fn test_normalized_only_io_failure_does_not_poison_commit() {
+    let mut normalized = ResourceBudget::new(JsonResource::NormalizedInputBytes, 2_u8);
+    let mut value = JsonValueLimits::<JsonResource, u8>::builder()
+        .max_nodes(1)
+        .build()
+        .budget();
+    {
+        let mut session =
+            JsonDecodeSession::borrowing_normalized_input(&mut normalized, &mut value);
+        let mut attempt = session.begin_value();
+        attempt.try_consume_normalized_input_bytes(2).expect("exact fit");
+        let error = attempt.try_consume_normalized_input_bytes(1).expect_err("exhausted");
+        assert_eq!(error.resource(), &JsonResource::NormalizedInputBytes);
+        assert!(error.budget_error().is_some());
+        let error = attempt.try_consume_normalized_input_bytes(256).expect_err("u8 conversion");
+        assert_eq!(error.quantity_error().expect("conversion error").target(), "u8");
+        attempt.try_admit(JsonMeasurement::Null { depth: 1 }).expect("node fits");
+        attempt.commit().expect("I/O failure alone is not poison");
+    }
+    assert_eq!(normalized.used(), 2);
+    assert_eq!(value.used_nodes(), Some(1));
+}
+
+#[test]
+fn test_normalized_only_value_failure_keeps_immediate_charge() {
+    let mut normalized = ResourceBudget::new(JsonResource::NormalizedInputBytes, 3_usize);
+    let mut value = JsonValueLimits::builder().max_nodes(0).build().budget();
+    {
+        let mut session =
+            JsonDecodeSession::borrowing_normalized_input(&mut normalized, &mut value);
+        let mut attempt = session.begin_value();
+        attempt.try_consume_normalized_input_bytes(1).expect("one fits");
+        let first = attempt
+            .try_admit(JsonMeasurement::Null { depth: 1 })
+            .expect_err("zero nodes");
+        let later = attempt
+            .try_admit(JsonMeasurement::Boolean { depth: 1 })
+            .expect_err("poison retained");
+        assert_eq!(first.budget_error(), later.budget_error());
+        let committed = attempt.commit().expect_err("poison prevents commit");
+        assert_eq!(first.budget_error(), committed.budget_error());
+    }
+    assert_eq!(normalized.used(), 1);
+    assert_eq!(value.used_nodes(), Some(0));
 }
