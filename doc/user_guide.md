@@ -53,7 +53,7 @@ Add the crate with no feature enabled for the core limits, budgets, and pools:
 
 ```toml
 [dependencies]
-qubit-budget = "0.9"
+qubit-budget = "0.9.1"
 ```
 
 Enable only the integrations used by the application. For example, JSON value
@@ -61,7 +61,7 @@ sessions require the `json` feature:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9", features = ["json"] }
+qubit-budget = { version = "0.9.1", features = ["json"] }
 ```
 
 The crate supports Rust 1.94 or newer. Its optional features are `json`,
@@ -216,7 +216,7 @@ Enable the `time` feature to use `TimeBudget`:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9", features = ["time"] }
+qubit-budget = { version = "0.9.1", features = ["time"] }
 ```
 
 ### Scenario 5: make one decoded JSON value transactional
@@ -393,6 +393,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+### Preview before appending a formatted chunk
+
+A budgeted formatter often knows only the next piece of a string or key. Use `check_admit` on the complete prospective measurement before appending that piece, then admit the final measurement once after formatting:
+
+```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+use qubit_budget::json::{JsonMeasurement, JsonValueLimits};
+
+let mut budget = JsonValueLimits::builder()
+    .max_nodes(1_usize)
+    .max_string_bytes(8)
+    .budget();
+let mut transaction = budget.transaction();
+let mut text = String::new();
+for chunk in ["hello", " world"] {
+    let bytes = text.len() + chunk.len();
+    transaction.check_admit(JsonMeasurement::String { depth: 1, bytes })?;
+    text.push_str(chunk);
+}
+transaction.try_admit(JsonMeasurement::String { depth: 1, bytes: text.len() })?;
+transaction.commit()?;
+assert_eq!(budget.used_nodes(), Some(1));
+Ok(())
+}
+```
+
+The second chunk is rejected before it is appended because the prospective string would exceed eight bytes. A successful preview changes no accounting state. A failed preview stores the first `MeasuredBudgetError`, poisons the transaction, and causes later admission and `commit` to return that error. Drop the failed transaction to discard staged value usage. Accepted input or writer output is separate immediate accounting and remains charged.
+
+The preview protects the collector's append boundary; it cannot limit arbitrary allocations performed inside user `Display::fmt`, allocator metadata, or process RSS. For `qubit-json`, string and key measurements are previewed as they grow and admitted once when formatting succeeds. Raw `RawValue`/Number output must still be parsed after the complete text has been collected; output-byte limits bound the collector during that phase.
 
 ### Complete atomicity matrix
 

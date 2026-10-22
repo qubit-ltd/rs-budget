@@ -16,14 +16,14 @@
 
 ```toml
 [dependencies]
-qubit-budget = "0.9"
+qubit-budget = "0.9.1"
 ```
 
 本 crate 默认不启用 feature。只有需要集成能力时才按需开启：
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9", features = ["json"] }
+qubit-budget = { version = "0.9.1", features = ["json"] }
 ```
 
 可选 feature 为 `json`、`big-integer`、`big-decimal`（会同时启用
@@ -116,6 +116,30 @@ raw input 和 normalized input 仍然立即入账；transaction 只暂存 value 
 完整 value 成功后调用 `commit`。value admission 被拒绝会使该 transaction 进入 poisoned
 状态并禁止发布，但已经接受的 I/O 和 output 仍然保留计费。完整原子性矩阵和恢复边界请看
 用户手册与设计文档。
+
+### 暂检 JSON 测量，再决定是否入账
+
+增量 formatter 可以用 `JsonValueTransaction::check_admit` 在追加分块前检查预计的完整测量值。该方法会读取当前 transaction 已暂存的用量，但成功时不修改暂存状态：
+
+```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+use qubit_budget::json::{JsonMeasurement, JsonValueLimits};
+
+let mut budget = JsonValueLimits::builder()
+    .max_nodes(1_usize)
+    .max_string_bytes(8)
+    .budget();
+let mut transaction = budget.transaction();
+let measurement = JsonMeasurement::String { depth: 1, bytes: 5 };
+transaction.check_admit(measurement)?; // 仅预检，不扣暂存用量
+transaction.try_admit(measurement)?;  // 最终只暂存一次
+transaction.commit()?;
+assert_eq!(budget.used_nodes(), Some(1));
+Ok(())
+}
+```
+
+预检会检查 quantity 转换、单点限制，以及此前暂存用量之上的累计节点数和 payload；成功不改变状态。若转换或限额检查失败，会像 `try_admit` 一样记录首错并使 transaction 进入 poisoned 状态；后续 admission 和 `commit` 都返回该错误，不会发布任何暂存值。先检查完整的预计测量，值真正完成后再调用一次 `try_admit`。此方法无法限制调用方 `Display` 实现内部的分配。
 
 ## 不负责什么
 

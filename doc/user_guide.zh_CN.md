@@ -49,14 +49,14 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 
 ```toml
 [dependencies]
-qubit-budget = "0.9"
+qubit-budget = "0.9.1"
 ```
 
 只为实际使用的集成能力启用 feature。例如，JSON value 会话需要 `json` feature：
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9", features = ["json"] }
+qubit-budget = { version = "0.9.1", features = ["json"] }
 ```
 
 本 crate 支持 Rust 1.94 及更高版本。可选 feature 为 `json`、`big-integer`、
@@ -198,7 +198,7 @@ Ok(())
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9", features = ["time"] }
+qubit-budget = { version = "0.9.1", features = ["time"] }
 ```
 
 ### 场景五：让一个已解码 JSON value 具备事务性
@@ -369,6 +369,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+### 追加格式化分块之前先预检
+
+预算化 formatter 通常只能逐步生成字符串或键。每次追加前，用完整的预计测量调用 `check_admit`；格式化完成后，再对最终测量调用一次 `try_admit`：
+
+```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+use qubit_budget::json::{JsonMeasurement, JsonValueLimits};
+
+let mut budget = JsonValueLimits::builder()
+    .max_nodes(1_usize)
+    .max_string_bytes(8)
+    .budget();
+let mut transaction = budget.transaction();
+let mut text = String::new();
+for chunk in ["hello", " world"] {
+    let bytes = text.len() + chunk.len();
+    transaction.check_admit(JsonMeasurement::String { depth: 1, bytes })?;
+    text.push_str(chunk);
+}
+transaction.try_admit(JsonMeasurement::String { depth: 1, bytes: text.len() })?;
+transaction.commit()?;
+assert_eq!(budget.used_nodes(), Some(1));
+Ok(())
+}
+```
+
+第二块会在追加前被拒绝，因为预计字符串长度超过 8 字节。预检成功不改变记账状态；预检失败会保存首个 `MeasuredBudgetError` 并毒化 transaction，后续 admission 与 `commit` 都返回该错误。丢弃失败的 transaction 可回滚暂存的 value 用量。已接受的输入字节或 writer 输出属于即时计费，仍会保留。
+
+预检保护的是 collector 追加分块的边界，不能限制用户 `Display::fmt` 内部的任意分配、分配器元数据或进程 RSS。`qubit-json` 会在字符串和键增长时预检，并在格式化成功后只准入最终测量一次。原始 `RawValue`/Number 输出仍要等完整文本收集后才能解析；该阶段由 output 字节限制约束 collector。
 
 ### 完整原子性矩阵
 

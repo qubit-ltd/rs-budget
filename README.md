@@ -16,7 +16,7 @@ reject oversized work with structured errors and predictable state changes.
 
 ```toml
 [dependencies]
-qubit-budget = "0.9"
+qubit-budget = "0.9.1"
 ```
 
 The crate has no default features. Enable an integration only when it is
@@ -24,7 +24,7 @@ needed:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9", features = ["json"] }
+qubit-budget = { version = "0.9.1", features = ["json"] }
 ```
 
 Available features: `json`, `big-integer`, `big-decimal` (which enables
@@ -124,6 +124,30 @@ staged value usage, so callers call `commit` after the complete value succeeds.
 A rejected value admission poisons that transaction and prevents publication;
 already accepted I/O and output remain accounted. The user guide and design
 document define the complete atomicity matrix and recovery boundary.
+
+### Preview a JSON measurement before staging it
+
+`JsonValueTransaction::check_admit` checks a prospective measurement against the transaction's current staged state without applying the measurement. This supports incremental formatters that need to stop before appending an oversized chunk:
+
+```rust
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+use qubit_budget::json::{JsonMeasurement, JsonValueLimits};
+
+let mut budget = JsonValueLimits::builder()
+    .max_nodes(1_usize)
+    .max_string_bytes(8)
+    .budget();
+let mut transaction = budget.transaction();
+let measurement = JsonMeasurement::String { depth: 1, bytes: 5 };
+transaction.check_admit(measurement)?; // preview only; no staged charge
+transaction.try_admit(measurement)?;  // stage exactly once
+transaction.commit()?;
+assert_eq!(budget.used_nodes(), Some(1));
+Ok(())
+}
+```
+
+The preview checks quantity conversion, point limits, and cumulative nodes/payload against all earlier staged measurements; success does not change state. A rejected conversion or limit check records the first error and poisons the transaction, just like `try_admit`; later admissions and `commit` return that failure and publish nothing. Preview the full prospective measurement, then call `try_admit` once when the complete value is ready. This method does not limit allocations performed inside a caller's `Display` implementation.
 
 ## What it does not do
 
