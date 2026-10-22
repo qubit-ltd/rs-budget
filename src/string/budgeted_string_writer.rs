@@ -244,3 +244,13 @@ where
     budget.try_consume(output_length).map_err(BudgetedStringError::Budget)?;
     Ok(output)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::checked_output_len;
+
+    #[test]
+    fn test_checked_output_len_detects_usize_overflow() {
+        assert_eq!(checked_output_len(usize::MAX, 1), None);
+    }
+}

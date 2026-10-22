@@ -37,6 +37,20 @@ fn test_fmt_output_commits_exact_utf8_bytes() {
 }
 
 #[test]
+fn test_fmt_budget_failure_rolls_back() {
+    let mut budget = ResourceBudget::new(TestResource::OutputBytes, 3_u64);
+    let error = budget
+        .try_write_string(|writer| {
+            let mut output = writer.as_fmt();
+            write!(&mut output, "éé")
+        })
+        .expect_err("four UTF-8 bytes should exceed the budget");
+
+    assert!(matches!(error, BudgetedStringError::Budget(_)));
+    assert_eq!((budget.used(), budget.remaining()), (0, 3));
+}
+
+#[test]
 fn test_io_output_commits_only_after_success() {
     let mut budget = ResourceBudget::new(TestResource::OutputBytes, 5_u64);
     let output = budget
