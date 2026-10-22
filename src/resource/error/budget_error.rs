@@ -134,9 +134,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the exact point measurement when the observation is exact.
-    ///
-    /// `None` indicates that the observation is only a lower bound.
+    /// `Some(value)` is returned for a point-limit failure with
+    /// [`Observation::Exact`]. `None` is returned for [`Observation::AtLeast`]
+    /// or for an [`Self::Insufficient`] failure, which has no point
+    /// observation.
     #[inline]
     pub const fn exact_observed(&self) -> Option<Q> {
         match self.observation() {
@@ -236,6 +237,15 @@ where
     ///
     /// `None` indicates that this is a point-limit failure with no cumulative
     /// usage.
+    ///
+    /// The public fields must satisfy `remaining <= limit`.
+    ///
+    /// # Panics
+    ///
+    /// May panic when overflow checks are enabled if manually constructed or
+    /// modified fields violate `remaining <= limit`. With overflow checks
+    /// disabled, the returned diagnostic value is not meaningful for such
+    /// invalid fields.
     #[inline]
     pub fn used(&self) -> Option<Q> {
         match self {

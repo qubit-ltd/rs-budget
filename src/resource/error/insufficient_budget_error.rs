@@ -114,14 +114,18 @@ where
     /// The amount is computed as `limit - remaining`; therefore, `remaining`
     /// must not exceed `limit`.
     ///
+    /// The public fields must satisfy `remaining <= limit`.
+    ///
     /// # Returns
     ///
     /// Returns the amount already consumed before the failed request.
     ///
     /// # Panics
     ///
-    /// Panics if the public fields were modified so that `remaining` exceeds
-    /// `limit`.
+    /// May panic when overflow checks are enabled if manually constructed or
+    /// modified fields violate `remaining <= limit`. With overflow checks
+    /// disabled, the returned diagnostic value is not meaningful for such
+    /// invalid fields.
     #[must_use]
     #[inline]
     pub fn used(&self) -> Q {
