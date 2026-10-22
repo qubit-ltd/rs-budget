@@ -16,9 +16,11 @@ use std::sync::atomic::Ordering;
 use std::thread;
 
 use proptest::prelude::prop;
+use proptest::prelude::prop_assert;
 use proptest::prelude::prop_assert_eq;
 use proptest::prelude::proptest;
 use qubit_budget::InsufficientBudgetError;
+use qubit_budget::ManagedResourcePermit;
 use qubit_budget::ManagedResourcePool;
 use qubit_budget::ResourceLimit;
 
@@ -177,16 +179,72 @@ proptest! {
     #[test]
     fn test_permit_sequences_preserve_pool_invariants(
         maximum in 0_u64..=64,
-        amounts in prop::collection::vec(0_u64..=64, 0..32),
+        operations in prop::collection::vec((0_u8..4, 0_u64..=96, 0_usize..64), 1..64),
     ) {
         let pool = ManagedResourcePool::new(TestResource::OpenFiles, maximum);
-        for raw_amount in amounts {
-            let amount = raw_amount.min(pool.available());
-            let permit = pool.try_acquire(amount).expect("bounded amount should fit");
-            prop_assert_eq!(pool.available() + pool.in_use(), maximum);
-            drop(permit);
-            prop_assert_eq!(pool.available(), maximum);
-            prop_assert_eq!(pool.available() + pool.in_use(), maximum);
+        let other = pool.clone();
+        let mut held: Vec<ManagedResourcePermit<TestResource>> = Vec::new();
+        for (operation, amount, index) in operations {
+            let before_used: u64 = held.iter().map(ManagedResourcePermit::amount).sum();
+            let before_available = maximum - before_used;
+            match operation {
+                0 | 1 => {
+                    let handle = if operation == 0 { &pool } else { &other };
+                    match handle.try_acquire(amount) {
+                        Ok(permit) => {
+                            prop_assert!(amount <= before_available);
+                            prop_assert_eq!(permit.amount(), amount);
+                            held.push(permit);
+                        }
+                        Err(error) => {
+                            prop_assert!(amount > before_available);
+                            prop_assert_eq!(error.resource(), &TestResource::OpenFiles);
+                            prop_assert_eq!(error.limit(), maximum);
+                            prop_assert_eq!(error.remaining(), before_available);
+                            prop_assert_eq!(error.requested(), amount);
+                            prop_assert_eq!(pool.available(), before_available);
+                        }
+                    }
+                }
+                2 if !held.is_empty() => {
+                    let selected = index % held.len();
+                    drop(held.swap_remove(selected));
+                }
+                3 if !held.is_empty() => {
+                    let selected = index % held.len();
+                    held.swap_remove(selected).release();
+                }
+                _ => {}
+            }
+            let used: u64 = held.iter().map(ManagedResourcePermit::amount).sum();
+            prop_assert!(used <= maximum);
+            prop_assert_eq!(pool.in_use(), used);
+            prop_assert_eq!(pool.available(), maximum - used);
+            prop_assert_eq!(other.available(), maximum - used);
         }
+        drop(held);
+        prop_assert_eq!(pool.available(), maximum);
+        prop_assert_eq!(pool.in_use(), 0);
     }
+}
+
+#[test]
+fn test_miri_managed_resource_permit_lifecycle() {
+    let pool = ManagedResourcePool::new(TestResource::OpenFiles, 3_u64);
+    let other = pool.clone();
+    let first = pool.try_acquire(1).expect("one fits");
+    let second = other.try_acquire(2).expect("two fit");
+    assert_eq!(pool.available(), 0);
+    let error = other.try_acquire(1).expect_err("shared pool exhausted");
+    assert_eq!(error.remaining(), 0);
+    first.release();
+    assert_eq!(other.available(), 1);
+    drop(second);
+    assert_eq!(pool.available(), 3);
+    let last = other.try_acquire(3).expect("capacity reusable");
+    drop(pool);
+    drop(other);
+    assert_eq!(last.amount(), 3);
+    assert_eq!(last.resource(), &TestResource::OpenFiles);
+    drop(last);
 }

@@ -23,6 +23,21 @@ enum TestResource {
 const OPEN_FILE_POOL: ResourcePool<&str> = ResourcePool::new("open-files", 3_u64);
 
 #[test]
+fn test_miri_resource_pool_sequences() {
+    let mut pool = ResourcePool::new(TestResource::OpenFiles, 3_u64);
+    pool.try_acquire(3).expect("capacity fits");
+    let error = pool.try_acquire(1).expect_err("exhausted");
+    assert_eq!(error.remaining(), 0);
+    assert_eq!(pool.available(), 0);
+    pool.release(1).expect("one held unit");
+    assert_eq!(pool.available(), 1);
+    pool.try_acquire(1).expect("reuse returned unit");
+    pool.release(3).expect("all units held");
+    assert_eq!(pool.available(), 3);
+    assert_eq!(pool.in_use(), 0);
+}
+
+#[test]
 fn test_new_is_const() {
     assert_eq!(OPEN_FILE_POOL.capacity(), 3);
 }
