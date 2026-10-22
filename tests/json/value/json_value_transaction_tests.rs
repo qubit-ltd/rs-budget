@@ -39,9 +39,7 @@ fn test_value_transaction_commit_publishes_usage() {
         .expect("value admission fits");
     assert_eq!(transaction.used_nodes(), Some(1));
 
-    transaction
-        .commit()
-        .expect("successful transaction commits");
+    transaction.commit().expect("successful transaction commits");
 
     assert_eq!(budget.used_nodes(), Some(1));
 }
@@ -65,9 +63,7 @@ fn test_check_container_count_rejects_next_item_without_mutation() {
         .check_container_count(JsonContainerKind::Sequence, 1)
         .expect_err("a failed count check poisons the transaction");
     assert_eq!(repeated_error.resource(), first_error.resource());
-    let commit_error = transaction
-        .commit()
-        .expect_err("poisoned transaction cannot commit");
+    let commit_error = transaction.commit().expect_err("poisoned transaction cannot commit");
     assert_eq!(commit_error.resource(), first_error.resource());
     assert_eq!(budget.used_nodes(), Some(0));
 }
@@ -113,7 +109,8 @@ fn test_enter_container_admits_node_before_children() {
     assert_eq!(transaction.used_nodes(), Some(1));
 }
 
-/// Verifies successful admission previews use existing staged capacity without charging it.
+/// Verifies successful admission previews use existing staged capacity without
+/// charging it.
 #[test]
 fn test_check_admit_previews_without_charging_and_try_admit_charges_once() {
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
@@ -128,15 +125,11 @@ fn test_check_admit_previews_without_charging_and_try_admit_charges_once() {
     let measurement = JsonMeasurement::String { depth: 1, bytes: 3 };
 
     transaction.check_admit(measurement).expect("preview fits");
-    transaction
-        .check_admit(measurement)
-        .expect("preview can repeat");
+    transaction.check_admit(measurement).expect("preview can repeat");
     assert_eq!(transaction.used_nodes(), Some(1));
     assert_eq!(transaction.used_payload_bytes(), Some(0));
 
-    transaction
-        .try_admit(measurement)
-        .expect("actual admission fits");
+    transaction.try_admit(measurement).expect("actual admission fits");
     transaction.commit().expect("transaction commits");
     assert_eq!(budget.used_nodes(), Some(2));
     assert_eq!(budget.used_payload_bytes(), Some(3));
@@ -160,15 +153,14 @@ fn test_failed_check_admit_preserves_first_error_and_prevents_commit() {
         .try_admit(JsonMeasurement::Null { depth: 1 })
         .expect_err("preview failure poisons later admissions");
     assert_eq!(repeated.resource(), first.resource());
-    let commit_error = transaction
-        .commit()
-        .expect_err("poisoned transaction cannot commit");
+    let commit_error = transaction.commit().expect_err("poisoned transaction cannot commit");
     assert_eq!(commit_error.resource(), first.resource());
     assert_eq!(budget.used_nodes(), Some(0));
     assert_eq!(budget.used_payload_bytes(), Some(0));
 }
 
-/// Verifies previews reuse point and cumulative checks for non-string measurements.
+/// Verifies previews reuse point and cumulative checks for non-string
+/// measurements.
 #[test]
 fn test_check_admit_checks_point_node_and_key_limits() {
     let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
@@ -186,17 +178,15 @@ fn test_check_admit_checks_point_node_and_key_limits() {
     assert_eq!(depth_error.resource(), &JsonResource::Depth);
 }
 
-/// Verifies successful container and key previews leave unlimited staged usage unchanged.
+/// Verifies successful container and key previews leave unlimited staged usage
+/// unchanged.
 #[test]
 fn test_check_admit_previews_container_and_key_with_unlimited_budget() {
     let mut budget = JsonValueLimits::<JsonResource, usize>::new().budget();
     let mut transaction = budget.transaction();
 
     transaction
-        .check_admit(JsonMeasurement::Object {
-            depth: 1,
-            entries: 1,
-        })
+        .check_admit(JsonMeasurement::Object { depth: 1, entries: 1 })
         .expect("container preview fits");
     transaction
         .check_admit(JsonMeasurement::Key { bytes: 4 })
@@ -205,10 +195,7 @@ fn test_check_admit_previews_container_and_key_with_unlimited_budget() {
     assert_eq!(transaction.used_payload_bytes(), None);
 
     transaction
-        .try_admit(JsonMeasurement::Object {
-            depth: 1,
-            entries: 1,
-        })
+        .try_admit(JsonMeasurement::Object { depth: 1, entries: 1 })
         .expect("container admission fits");
     transaction
         .try_admit(JsonMeasurement::Key { bytes: 4 })
@@ -231,10 +218,7 @@ fn test_check_admit_preserves_custom_resource_on_quantity_error() {
         .budget();
     let mut transaction = budget.transaction();
     let error = transaction
-        .check_admit(JsonMeasurement::String {
-            depth: 1,
-            bytes: 256,
-        })
+        .check_admit(JsonMeasurement::String { depth: 1, bytes: 256 })
         .expect_err("the byte count cannot be converted to u8");
 
     assert_eq!(error.resource(), &Resource::Text);
@@ -260,42 +244,25 @@ fn test_poison_rejects_later_admission_and_commit_without_publishing() {
     );
 
     let first = transaction
-        .try_admit(JsonMeasurement::String {
-            depth: 1,
-            bytes: 256,
-        })
+        .try_admit(JsonMeasurement::String { depth: 1, bytes: 256 })
         .expect_err("u8 cannot represent the configured string measurement");
     let second = transaction
         .try_admit(JsonMeasurement::Null { depth: 1 })
         .expect_err("poisoned transaction retains its first failure");
     assert_eq!(first.resource(), second.resource());
     assert_eq!(
-        first
-            .quantity_error()
-            .expect("quantity failure")
-            .measurement(),
-        second
-            .quantity_error()
-            .expect("same quantity failure")
-            .measurement(),
+        first.quantity_error().expect("quantity failure").measurement(),
+        second.quantity_error().expect("same quantity failure").measurement(),
     );
-    let final_error = transaction
-        .commit()
-        .expect_err("poisoned transaction cannot commit");
+    let final_error = transaction.commit().expect_err("poisoned transaction cannot commit");
     assert_eq!(
-        first
-            .quantity_error()
-            .expect("quantity failure")
-            .measurement(),
+        first.quantity_error().expect("quantity failure").measurement(),
         final_error
             .quantity_error()
             .expect("same quantity failure")
             .measurement(),
     );
-    assert_eq!(
-        (budget.used_nodes(), budget.used_payload_bytes()),
-        (Some(0), Some(0))
-    );
+    assert_eq!((budget.used_nodes(), budget.used_payload_bytes()), (Some(0), Some(0)));
 
     let mut next = budget.transaction();
     next.try_admit(JsonMeasurement::Null { depth: 1 })
