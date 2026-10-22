@@ -27,11 +27,7 @@ include = [
 
 [package.metadata.rs-infra]
 miri = true
-miri-test-args = [
-    "--test",
-    "tests",
-    "resource::budget::resource_pool_tests::test_legal_acquire_release_sequences_preserve_pool_invariants",
-]
+miri-test-args = ["--test", "tests", "test_miri_"]
 
 [features]
 default = []
