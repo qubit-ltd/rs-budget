@@ -116,21 +116,51 @@ where
     ///
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
-    pub fn try_admit(&mut self, measurement: JsonMeasurement) -> Result<(), MeasuredBudgetError<R, Q>> {
+    pub fn try_admit(
+        &mut self,
+        measurement: JsonMeasurement,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
         if let Some(error) = &self.failure {
             return Err(error.clone());
         }
-        let result: Result<PreparedJsonAdmission<Q>, MeasuredBudgetError<R, Q>> = (|| {
-            let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
-            prepared.check_point(self.target.limits())?;
-            self.check_cumulative(prepared)?;
-            Ok(prepared)
-        })();
-        match result {
+        match self.prepare_admission(measurement) {
             Ok(prepared) => {
                 self.apply(prepared);
                 Ok(())
             }
+            Err(error) => {
+                self.failure = Some(error.clone());
+                Err(error)
+            }
+        }
+    }
+
+    /// Checks whether a measurement fits this transaction without staging it.
+    ///
+    /// The preview uses all previously staged usage. A rejected preview poisons
+    /// the transaction with its first error, just like [`Self::try_admit`].
+    ///
+    /// # Parameters
+    ///
+    /// * `measurement` - Native JSON measurement to convert and check.
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` when the measurement fits the current staged capacity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`MeasuredBudgetError`] when conversion, a point limit, or
+    /// cumulative node or payload capacity rejects the measurement.
+    pub fn check_admit(
+        &mut self,
+        measurement: JsonMeasurement,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
+        if let Some(error) = &self.failure {
+            return Err(error.clone());
+        }
+        match self.prepare_admission(measurement) {
+            Ok(_) => Ok(()),
             Err(error) => {
                 self.failure = Some(error.clone());
                 Err(error)
@@ -193,7 +223,11 @@ where
         prospective: usize,
     ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let limit = match kind {
-            JsonContainerKind::Sequence => self.target.limits().structure_limits().sequence_items_limit(),
+            JsonContainerKind::Sequence => self
+                .target
+                .limits()
+                .structure_limits()
+                .sequence_items_limit(),
             JsonContainerKind::Map => self.target.limits().structure_limits().map_entries_limit(),
         };
         if let Some(error) = &self.failure {
@@ -305,12 +339,26 @@ where
     ///
     /// Returns [`MeasuredBudgetError::Budget`] when the staged node or payload
     /// capacity cannot accommodate the event.
-    fn check_cumulative(&self, prepared: PreparedJsonAdmission<Q>) -> Result<(), MeasuredBudgetError<R, Q>> {
+    fn check_cumulative(
+        &self,
+        prepared: PreparedJsonAdmission<Q>,
+    ) -> Result<(), MeasuredBudgetError<R, Q>> {
         let (node, payload_bytes) = cumulative_cost(prepared);
         if node {
             self.check_nodes()?;
         }
         self.check_payload(payload_bytes)
+    }
+
+    /// Prepares and checks an event against the current working state.
+    fn prepare_admission(
+        &self,
+        measurement: JsonMeasurement,
+    ) -> Result<PreparedJsonAdmission<Q>, MeasuredBudgetError<R, Q>> {
+        let prepared = PreparedJsonAdmission::prepare(self.target.limits(), measurement)?;
+        prepared.check_point(self.target.limits())?;
+        self.check_cumulative(prepared)?;
+        Ok(prepared)
     }
 
     /// Converts and checks one prospective container count without mutation.
@@ -438,7 +486,8 @@ where
         | PreparedJsonAdmission::Boolean { .. }
         | PreparedJsonAdmission::Array { .. }
         | PreparedJsonAdmission::Object { .. } => (true, Q::ZERO),
-        PreparedJsonAdmission::String { bytes, .. } | PreparedJsonAdmission::Number { bytes, .. } => (true, bytes),
+        PreparedJsonAdmission::String { bytes, .. }
+        | PreparedJsonAdmission::Number { bytes, .. } => (true, bytes),
         PreparedJsonAdmission::Key { bytes } => (false, bytes),
     }
 }
