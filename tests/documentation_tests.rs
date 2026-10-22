@@ -7,6 +7,7 @@
 // =============================================================================
 //! Compiles, runs, and checks links in the bilingual project documentation.
 
+#[cfg(not(miri))]
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
@@ -22,6 +23,7 @@ const DOCUMENTS: [&str; 6] = [
     "doc/design.zh_CN.md",
 ];
 
+#[cfg(not(miri))]
 #[derive(Clone)]
 struct Snippet {
     document: String,
@@ -30,6 +32,7 @@ struct Snippet {
     source: String,
 }
 
+#[cfg(not(miri))]
 fn document_snippets(document: &str, name: &str) -> Vec<(usize, String)> {
     let mut snippets = Vec::new();
     let mut current: Option<(usize, String, String)> = None;
@@ -73,6 +76,7 @@ fn document_snippets(document: &str, name: &str) -> Vec<(usize, String)> {
     snippets
 }
 
+#[cfg(not(miri))]
 fn parse_manifest(root: &Path) -> Vec<Snippet> {
     let manifest = fs::read_to_string(root.join("tests/fixtures/documentation-snippets.tsv"))
         .expect("read documentation snippet manifest");
