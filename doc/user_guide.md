@@ -408,7 +408,7 @@ let mut budget = JsonValueLimits::builder()
     .budget();
 let mut transaction = budget.transaction();
 let mut text = String::new();
-for chunk in ["hello", " world"] {
+for chunk in ["hello", "!!!"] {
     let bytes = text.len() + chunk.len();
     transaction.check_admit(JsonMeasurement::String { depth: 1, bytes })?;
     text.push_str(chunk);
@@ -420,7 +420,7 @@ Ok(())
 }
 ```
 
-The second chunk is rejected before it is appended because the prospective string would exceed eight bytes. A successful preview changes no accounting state. A failed preview stores the first `MeasuredBudgetError`, poisons the transaction, and causes later admission and `commit` to return that error. Drop the failed transaction to discard staged value usage. Accepted input or writer output is separate immediate accounting and remains charged.
+Each chunk is checked before it is appended, and the final measurement is admitted once after formatting. A successful preview changes no accounting state. If a preview fails, it stores the first `MeasuredBudgetError`, poisons the transaction, and causes later admission and `commit` to return that error. Drop the failed transaction to discard staged value usage. Accepted input or writer output is separate immediate accounting and remains charged.
 
 The preview protects the collector's append boundary; it cannot limit arbitrary allocations performed inside user `Display::fmt`, allocator metadata, or process RSS. For `qubit-json`, string and key measurements are previewed as they grow and admitted once when formatting succeeds. Raw `RawValue`/Number output must still be parsed after the complete text has been collected; output-byte limits bound the collector during that phase.
 
