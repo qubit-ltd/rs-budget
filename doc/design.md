@@ -3,7 +3,7 @@
 [中文设计文档](design.zh_CN.md) · [User guide](user_guide.md) · [README](../README.md)
 
 This document records the stable accounting semantics and maintenance decisions
-behind `qubit-budget` 0.9.x. Public API details remain authoritative in the
+behind `qubit-budget` 0.10. Public API details remain authoritative in the
 [API documentation](https://docs.rs/qubit-budget).
 
 ## Goals and boundaries

@@ -2,7 +2,7 @@
 
 [English design document](design.md) · [用户手册](user_guide.zh_CN.md) · [README](../README.zh_CN.md)
 
-本文记录 `qubit-budget` 0.9.x 稳定的记账语义与维护决策。公共 API 的具体签名和用法以
+本文记录 `qubit-budget` 0.10 稳定的记账语义与维护决策。公共 API 的具体签名和用法以
 [API 文档](https://docs.rs/qubit-budget)为准。
 
 ## 目标与边界

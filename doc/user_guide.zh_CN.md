@@ -3,7 +3,7 @@
 [English user guide](user_guide.md) · [中文 README](../README.zh_CN.md) ·
 [API 文档](https://docs.rs/qubit-budget)
 
-本手册适用于 `qubit-budget` 0.9.x 和 Rust 1.94 或更高版本。文中的例子提炼自
+本手册适用于 `qubit-budget` 0.10 和 Rust 1.94 或更高版本。文中的例子提炼自
 Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 
 ## 手册目标与读者
@@ -49,14 +49,14 @@ Qubit crate 的真实用法，只省略了与计费无关的业务代码。
 
 ```toml
 [dependencies]
-qubit-budget = "0.9.1"
+qubit-budget = "0.10"
 ```
 
 只为实际使用的集成能力启用 feature。例如，JSON value 会话需要 `json` feature：
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9.1", features = ["json"] }
+qubit-budget = { version = "0.10", features = ["json"] }
 ```
 
 本 crate 支持 Rust 1.94 及更高版本。可选 feature 为 `json`、`big-integer`、
@@ -198,7 +198,7 @@ Ok(())
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9.1", features = ["time"] }
+qubit-budget = { version = "0.10", features = ["time"] }
 ```
 
 ### 场景五：让一个已解码 JSON value 具备事务性

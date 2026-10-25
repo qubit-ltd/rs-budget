@@ -3,7 +3,7 @@
 [中文用户手册](user_guide.zh_CN.md) · [README](../README.md) ·
 [API documentation](https://docs.rs/qubit-budget)
 
-This guide applies to `qubit-budget` 0.9.x and Rust 1.94 or newer. Its examples
+This guide applies to `qubit-budget` 0.10 and Rust 1.94 or newer. Its examples
 distill real uses in Qubit crates while leaving out unrelated application code.
 
 ## Purpose and audience
@@ -53,7 +53,7 @@ Add the crate with no feature enabled for the core limits, budgets, and pools:
 
 ```toml
 [dependencies]
-qubit-budget = "0.9.1"
+qubit-budget = "0.10"
 ```
 
 Enable only the integrations used by the application. For example, JSON value
@@ -61,7 +61,7 @@ sessions require the `json` feature:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9.1", features = ["json"] }
+qubit-budget = { version = "0.10", features = ["json"] }
 ```
 
 The crate supports Rust 1.94 or newer. Its optional features are `json`,
@@ -216,7 +216,7 @@ Enable the `time` feature to use `TimeBudget`:
 
 ```toml
 [dependencies]
-qubit-budget = { version = "0.9.1", features = ["time"] }
+qubit-budget = { version = "0.10", features = ["time"] }
 ```
 
 ### Scenario 5: make one decoded JSON value transactional

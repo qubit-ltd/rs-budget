@@ -254,7 +254,7 @@ fn test_feature_gated_public_api_declares_docsrs_feature() {
 fn test_documents_explain_lower_bound_measurements_and_borrowed_identities() {
     for readme in [include_str!("../../README.md"), include_str!("../../README.zh_CN.md")] {
         assert!(readme.contains("AtLeastU64"));
-        assert!(readme.contains("0.9"));
+        assert!(readme.contains("0.10"));
     }
     let english = include_str!("../../doc/user_guide.md");
     let chinese = include_str!("../../doc/user_guide.zh_CN.md");
