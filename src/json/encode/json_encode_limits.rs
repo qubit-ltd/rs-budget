@@ -48,7 +48,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates encoding limits with every dimension unconfigured.
+    /// Returns encoding limits with no output-byte or nested value limits set.
     fn default() -> Self {
         Self::new()
     }
@@ -62,7 +62,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates an empty encoding limit set with no configured resource limits.
+    /// Returns encoding limits with no output-byte or nested value limits set.
     #[inline]
     #[must_use]
     pub const fn new() -> Self {
@@ -76,7 +76,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a builder for JSON encoding limits.
+    /// Returns an empty builder whose `build` result has no configured limits.
     #[inline]
     #[must_use]
     pub const fn builder() -> JsonEncodeLimitsBuilder<R, Q> {
@@ -87,7 +87,7 @@ where
     ///
     /// # Returns
     ///
-    /// Converts these limits into a builder for further configuration.
+    /// Returns a builder whose `build` result preserves these limit settings.
     #[inline]
     #[must_use]
     pub const fn into_builder(self) -> JsonEncodeLimitsBuilder<R, Q> {
@@ -114,28 +114,29 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn output_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.output.as_ref()
     }
 
-    /// Borrows the JSON value limits used for encoding.
+    /// Returns a reference to the nested limits, valid for the lifetime of
+    /// this borrow.
     ///
     /// # Returns
     ///
-    /// Borrows the JSON value limits used for encoding.
+    /// Returns the nested limits by reference without copying or consuming
+    /// them.
     #[must_use]
     #[inline]
     pub const fn value_limits(&self) -> &JsonValueLimits<R, Q> {
         &self.value
     }
 
-    /// Consumes these encoding limits and returns their JSON value limits.
+    /// Returns the nested JSON value limits, discarding the output-byte limit.
     ///
     /// # Returns
     ///
-    /// Consumes these encoding limits and returns their JSON value limits.
+    /// Returns the nested limits by value; the output-byte limit is discarded.
     #[must_use]
     #[inline]
     pub fn into_value_limits(self) -> JsonValueLimits<R, Q> {
@@ -150,7 +151,6 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn max_output_bytes(&self) -> Option<Q> {
         match self.output.as_ref() {

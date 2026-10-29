@@ -72,12 +72,12 @@ impl<R, Q> BudgetError<R, Q>
 where
     Q: Copy + Debug,
 {
-    /// Returns the resource associated with this failure.
+    /// Returns a borrow of the resource associated with this failure.
     ///
     /// # Returns
     ///
-    /// Returns the resource associated with this failure.
-    #[must_use]
+    /// Returns a reference to the original resource without cloning it.
+    #[must_use = "the associated resource should be inspected"]
     #[inline]
     pub const fn resource(&self) -> &R {
         match self {
@@ -85,27 +85,28 @@ where
         }
     }
 
-    /// Consumes this error and returns its associated resource.
+    /// Consumes this error and returns its associated resource by value.
     ///
     /// # Returns
     ///
-    /// Consumes this error and returns its associated resource.
+    /// Returns the original resource value without cloning it.
     #[inline]
-    #[must_use]
+    #[must_use = "the associated resource should be inspected"]
     pub fn into_resource(self) -> R {
         match self {
             Self::LimitExceeded { resource, .. } | Self::Insufficient { resource, .. } => resource,
         }
     }
 
-    /// Returns the cumulative limit for budget and pool failures.
+    /// Returns the cumulative limit for a budget or pool failure.
     ///
     /// Returns `Some(limit)` for [`Self::Insufficient`], or `None` for a
     /// point-limit failure.
     ///
     /// # Returns
     ///
-    /// Returns the cumulative limit for budget and pool failures.
+    /// Returns `Some(limit)` for [`Self::Insufficient`], or `None` for a
+    /// point-limit failure.
     #[inline]
     pub const fn limit(&self) -> Option<Q> {
         match self {
@@ -114,14 +115,15 @@ where
         }
     }
 
-    /// Returns the observation for a point-limit failure.
+    /// Returns the point observation when this is a point-limit failure.
     ///
     /// Returns `Some(observed)` for [`Self::LimitExceeded`], or `None` for a
     /// cumulative-budget or pool failure.
     ///
     /// # Returns
     ///
-    /// Returns the observation for a point-limit failure.
+    /// Returns `Some(observation)` for [`Self::LimitExceeded`], or `None` for
+    /// a cumulative-budget or pool failure.
     #[inline]
     pub const fn observation(&self) -> Option<Observation<Q>> {
         match self {
@@ -146,14 +148,12 @@ where
         }
     }
 
-    /// Returns the safe lower bound of a point measurement.
+    /// Returns the safe lower bound of a point observation.
     ///
     /// # Returns
     ///
-    /// Returns the safe lower bound of a point measurement.
-    ///
-    /// `None` indicates that this is a cumulative-budget failure rather than a
-    /// point-limit failure.
+    /// Returns `Some(lower_bound)` for a point-limit failure, or `None` for a
+    /// cumulative-budget failure.
     #[inline]
     pub const fn observed_lower_bound(&self) -> Option<Q> {
         match self.observation() {
@@ -162,14 +162,15 @@ where
         }
     }
 
-    /// Returns the configured maximum for a point-limit failure.
+    /// Returns the configured maximum for a point-limit failure, if any.
     ///
     /// Returns `Some(maximum)` for [`Self::LimitExceeded`], or `None` for a
     /// cumulative-budget or pool failure.
     ///
     /// # Returns
     ///
-    /// Returns the configured maximum for a point-limit failure.
+    /// Returns `Some(maximum)` for [`Self::LimitExceeded`], or `None` for a
+    /// cumulative-budget or pool failure.
     #[inline]
     pub const fn maximum(&self) -> Option<Q> {
         match self {
@@ -178,14 +179,15 @@ where
         }
     }
 
-    /// Returns the remaining capacity for a cumulative-budget failure.
+    /// Returns the remaining capacity for a cumulative-budget failure, if any.
     ///
     /// Returns `Some(remaining)` for [`Self::Insufficient`], including failed
     /// pool acquisitions, or `None` for a point-limit failure.
     ///
     /// # Returns
     ///
-    /// Returns the remaining capacity for a cumulative-budget failure.
+    /// Returns `Some(remaining)` for [`Self::Insufficient`], or `None` for a
+    /// point-limit failure.
     #[inline]
     pub const fn remaining(&self) -> Option<Q> {
         match self {
@@ -194,14 +196,15 @@ where
         }
     }
 
-    /// Returns the requested quantity for a cumulative budget failure.
+    /// Returns the requested quantity for a cumulative-budget failure, if any.
     ///
     /// Returns `Some(requested)` for [`Self::Insufficient`], or `None` for a
     /// point-limit failure.
     ///
     /// # Returns
     ///
-    /// Returns the requested quantity for a cumulative budget failure.
+    /// Returns `Some(requested)` for [`Self::Insufficient`], or `None` for a
+    /// point-limit failure.
     #[inline]
     pub const fn requested(&self) -> Option<Q> {
         match self {
@@ -215,11 +218,12 @@ impl<R, Q> BudgetError<R, Q>
 where
     Q: crate::ResourceQuantity,
 {
-    /// Returns the configured limit for either point or cumulative failures.
+    /// Returns the configured limit for either point or cumulative failure.
     ///
     /// # Returns
     ///
-    /// Returns the configured limit for either point or cumulative failures.
+    /// Returns the point maximum for [`Self::LimitExceeded`] or cumulative
+    /// limit for [`Self::Insufficient`].
     #[must_use]
     #[inline]
     pub const fn configured_limit(&self) -> Q {
@@ -229,14 +233,12 @@ where
         }
     }
 
-    /// Returns cumulative usage before a failed request, when applicable.
+    /// Returns cumulative usage before a failed request, when available.
     ///
     /// # Returns
     ///
-    /// Returns cumulative usage before a failed request, when applicable.
-    ///
-    /// `None` indicates that this is a point-limit failure with no cumulative
-    /// usage.
+    /// Returns `Some(used)` for [`Self::Insufficient`], or `None` for a
+    /// point-limit failure.
     ///
     /// The public fields must satisfy `remaining <= limit`.
     ///

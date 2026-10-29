@@ -56,29 +56,30 @@ where
     ///
     /// # Returns
     ///
-    /// A limit that accepts measurements less than or equal to `maximum`.
+    /// A new limit bound to `resource`; measurements equal to `maximum` are
+    /// accepted.
     #[inline]
     #[must_use]
     pub const fn new(resource: R, maximum: Q) -> Self {
         Self { resource, maximum }
     }
 
-    /// Returns the resource bound to this limit.
+    /// Borrows the resource identity reported when this limit is exceeded.
     ///
     /// # Returns
     ///
-    /// Returns the resource bound to this limit.
+    /// Returns a borrow tied to this limit, without cloning the resource.
     #[inline]
-    #[must_use]
+    #[must_use = "the resource identity should be inspected"]
     pub const fn resource(&self) -> &R {
         &self.resource
     }
 
-    /// Returns this limit's inclusive maximum measurement.
+    /// Returns the inclusive measurement that this limit accepts.
     ///
     /// # Returns
     ///
-    /// Returns this limit's inclusive maximum measurement.
+    /// The returned quantity is copied from the immutable limit.
     #[inline]
     #[must_use]
     pub const fn maximum(&self) -> Q {

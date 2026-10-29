@@ -5,6 +5,8 @@
 //
 //    Licensed under the Apache License, Version 2.0.
 // =============================================================================
+//! Demonstrates charging raw and normalized JSON input, admitting measured
+//! values, and committing the resulting accounting transaction.
 
 use qubit_budget::json::JsonDecodeLimits;
 use qubit_budget::json::JsonDecodeSession;

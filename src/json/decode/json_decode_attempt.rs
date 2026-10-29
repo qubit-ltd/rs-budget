@@ -7,6 +7,7 @@
 // =============================================================================
 //! Provides transactional value accounting for one JSON decode attempt.
 
+use super::internal::consume_bytes;
 use crate::json::JsonMeasurement;
 use crate::json::JsonValueTransaction;
 use crate::resource::MeasuredBudgetError;
@@ -246,40 +247,5 @@ where
     /// Returns the first value-admission error when the attempt is poisoned.
     pub fn commit(self) -> Result<(), MeasuredBudgetError<R, Q>> {
         self.value.commit()
-    }
-}
-
-/// Converts and immediately consumes native bytes when a budget is present.
-///
-/// # Type Parameters
-///
-/// * `R` - Caller-defined resource identity retained by limits and errors.
-/// * `Q` - Exact unsigned quantity used for measurements and accounting.
-///
-/// # Parameters
-///
-/// * `budget` - Optional cumulative byte budget to charge.
-/// * `amount` - Native byte count to convert and charge when `budget` exists.
-///
-/// # Returns
-///
-/// `Ok(())` when the operation completes successfully.
-///
-/// # Errors
-///
-/// Returns [`MeasuredBudgetError`] when `amount` cannot fit `Q` or exceeds the
-/// budget's remaining capacity.
-#[inline]
-fn consume_bytes<R, Q>(
-    budget: Option<&mut ResourceBudget<R, Q>>,
-    amount: usize,
-) -> Result<(), MeasuredBudgetError<R, Q>>
-where
-    R: Clone,
-    Q: ResourceQuantity,
-{
-    match budget {
-        Some(budget) => budget.try_consume_usize(amount),
-        None => Ok(()),
     }
 }

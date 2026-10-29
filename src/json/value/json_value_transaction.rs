@@ -251,15 +251,12 @@ where
         Ok(())
     }
 
-    /// Returns staged node usage when the cumulative node limit is configured.
+    /// Returns the number of nodes staged by this transaction.
     ///
     /// # Returns
     ///
-    /// Returns staged node usage when the cumulative node limit is configured.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
-    #[must_use]
+    /// `Some` contains staged node usage when the cumulative node limit is
+    /// configured; `None` means node accounting is not configured.
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.working
@@ -268,31 +265,25 @@ where
             .map(|(remaining, maximum)| maximum - remaining)
     }
 
-    /// Returns staged remaining node capacity when the node limit is
-    /// configured.
+    /// Returns the node capacity remaining after this transaction's staged
+    /// admissions.
     ///
     /// # Returns
     ///
-    /// Returns staged remaining node capacity when the node limit is
-    /// configured.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
-    #[must_use]
+    /// `Some` contains remaining node capacity when configured; `None` means
+    /// node accounting is not configured.
     #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.working.remaining_nodes()
     }
 
-    /// Returns staged payload usage when the payload limit is configured.
+    /// Returns the payload bytes consumed by this transaction's staged
+    /// admissions.
     ///
     /// # Returns
     ///
-    /// Returns staged payload usage when the payload limit is configured.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
-    #[must_use]
+    /// `Some` contains staged payload usage when the cumulative payload limit
+    /// is configured; `None` means payload accounting is not configured.
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.working
@@ -301,15 +292,13 @@ where
             .map(|(remaining, maximum)| maximum - remaining)
     }
 
-    /// Returns staged remaining payload capacity when that limit is configured.
+    /// Returns the payload capacity remaining after this transaction's staged
+    /// admissions.
     ///
     /// # Returns
     ///
-    /// Returns staged remaining payload capacity when that limit is configured.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
-    #[must_use]
+    /// `Some` contains remaining payload capacity when configured; `None` means
+    /// payload accounting is not configured.
     #[inline]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.working.remaining_payload_bytes()
@@ -337,7 +326,9 @@ where
         self.check_payload(payload_bytes)
     }
 
-    /// Prepares and checks an event against the current working state.
+    /// Converts a native measurement, checks its point limit, then verifies
+    /// its cumulative cost against the current working state without mutating
+    /// that state.
     fn prepare_admission(
         &self,
         measurement: JsonMeasurement,
@@ -450,7 +441,8 @@ where
     }
 }
 
-/// Returns the cumulative node and payload cost of a prepared JSON event.
+/// Returns whether a prepared JSON event consumes one node and its payload
+/// byte cost.
 ///
 /// # Type Parameters
 ///
@@ -462,7 +454,9 @@ where
 ///
 /// # Returns
 ///
-/// Returns the cumulative node and payload cost of a prepared JSON event.
+/// The boolean indicates node consumption; the quantity is the payload byte
+/// cost, which is zero for events without payload bytes.
+#[inline]
 #[must_use]
 fn cumulative_cost<Q>(prepared: PreparedJsonAdmission<Q>) -> (bool, Q)
 where

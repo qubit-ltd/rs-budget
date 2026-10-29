@@ -209,6 +209,7 @@ where
 /// # Errors
 ///
 /// Returns [`MeasuredBudgetError`] when `amount` cannot be represented by `Q`.
+#[inline]
 fn convert<R, Q>(amount: usize, limit: Option<&ResourceLimit<R, Q>>) -> Result<Q, MeasuredBudgetError<R, Q>>
 where
     R: Clone,
@@ -247,6 +248,7 @@ where
 /// # Errors
 ///
 /// Returns [`MeasuredBudgetError`] when `amount` cannot be represented by `Q`.
+#[inline]
 fn convert_payload<R, Q>(
     amount: usize,
     point_limit: Option<&ResourceLimit<R, Q>>,
@@ -286,6 +288,7 @@ where
 ///
 /// Returns [`MeasuredBudgetError`] when a configured point limit rejects
 /// `actual`.
+#[inline]
 fn check_limit<R, Q>(limit: Option<&ResourceLimit<R, Q>>, actual: Q) -> Result<(), MeasuredBudgetError<R, Q>>
 where
     R: Clone,

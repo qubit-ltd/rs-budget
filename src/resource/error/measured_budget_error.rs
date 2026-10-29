@@ -84,7 +84,6 @@ where
     /// # Returns
     ///
     /// `Some` for [`Self::Budget`], or `None` for [`Self::Quantity`].
-    #[must_use]
     #[inline]
     pub const fn budget_error(&self) -> Option<&BudgetError<R, Q>> {
         match self {
@@ -98,7 +97,6 @@ where
     /// # Returns
     ///
     /// `Some` for [`Self::Quantity`], or `None` for [`Self::Budget`].
-    #[must_use]
     #[inline]
     pub const fn quantity_error(&self) -> Option<&QuantityConversionError> {
         match self {

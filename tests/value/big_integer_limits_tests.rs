@@ -241,10 +241,8 @@ proptest! {
         let text = value.to_str_radix(10);
         let digits = text.strip_prefix('-').unwrap_or(&text).len() as u64;
         let limits = BigIntegerLimits::builder()
-            .significant_decimal_digits_limit(ResourceLimit::new(
-                TestResource::Digits,
-                maximum,
-            )).build();
+            .significant_decimal_digits_limit(ResourceLimit::new(TestResource::Digits, maximum))
+            .build();
 
         let result = limits.check(&value);
         if digits <= maximum {

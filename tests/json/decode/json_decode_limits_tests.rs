@@ -12,24 +12,30 @@ use qubit_budget::json::JsonValueLimits;
 /// Verifies direct and nested decode limits are reported by their owner.
 #[test]
 fn test_has_limits_reports_direct_and_nested_dimensions() {
-    assert!(!JsonDecodeLimits::<JsonResource, usize>::new().has_limits());
+    assert!(
+        !JsonDecodeLimits::<JsonResource, usize>::new().has_limits(),
+        "new decode limits should not report configured limits"
+    );
     assert!(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_input_bytes(1)
             .build()
-            .has_limits()
+            .has_limits(),
+        "a configured input byte limit should be reported"
     );
     assert!(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_normalized_input_bytes(1)
             .build()
-            .has_limits()
+            .has_limits(),
+        "a configured normalized input byte limit should be reported"
     );
     assert!(
         JsonDecodeLimits::<JsonResource, usize>::builder()
             .max_depth(1)
             .build()
-            .has_limits()
+            .has_limits(),
+        "a configured nested value limit should be reported"
     );
 }
 

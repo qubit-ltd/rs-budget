@@ -38,6 +38,7 @@ use super::TimeBudgetError;
 ///     .expect("the deadline should be representable");
 /// assert!(!budget.is_expired());
 /// ```
+#[must_use = "the deadline budget must be retained and used"]
 #[derive(Debug)]
 pub struct TimeBudget<R, C> {
     /// Resource value retained in deadline errors.
@@ -194,9 +195,9 @@ impl<R, C: MonotonicClock> TimeBudget<R, C> {
     ///
     /// # Returns
     ///
-    /// Reports whether the current instant has reached the deadline.
-    #[inline]
+    /// `true` when the current instant is at or after the fixed deadline.
     #[must_use = "the expiration status must be observed"]
+    #[inline]
     pub fn is_expired(&self) -> bool {
         self.clock.now() >= self.deadline
     }

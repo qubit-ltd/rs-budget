@@ -8,5 +8,7 @@
 //! Private storage for JSON decoding sessions.
 
 mod decode_storage;
+mod input_accounting;
 
 pub(super) use decode_storage::DecodeStorage;
+pub(super) use input_accounting::consume_bytes;

@@ -66,6 +66,7 @@ where
     /// A transaction that stages admissions against this budget until
     /// committed.
     #[must_use = "the transaction must be committed or dropped intentionally"]
+    #[inline]
     pub fn transaction(&mut self) -> JsonValueTransaction<'_, R, Q> {
         JsonValueTransaction::new(self)
     }

@@ -19,6 +19,7 @@ use crate::resource::ResourceQuantity;
 ///
 /// * `R` - Caller-defined resource identity retained by limits and errors.
 /// * `Q` - Exact unsigned quantity used for measurements and accounting.
+#[must_use]
 pub(crate) enum WriterFailure<R, Q>
 where
     Q: ResourceQuantity,

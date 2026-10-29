@@ -10,6 +10,7 @@
 /// Private marker implemented only by the crate's supported unsigned integers.
 pub trait ResourceQuantitySealed {
     /// Converts this supported quantity to `u128` without losing information.
+    #[must_use]
     #[allow(clippy::wrong_self_convention)] // The sealed conversion consumes the quantity.
     fn as_u128(self) -> u128;
 }

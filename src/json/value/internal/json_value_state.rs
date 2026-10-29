@@ -82,6 +82,11 @@ where
     /// this event before applying it; this method assumes those checks have
     /// succeeded and subtracts directly from the fixed-size state.
     ///
+    /// # Panics
+    ///
+    /// Panics in builds with overflow checks enabled if the caller applies an
+    /// event that exceeds any configured capacity.
+    ///
     /// # Parameters
     ///
     /// * `node` - Whether the event consumes one JSON node.

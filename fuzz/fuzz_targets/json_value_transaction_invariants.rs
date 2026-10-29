@@ -16,6 +16,7 @@ use internal::json_transaction_model::Limits;
 use internal::json_transaction_model::Model;
 use libfuzzer_sys::fuzz_target;
 use qubit_budget::MeasuredBudgetError;
+use qubit_budget::QuantityMeasurement;
 use qubit_budget::ResourceLimit;
 use qubit_budget::ResourceQuantity;
 use qubit_budget::json::JsonContainerKind;
@@ -23,6 +24,7 @@ use qubit_budget::json::JsonMeasurement;
 use qubit_budget::json::JsonResource;
 use qubit_budget::json::JsonValueBudget;
 use qubit_budget::json::JsonValueLimits;
+use qubit_budget::json::JsonValueTransaction;
 
 const MAX_INPUT_LEN: usize = 4 * 1024;
 const LIMIT_COUNT: usize = 8;
@@ -223,7 +225,7 @@ where
             let quantity = actual.quantity_error().expect("quantity conversion error");
             assert_eq!(
                 quantity.measurement(),
-                qubit_budget::QuantityMeasurement::Usize(expected.measured as usize)
+                QuantityMeasurement::Usize(expected.measured as usize)
             );
             assert_eq!(quantity.target(), std::any::type_name::<Q>());
         }
@@ -245,11 +247,8 @@ where
     }
 }
 
-fn assert_transaction<Q>(
-    transaction: &qubit_budget::json::JsonValueTransaction<'_, JsonResource, Q>,
-    model: Model,
-    limits: Limits,
-) where
+fn assert_transaction<Q>(transaction: &JsonValueTransaction<'_, JsonResource, Q>, model: Model, limits: Limits)
+where
     Q: ResourceQuantity,
 {
     assert_eq!(

@@ -92,7 +92,6 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    #[must_use = "the output-byte check result must be handled"]
     pub fn check_output_bytes(&self, amount: usize) -> Result<(), MeasuredBudgetError<R, Q>> {
         match self.output.as_deref() {
             Some(budget) => budget.check_available_usize(amount),
@@ -153,11 +152,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the output budget while the attempt exclusively owns it.
+    /// The caller-owned output budget, still mutably borrowed by this attempt.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn output_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         self.output.as_deref()
@@ -172,11 +170,13 @@ where
     ///
     /// # Returns
     ///
-    /// Splits this attempt into immediate output and staged value accounting.
+    /// A mutable output budget when configured, followed by the staged value
+    /// transaction. Mutations through the first reference charge output
+    /// immediately; value changes remain staged until commit.
     ///
     /// A `None` output budget indicates that output-byte accounting is
     /// unconfigured.
-    #[must_use]
+    #[must_use = "the output budget and staged value transaction must be used"]
     #[inline]
     pub fn split_mut(&mut self) -> (Option<&mut ResourceBudget<R, Q>>, &mut JsonValueTransaction<'a, R, Q>) {
         (self.output.as_deref_mut(), &mut self.value)
@@ -186,11 +186,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns staged node usage when the node limit is configured.
+    /// The node count including successful admissions staged by this attempt.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
         self.value.used_nodes()
@@ -200,11 +199,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns staged remaining node capacity when the node limit is set.
+    /// The remaining node capacity after successful staged admissions.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn remaining_nodes(&self) -> Option<Q> {
         self.value.remaining_nodes()
@@ -214,11 +212,11 @@ where
     ///
     /// # Returns
     ///
-    /// Returns staged payload usage when the payload limit is configured.
+    /// The payload-byte count including successful admissions staged by this
+    /// attempt.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.value.used_payload_bytes()
@@ -228,11 +226,10 @@ where
     ///
     /// # Returns
     ///
-    /// Returns staged remaining payload capacity when the payload limit is set.
+    /// The remaining payload-byte capacity after successful staged admissions.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn remaining_payload_bytes(&self) -> Option<Q> {
         self.value.remaining_payload_bytes()
@@ -242,7 +239,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the mutable transaction that holds this attempt's value state.
+    /// A mutable reference to the transaction whose staged state this attempt
+    /// will publish on commit.
     #[must_use]
     #[inline]
     pub fn value_transaction_mut(&mut self) -> &mut JsonValueTransaction<'a, R, Q> {

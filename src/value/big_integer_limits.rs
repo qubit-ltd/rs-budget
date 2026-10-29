@@ -59,8 +59,8 @@ where
     ///
     /// The returned value has neither magnitude nor decimal-digit bounds
     /// configured.
-    #[inline]
     #[must_use = "the integer limits should be used"]
+    #[inline]
     pub const fn new() -> Self {
         Self {
             max_magnitude_bits: None,
@@ -73,8 +73,8 @@ where
     /// # Returns
     ///
     /// The returned builder starts without configured integer bounds.
-    #[inline]
     #[must_use]
+    #[inline]
     pub const fn builder() -> BigIntegerLimitsBuilder<R, Q> {
         BigIntegerLimitsBuilder::new()
     }
@@ -84,36 +84,30 @@ where
     /// # Returns
     ///
     /// The returned builder starts with this value's existing configuration.
-    #[inline]
     #[must_use]
+    #[inline]
     pub const fn into_builder(self) -> BigIntegerLimitsBuilder<R, Q> {
         BigIntegerLimitsBuilder::from_limits(self)
     }
 
-    /// Returns the configured magnitude bit-length limit, if any.
+    /// Returns the configured magnitude bit-length limit when one is set.
     ///
     /// # Returns
     ///
-    /// Returns the configured magnitude bit-length limit, if any.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
+    /// `Some` contains the configured limit; `None` means this dimension is
     /// unconfigured.
     #[inline]
-    #[must_use]
     pub const fn magnitude_bits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_magnitude_bits.as_ref()
     }
 
-    /// Returns the configured significant decimal digit limit, if any.
+    /// Returns the configured significant decimal digit limit when one is set.
     ///
     /// # Returns
     ///
-    /// Returns the configured significant decimal digit limit, if any.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
+    /// `Some` contains the configured limit; `None` means this dimension is
     /// unconfigured.
     #[inline]
-    #[must_use]
     pub const fn significant_decimal_digits_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_significant_decimal_digits.as_ref()
     }
@@ -212,11 +206,12 @@ impl<R, Q> Default for BigIntegerLimits<R, Q>
 where
     Q: ResourceQuantity,
 {
-    /// Creates unconfigured integer limits.
+    /// Creates a default value with no integer bounds configured.
     ///
     /// # Returns
     ///
-    /// Creates unconfigured integer limits.
+    /// The returned limits have neither magnitude nor decimal-digit bounds
+    /// configured.
     #[inline]
     fn default() -> Self {
         Self::new()

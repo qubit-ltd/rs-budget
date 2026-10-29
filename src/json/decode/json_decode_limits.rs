@@ -117,6 +117,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
+    #[must_use]
     #[inline]
     pub const fn input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.input.as_ref()
@@ -130,6 +131,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
+    #[must_use]
     #[inline]
     pub const fn normalized_input_bytes_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.normalized_input.as_ref()
@@ -165,6 +167,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
+    #[must_use]
     #[inline]
     pub const fn max_input_bytes(&self) -> Option<Q> {
         limit_maximum(self.input.as_ref())
@@ -178,6 +181,7 @@ where
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
+    #[must_use]
     #[inline]
     pub const fn max_normalized_input_bytes(&self) -> Option<Q> {
         limit_maximum(self.normalized_input.as_ref())

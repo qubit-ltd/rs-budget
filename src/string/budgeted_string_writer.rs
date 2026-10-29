@@ -36,11 +36,12 @@ use crate::resource::ResourceQuantity;
 ///
 /// ```
 /// use std::fmt::Write as _;
+/// use qubit_budget::BudgetedStringWriter;
 /// use qubit_budget::ResourceBudget;
 ///
 /// let mut budget = ResourceBudget::new("response bytes", 16_u64);
 /// let output = budget
-///     .try_write_string(|writer| {
+///     .try_write_string(|writer: &mut BudgetedStringWriter<'_, &str>| {
 ///         let mut formatted = writer.as_fmt();
 ///         write!(&mut formatted, "status={}", 200)
 ///     })
@@ -75,6 +76,7 @@ where
     /// # Returns
     ///
     /// Creates an empty writer backed by an immutable budget snapshot.
+    #[inline]
     fn new(budget: &'a ResourceBudget<R, Q>) -> Self {
         Self {
             budget,
@@ -158,6 +160,8 @@ where
     /// # Returns
     ///
     /// The staged bytes and the first writer-side failure, if one was captured.
+    #[must_use = "the staged output and captured failure must be processed"]
+    #[inline]
     fn into_parts(self) -> (Vec<u8>, Option<WriterFailure<R, Q>>) {
         (self.output, self.failure)
     }
@@ -173,6 +177,7 @@ where
 /// # Returns
 ///
 /// The sum, or `None` when it would overflow `usize`.
+#[inline]
 const fn checked_output_len(current: usize, additional: usize) -> Option<usize> {
     current.checked_add(additional)
 }

@@ -100,7 +100,6 @@ where
     ///
     /// A builder ready to configure JSON value limits.
     #[inline]
-    #[must_use]
     pub const fn builder() -> JsonValueLimitsBuilder<R, Q> {
         JsonValueLimitsBuilder::new()
     }
@@ -111,7 +110,6 @@ where
     ///
     /// A builder initialized with these limits.
     #[inline]
-    #[must_use]
     pub const fn into_builder(self) -> JsonValueLimitsBuilder<R, Q> {
         JsonValueLimitsBuilder::from_limits(self)
     }
@@ -156,7 +154,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured root-inclusive nesting-depth maximum.
+    /// The configured root-inclusive nesting-depth maximum, or `None` when no
+    /// maximum nesting depth is configured.
     ///
     /// `None` indicates that no maximum nesting depth is configured.
     #[inline]
@@ -167,7 +166,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured cumulative JSON-node maximum.
+    /// The configured cumulative JSON-node maximum, or `None` when no maximum
+    /// cumulative node count is configured.
     ///
     /// `None` indicates that no maximum cumulative node count is configured.
     #[inline]
@@ -178,7 +178,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured maximum item count for one JSON array.
+    /// The configured maximum item count for one JSON array, or `None` when no
+    /// maximum array length is configured.
     ///
     /// `None` indicates that no maximum array length is configured.
     #[inline]
@@ -189,7 +190,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured maximum entry count for one JSON object.
+    /// The configured maximum entry count for one JSON object, or `None` when
+    /// no maximum object entry count is configured.
     ///
     /// `None` indicates that no maximum object entry count is configured.
     #[inline]
@@ -200,7 +202,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured maximum byte length for one JSON object key.
+    /// The configured maximum byte length for one JSON object key, or `None`
+    /// when no maximum object-key length is configured.
     ///
     /// `None` indicates that no maximum object-key length is configured.
     #[inline]
@@ -326,6 +329,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound per-string byte limit to install.
+    #[inline]
     pub(super) fn set_string_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_string_bytes = Some(limit);
     }
@@ -335,6 +339,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound per-number byte limit to install.
+    #[inline]
     pub(super) fn set_number_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_number_bytes = Some(limit);
     }
@@ -344,6 +349,7 @@ where
     /// # Parameters
     ///
     /// * `limit` - Resource-bound cumulative payload-byte limit to install.
+    #[inline]
     pub(super) fn set_payload_bytes_limit(&mut self, limit: ResourceLimit<R, Q>) {
         self.max_payload_bytes = Some(limit);
     }
@@ -353,6 +359,7 @@ where
     /// # Parameters
     ///
     /// * `limits` - Structural limits to apply to JSON value processing.
+    #[inline]
     pub(super) fn set_structure_limits(&mut self, limits: StructureLimits<R, Q>) {
         self.structure = limits;
     }
@@ -371,7 +378,8 @@ where
 ///
 /// # Returns
 ///
-/// Returns an optional limit maximum without exposing its resource identity.
+/// The configured maximum, or `None` when `limit` is unconfigured. The
+/// resource identity is not exposed.
 ///
 /// `None` indicates that the supplied optional limit is unconfigured.
 #[inline]

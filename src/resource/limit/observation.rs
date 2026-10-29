@@ -71,13 +71,13 @@ impl<Q> Observation<Q>
 where
     Q: Copy + Debug,
 {
-    /// Returns the exact quantity, or `None` for a lower-bound observation.
+    /// Returns the exact quantity when this observation is exact.
     ///
     /// # Returns
     ///
-    /// Returns the exact quantity, or `None` for a lower-bound observation.
+    /// Returns `Some(quantity)` for [`Self::Exact`] and `None` for
+    /// [`Self::AtLeast`].
     #[inline]
-    #[must_use]
     pub const fn exact(self) -> Option<Q> {
         match self {
             Self::Exact(value) => Some(value),

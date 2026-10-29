@@ -31,6 +31,7 @@ use crate::structure::StructureLimits;
 /// assert_eq!(limits.max_string_bytes(), Some(32));
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[must_use = "the configured limits should be built or the builder retained"]
 pub struct JsonValueLimitsBuilder<R = JsonResource, Q = usize>
 where
     Q: ResourceQuantity,
@@ -48,6 +49,7 @@ where
     /// # Returns
     ///
     /// A builder with no explicitly configured JSON value limits.
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -63,7 +65,6 @@ where
     ///
     /// A builder whose limits are all unset.
     #[inline]
-    #[must_use]
     pub const fn new() -> Self {
         Self {
             limits: JsonValueLimits::new(),
@@ -82,7 +83,6 @@ where
     /// A builder initialized with the supplied limits, ready for further
     /// configuration.
     #[inline]
-    #[must_use]
     pub(crate) const fn from_limits(limits: JsonValueLimits<R, Q>) -> Self {
         Self { limits }
     }
@@ -97,7 +97,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn string_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_string_bytes_limit(limit);
         self
@@ -113,7 +112,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn number_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_number_bytes_limit(limit);
         self
@@ -129,7 +127,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn payload_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_payload_bytes_limit(limit);
         self
@@ -149,7 +146,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn structure_limits<S>(mut self, limits: S) -> Self
     where
         S: Into<StructureLimits<R, Q>>,
@@ -196,7 +192,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_depth(mut self, maximum: Q) -> Self {
         let structure = self
             .limits
@@ -218,7 +213,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_nodes(mut self, maximum: Q) -> Self {
         let structure = self
             .limits
@@ -240,7 +234,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_sequence_items(mut self, maximum: Q) -> Self {
         let structure = self
             .limits
@@ -262,7 +255,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_map_entries(mut self, maximum: Q) -> Self {
         let structure = self
             .limits
@@ -284,7 +276,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_key_bytes(mut self, maximum: Q) -> Self {
         let structure = self
             .limits
@@ -306,7 +297,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_string_bytes(mut self, maximum: Q) -> Self {
         self.limits
             .set_string_bytes_limit(ResourceLimit::new(JsonResource::StringBytes, maximum));
@@ -323,7 +313,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_number_bytes(mut self, maximum: Q) -> Self {
         self.limits
             .set_number_bytes_limit(ResourceLimit::new(JsonResource::NumberBytes, maximum));
@@ -340,7 +329,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn max_payload_bytes(mut self, maximum: Q) -> Self {
         self.limits
             .set_payload_bytes_limit(ResourceLimit::new(JsonResource::PayloadBytes, maximum));

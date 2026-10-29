@@ -91,7 +91,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a session borrowing only a caller-owned value budget.
+    /// A session with unconfigured input budgets and exclusive access to the
+    /// supplied value budget.
     #[inline]
     #[must_use]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
@@ -115,7 +116,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a session borrowing caller-owned raw-input and value budgets.
+    /// A session with raw-input accounting enabled and normalized-input
+    /// accounting unconfigured.
     #[inline]
     #[must_use]
     pub fn borrowing_input(input: &'a mut ResourceBudget<R, Q>, value: &'a mut JsonValueBudget<R, Q>) -> Self {
@@ -196,7 +198,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a session borrowing all caller-owned decode budgets.
+    /// A session with both input dimensions configured and exclusive access to
+    /// all three supplied budgets.
     #[inline]
     #[must_use]
     pub fn borrowing_all(
@@ -225,8 +228,8 @@ where
     ///
     /// # Returns
     ///
-    /// A session owning its budgets and retaining the limits' resource
-    /// identities.
+    /// A session that owns each configured input budget and its value budget;
+    /// resource identities retain the limits' lifetime.
     #[inline]
     #[must_use]
     pub fn from_limits(limits: JsonDecodeLimits<R, Q>) -> Self {
@@ -254,7 +257,8 @@ where
     ///
     /// # Returns
     ///
-    /// Starts accounting for one complete JSON value.
+    /// An attempt borrowing this session's configured input budgets and a
+    /// transaction over its value budget.
     #[must_use]
     pub fn begin_value(&mut self) -> JsonDecodeAttempt<'_, R, Q> {
         let (input, normalized_input, value) = self.storage.split();
@@ -265,10 +269,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the raw input budget when configured.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` borrows the configured budget; `None` means raw-input accounting
+    /// is unconfigured.
     #[inline]
     pub fn input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
@@ -281,10 +283,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured raw input-byte maximum.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` contains the configured maximum; `None` means raw-input
+    /// accounting is unconfigured.
     #[inline]
     pub fn max_input_bytes(&self) -> Option<Q> {
         self.input_budget().map(ResourceBudget::limit)
@@ -294,10 +294,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured normalized input-byte maximum.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` contains the configured maximum; `None` means normalized-input
+    /// accounting is unconfigured.
     #[inline]
     pub fn max_normalized_input_bytes(&self) -> Option<Q> {
         self.normalized_input_budget().map(ResourceBudget::limit)
@@ -307,10 +305,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the normalized input budget when configured.
-    ///
-    /// `None` indicates that the corresponding limit or budget dimension is
-    /// unconfigured.
+    /// `Some` borrows the configured budget; `None` means normalized-input
+    /// accounting is unconfigured.
     #[inline]
     pub fn normalized_input_budget(&self) -> Option<&ResourceBudget<R, Q>> {
         match &self.storage {
@@ -323,7 +319,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the value budget for read-only inspection.
+    /// An immutable view of the committed value accounting, including updates
+    /// published by successful attempts.
     #[must_use]
     #[inline]
     pub fn value_budget(&self) -> &JsonValueBudget<R, Q> {

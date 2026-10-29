@@ -27,7 +27,6 @@ fn test_quantity_measurement_formats_each_native_variant() {
 #[test]
 fn test_lower_bound_measurement_is_explicit_and_converts() {
     let measurement = QuantityMeasurement::AtLeastU64(4097);
-    assert_eq!(measurement, QuantityMeasurement::AtLeastU64(4097));
     assert_eq!(measurement.to_string(), "at least 4097");
 
     let error = QuantityConversionError::new(measurement, "u8");

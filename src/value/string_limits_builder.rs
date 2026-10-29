@@ -29,6 +29,7 @@ use crate::resource::ResourceQuantity;
 ///     .build();
 /// assert_eq!(limits.utf8_bytes_limit().unwrap().maximum(), 4);
 /// ```
+#[must_use = "the string limits builder should be used"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StringLimitsBuilder<R, Q = u64>
 where
@@ -63,7 +64,6 @@ where
     ///
     /// A builder with no configured UTF-8 byte limit.
     #[inline]
-    #[must_use]
     pub const fn new() -> Self {
         Self {
             limits: StringLimits::new(),
@@ -81,7 +81,6 @@ where
     ///
     /// A builder containing the supplied limits configuration.
     #[inline]
-    #[must_use]
     pub(crate) const fn from_limits(limits: StringLimits<R, Q>) -> Self {
         Self { limits }
     }
@@ -96,7 +95,6 @@ where
     ///
     /// The builder with the described setting applied.
     #[inline]
-    #[must_use]
     pub fn utf8_bytes_limit(mut self, limit: ResourceLimit<R, Q>) -> Self {
         self.limits.set_utf8_bytes_limit(limit);
         self

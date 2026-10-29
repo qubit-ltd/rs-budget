@@ -91,12 +91,12 @@ where
     ///
     /// # Parameters
     ///
-    /// * `limits` - Existing structural limits whose configuration is copied
+    /// * `limits` - Existing structural limits whose configuration is moved
     ///   into this builder.
     ///
     /// # Returns
     ///
-    /// The returned builder starts with the copied configuration, so later
+    /// The returned builder starts with the supplied configuration, so later
     /// builder calls can replace individual limits while retaining the rest.
     #[inline]
     #[must_use]

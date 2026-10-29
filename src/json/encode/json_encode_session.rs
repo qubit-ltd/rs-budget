@@ -90,7 +90,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a session borrowing only a caller-owned value budget.
+    /// A session that borrows `value` and stages its accounting until an
+    /// encode attempt commits.
     #[inline]
     #[must_use]
     pub fn borrowing_value(value: &'a mut JsonValueBudget<R, Q>) -> Self {
@@ -109,7 +110,8 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a session borrowing caller-owned output and value budgets.
+    /// A session that charges accepted output through `output` immediately
+    /// and stages value accounting through `value` until commit.
     #[inline]
     #[must_use]
     pub fn borrowing_output(output: &'a mut ResourceBudget<R, Q>, value: &'a mut JsonValueBudget<R, Q>) -> Self {
@@ -154,7 +156,8 @@ where
     ///
     /// # Returns
     ///
-    /// Starts accounting for one complete JSON value.
+    /// An attempt that charges accepted output immediately and stages value
+    /// accounting until [`JsonEncodeAttempt::commit`] succeeds.
     #[must_use]
     pub fn begin_value(&mut self) -> JsonEncodeAttempt<'_, R, Q> {
         let (output, value) = self.storage.split();

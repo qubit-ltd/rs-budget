@@ -53,7 +53,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates limits with no configured decimal bounds.
+    /// A limit configuration with neither coefficient nor scale bounds set.
     #[inline]
     #[must_use = "the decimal limits must be used"]
     pub const fn new() -> Self {
@@ -67,7 +67,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates a builder for decimal limits.
+    /// A builder with neither coefficient nor scale bounds configured.
     #[inline]
     #[must_use]
     pub const fn builder() -> BigDecimalLimitsBuilder<R, Q> {
@@ -78,7 +78,7 @@ where
     ///
     /// # Returns
     ///
-    /// Converts these limits into a builder for further configuration.
+    /// A builder initialized with this value's coefficient and scale bounds.
     #[inline]
     #[must_use]
     pub const fn into_builder(self) -> BigDecimalLimitsBuilder<R, Q> {
@@ -89,7 +89,7 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the coefficient limits.
+    /// The configured coefficient bounds, borrowed for the lifetime of `self`.
     #[must_use]
     #[inline]
     pub const fn coefficient_limits(&self) -> &BigIntegerLimits<R, Q> {
@@ -100,11 +100,11 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the configured scale-magnitude limit, if any.
+    /// The inclusive absolute scale bound, or `None` when scale is
+    /// unrestricted.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
-    #[must_use]
     #[inline]
     pub const fn scale_magnitude_limit(&self) -> Option<&ResourceLimit<R, Q>> {
         self.max_scale_magnitude.as_ref()
@@ -126,7 +126,6 @@ where
     /// Returns [`MeasuredBudgetError`] when a native measurement cannot fit `Q`
     /// or a configured limit rejects it.
     #[inline]
-    #[must_use = "the decimal limit check result must be handled"]
     pub fn check(&self, value: &BigDecimal) -> Result<(), MeasuredBudgetError<R, Q>>
     where
         R: Clone,
@@ -172,7 +171,7 @@ where
     ///
     /// # Returns
     ///
-    /// Creates unconfigured decimal limits.
+    /// A configuration with neither coefficient nor scale bounds set.
     #[inline]
     fn default() -> Self {
         Self::new()

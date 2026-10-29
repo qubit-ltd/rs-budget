@@ -101,7 +101,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the associated resource.
+    /// Borrows the resource identity used in budget errors without allowing
+    /// callers to change the pool's configured resource.
     #[must_use]
     #[inline]
     pub const fn resource(&self) -> &R {
@@ -112,7 +113,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the immutable resource limit that configures this pool.
+    /// Borrows the configured resource and total capacity without exposing
+    /// mutable access to either value.
     #[must_use]
     #[inline]
     pub const fn resource_limit(&self) -> &ResourceLimit<R, Q> {
@@ -123,7 +125,7 @@ where
     ///
     /// # Returns
     ///
-    /// Returns the total finite capacity.
+    /// The maximum amount this pool can hold, independent of current usage.
     #[must_use]
     #[inline]
     pub const fn capacity(&self) -> Q {
@@ -134,7 +136,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns currently available capacity.
+    /// The amount that can be acquired immediately without exceeding the
+    /// configured capacity.
     #[must_use]
     #[inline]
     pub const fn available(&self) -> Q {
@@ -145,7 +148,8 @@ where
     ///
     /// # Returns
     ///
-    /// Returns currently acquired capacity.
+    /// The amount currently unavailable because it has been acquired from the
+    /// pool.
     #[inline]
     #[must_use]
     pub fn in_use(&self) -> Q {
