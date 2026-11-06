@@ -14,6 +14,12 @@ use crate::resource::ResourceLimit;
 use crate::resource::ResourceQuantity;
 
 /// Stores one finite limit and its synchronized available capacity.
+///
+/// # Type Parameters
+///
+/// * `R` - Resource identity retained by the immutable limit.
+/// * `Q` - Exact quantity used for capacity accounting; it must implement
+///   [`ResourceQuantity`].
 #[derive(Debug)]
 pub(in crate::resource::budget) struct ManagedResourcePoolInner<R, Q>
 where

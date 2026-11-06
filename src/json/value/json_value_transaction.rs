@@ -329,6 +329,10 @@ where
     /// Converts a native measurement, checks its point limit, then verifies
     /// its cumulative cost against the current working state without mutating
     /// that state.
+    ///
+    /// # Parameters
+    ///
+    /// * `measurement` - Native JSON measurement to convert and check.
     fn prepare_admission(
         &self,
         measurement: JsonMeasurement,

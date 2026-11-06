@@ -173,6 +173,19 @@ macro_rules! impl_resource_quantity {
 impl_resource_quantity!(u8, u16, u32, u64, u128, usize);
 
 /// Widens one supported resource quantity without losing information.
+///
+/// # Type Parameters
+///
+/// * `Q` - Supported unsigned quantity type whose value is widened.
+///
+/// # Parameters
+///
+/// * `value` - Quantity to convert without truncation.
+///
+/// # Returns
+///
+/// The same non-negative quantity represented as `u128`.
+#[must_use]
 #[inline]
 #[cfg(feature = "big-integer")]
 pub(crate) fn quantity_as_u128<Q: ResourceQuantity>(value: Q) -> u128 {

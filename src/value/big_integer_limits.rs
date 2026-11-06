@@ -149,6 +149,11 @@ where
     /// decimal digit callback is evaluated only when the bit-length estimate
     /// cannot determine the result.
     ///
+    /// # Type Parameters
+    ///
+    /// * `F` - One-shot callback that computes the exact decimal digit count
+    ///   only when the magnitude estimate is inconclusive.
+    ///
     /// # Parameters
     ///
     /// * `magnitude_bits` - Unsigned bit length of the integer magnitude.

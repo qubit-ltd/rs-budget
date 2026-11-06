@@ -51,6 +51,15 @@ where
     Q: ResourceQuantity,
 {
     /// Creates a permit for capacity already deducted from `inner`.
+    ///
+    /// # Parameters
+    ///
+    /// * `inner` - Pool state from which `amount` has already been deducted.
+    /// * `amount` - Capacity this permit returns to the pool when released.
+    ///
+    /// # Returns
+    ///
+    /// A permit owning `amount` units of the pool's capacity.
     #[inline]
     pub(super) fn new(inner: Arc<ManagedResourcePoolInner<R, Q>>, amount: Q) -> Self {
         Self {
