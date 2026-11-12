@@ -46,6 +46,36 @@ use crate::resource::ResourceQuantity;
 /// assert_eq!(budget.used_nodes(), Some(1));
 /// # Ok(()) }
 /// ```
+///
+/// Usage queries include previously committed usage as well as admissions
+/// staged by the current transaction. Dropping a transaction discards only
+/// its staged admissions:
+///
+/// ```
+/// use qubit_budget::json::JsonMeasurement;
+/// use qubit_budget::json::JsonResource;
+/// use qubit_budget::json::JsonValueLimits;
+///
+/// let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+///     .max_nodes(8)
+///     .max_payload_bytes(16)
+///     .build()
+///     .budget();
+/// {
+///     let mut transaction = budget.transaction();
+///     transaction.try_admit(JsonMeasurement::String { depth: 1, bytes: 2 })
+///         .expect("first string should fit");
+///     transaction.commit().expect("first transaction should commit");
+/// }
+/// {
+///     let mut transaction = budget.transaction();
+///     assert_eq!((transaction.used_nodes(), transaction.used_payload_bytes()), (Some(1), Some(2)));
+///     transaction.try_admit(JsonMeasurement::String { depth: 1, bytes: 3 })
+///         .expect("second string should fit");
+///     assert_eq!((transaction.used_nodes(), transaction.used_payload_bytes()), (Some(2), Some(5)));
+/// }
+/// assert_eq!((budget.used_nodes(), budget.used_payload_bytes()), (Some(1), Some(2)));
+/// ```
 pub struct JsonValueTransaction<'a, R, Q>
 where
     Q: ResourceQuantity,
@@ -251,11 +281,13 @@ where
         Ok(())
     }
 
-    /// Returns the number of nodes staged by this transaction.
+    /// Returns total node usage, including previously committed usage and
+    /// successful admissions staged by this transaction. This is not the
+    /// usage delta of the current transaction.
     ///
     /// # Returns
     ///
-    /// `Some` contains staged node usage when the cumulative node limit is
+    /// `Some` contains total node usage when the cumulative node limit is
     /// configured; `None` means node accounting is not configured.
     #[inline]
     pub fn used_nodes(&self) -> Option<Q> {
@@ -277,13 +309,14 @@ where
         self.working.remaining_nodes()
     }
 
-    /// Returns the payload bytes consumed by this transaction's staged
-    /// admissions.
+    /// Returns total payload-byte usage, including previously committed usage
+    /// and successful admissions staged by this transaction. This is not the
+    /// usage delta of the current transaction.
     ///
     /// # Returns
     ///
-    /// `Some` contains staged payload usage when the cumulative payload limit
-    /// is configured; `None` means payload accounting is not configured.
+    /// `Some` contains total payload-byte usage when the cumulative payload
+    /// limit is configured; `None` means payload accounting is not configured.
     #[inline]
     pub fn used_payload_bytes(&self) -> Option<Q> {
         self.working

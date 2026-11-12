@@ -55,3 +55,31 @@ fn test_decode_attempt_can_consume_input_bytes() {
         2
     );
 }
+
+/// Verifies attempts forward cumulative value usage and drop only new staging.
+#[test]
+fn test_decode_attempt_usage_includes_committed_value_state() {
+    let mut session = JsonDecodeSession::from_limits(
+        JsonDecodeLimits::<JsonResource, usize>::builder()
+            .max_nodes(8)
+            .max_payload_bytes(16)
+            .build(),
+    );
+    {
+        let mut attempt = session.begin_value();
+        attempt
+            .try_admit(JsonMeasurement::String { depth: 1, bytes: 2 })
+            .expect("first string admission fits");
+        attempt.commit().expect("first attempt commits");
+    }
+    {
+        let mut attempt = session.begin_value();
+        assert_eq!((attempt.used_nodes(), attempt.used_payload_bytes()), (Some(1), Some(2)));
+        attempt
+            .try_admit(JsonMeasurement::String { depth: 1, bytes: 3 })
+            .expect("second string admission fits");
+        assert_eq!((attempt.used_nodes(), attempt.used_payload_bytes()), (Some(2), Some(5)));
+    }
+    assert_eq!(session.value_budget().used_nodes(), Some(1));
+    assert_eq!(session.value_budget().used_payload_bytes(), Some(2));
+}

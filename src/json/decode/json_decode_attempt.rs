@@ -176,7 +176,9 @@ where
         self.normalized_input.as_deref()
     }
 
-    /// Returns staged node usage when the node limit is configured.
+    /// Returns total node usage, including previously committed usage and
+    /// successful admissions staged by this attempt. This is not the usage
+    /// delta of the current attempt.
     ///
     /// # Returns
     ///
@@ -200,7 +202,9 @@ where
         self.value.remaining_nodes()
     }
 
-    /// Returns staged payload usage when the payload limit is configured.
+    /// Returns total payload-byte usage, including previously committed usage
+    /// and successful admissions staged by this attempt. This is not the
+    /// usage delta of the current attempt.
     ///
     /// # Returns
     ///

@@ -44,6 +44,46 @@ fn test_value_transaction_commit_publishes_usage() {
     assert_eq!(budget.used_nodes(), Some(1));
 }
 
+/// Verifies usage queries include committed and current staged admissions.
+#[test]
+fn test_usage_includes_committed_and_current_transaction() {
+    let mut budget = JsonValueLimits::<JsonResource, usize>::builder()
+        .max_nodes(8)
+        .max_payload_bytes(16)
+        .build()
+        .budget();
+    {
+        let mut transaction = budget.transaction();
+        transaction
+            .try_admit(JsonMeasurement::String { depth: 1, bytes: 2 })
+            .expect("first string admission fits");
+        transaction.commit().expect("first transaction commits");
+    }
+    {
+        let mut transaction = budget.transaction();
+        assert_eq!(
+            (transaction.used_nodes(), transaction.used_payload_bytes()),
+            (Some(1), Some(2))
+        );
+        transaction
+            .try_admit(JsonMeasurement::String { depth: 1, bytes: 3 })
+            .expect("second string admission fits");
+        assert_eq!(
+            (transaction.used_nodes(), transaction.used_payload_bytes()),
+            (Some(2), Some(5))
+        );
+    }
+    assert_eq!((budget.used_nodes(), budget.used_payload_bytes()), (Some(1), Some(2)));
+    {
+        let mut transaction = budget.transaction();
+        transaction
+            .try_admit(JsonMeasurement::String { depth: 1, bytes: 3 })
+            .expect("second string admission fits after rollback");
+        transaction.commit().expect("second transaction commits");
+    }
+    assert_eq!((budget.used_nodes(), budget.used_payload_bytes()), (Some(2), Some(5)));
+}
+
 /// Verifies prospective container checks retain transaction accounting.
 #[test]
 fn test_check_container_count_rejects_next_item_without_mutation() {

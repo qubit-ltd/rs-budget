@@ -186,7 +186,7 @@ where
     ///
     /// # Returns
     ///
-    /// The node count including successful admissions staged by this attempt.
+    /// The total node count, including committed and staged admissions.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
@@ -212,8 +212,8 @@ where
     ///
     /// # Returns
     ///
-    /// The payload-byte count including successful admissions staged by this
-    /// attempt.
+    /// The total payload-byte count, including committed and staged
+    /// admissions.
     ///
     /// `None` indicates that the corresponding limit or budget dimension is
     /// unconfigured.
