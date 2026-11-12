@@ -9,7 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "^0.4"
-qubit-budget = { path = "..", features = ["json"] }
+qubit-budget = { path = "../", features = ["json"] , version = "^0.10" }
 
 [[bin]]
 name = "resource_budget_invariants"

@@ -32,9 +32,9 @@ dependencies = [
 
 [[package]]
 name = "bit-vec"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5727b15fa97d4f4fee0a3b7c3d550ed0269f54329207b86388de918604e31269"
+checksum = "72503af1e72be411d74ca45cd6b309878fcb35354e252fc2a3a8bda3a97082a0"
 dependencies = [
  "borsh",
  "serde",
@@ -268,7 +268,7 @@ dependencies = [
 
 [[package]]
 name = "qubit-budget"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "bigdecimal",
  "num-bigint",
@@ -280,9 +280,9 @@ dependencies = [
 
 [[package]]
 name = "qubit-clock"
-version = "0.13.4"
+version = "0.13.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db8c595aaaff328771103f3efa10a142ef78720a06567e7c6d3ed53f2cfbb4ca"
+checksum = "bd0b8b77730b8c3ca744d8f4fd0e9b6d5d80755d1711f8df2a2ac950a722f3f4"
 dependencies = [
  "qubit-collections",
  "thiserror",
@@ -290,9 +290,9 @@ dependencies = [
 
 [[package]]
 name = "qubit-collections"
-version = "0.2.3"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b35d268dde323d67cc884be0e986bdf1786766f3eb7fb7323d6636cbd632a901"
+checksum = "2c9a09506a51e914b26b5bf9407ef5df62e67f709458fca64ad04dc0bd943622"
 dependencies = [
  "hashbrown",
 ]
@@ -406,9 +406,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.9"
+version = "3.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d78c8dee4c7bf0e14673097256fed6142ce9d3b85a408189d07482442145823b"
+checksum = "4ae9ccbea3a7b0b09443036490c8f34a8b1b760fd345e5c0dae0aac718faea79"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -450,18 +450,18 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "1.1.2+spec-1.1.0"
+version = "1.1.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b86d767906c6c42421dcba507eb9d203e779497710a47782a224bb871653053"
+checksum = "173f25c883cd2176a2d8212155638c0a60d484a9d84546d270866f40f56b6e49"
 dependencies = [
  "serde_core",
 ]
 
 [[package]]
 name = "toml_edit"
-version = "0.25.18+spec-1.1.0"
+version = "0.25.19+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ec6e78bd70db9420d8d212fa9dc97f116448a1ceff5d00eabb991d407e21396"
+checksum = "dd43688c4858d7264ae1cf9a9f874a67c3feb74a883b1cd7bebd6a4ea8307218"
 dependencies = [
  "indexmap",
  "toml_datetime",
